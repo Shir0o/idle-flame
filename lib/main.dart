@@ -1,13 +1,13 @@
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
-import 'package:flame/input.dart';
+import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 
 void main() {
   runApp(GameWidget(game: MyGame()));
 }
 
-class MyGame extends FlameGame with TapDetector {
+class MyGame extends FlameGame with TapCallbacks {
   late Player player;
 
   @override
@@ -17,8 +17,8 @@ class MyGame extends FlameGame with TapDetector {
   }
 
   @override
-  void onTapDown(TapDownInfo info) {
-    player.position = info.eventPosition.global;
+  void onTapDown(TapDownEvent event) {
+    player.position = event.canvasPosition;
   }
 }
 
