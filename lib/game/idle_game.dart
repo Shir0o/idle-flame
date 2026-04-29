@@ -16,11 +16,7 @@ class IdleGame extends FlameGame {
   @override
   Color backgroundColor() {
     final t = ((state.floor - 1) * 0.05).clamp(0.0, 0.7);
-    return Color.lerp(
-      const Color(0xFF0D0D1A),
-      const Color(0xFF35103F),
-      t,
-    )!;
+    return Color.lerp(const Color(0xFF050816), const Color(0xFF26004D), t)!;
   }
 
   @override

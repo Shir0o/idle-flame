@@ -15,6 +15,7 @@ class EnemySpawner extends Component with HasGameReference<IdleGame> {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp) return;
     _timer += dt;
     if (_timer >= _spawnInterval) {
       _timer = 0;
@@ -24,21 +25,7 @@ class EnemySpawner extends Component with HasGameReference<IdleGame> {
 
   void _spawn() {
     final size = game.size;
-    final edge = _rng.nextInt(4);
-    late Vector2 pos;
-    switch (edge) {
-      case 0:
-        pos = Vector2(_rng.nextDouble() * size.x, -_offscreenPad);
-        break;
-      case 1:
-        pos = Vector2(size.x + _offscreenPad, _rng.nextDouble() * size.y);
-        break;
-      case 2:
-        pos = Vector2(_rng.nextDouble() * size.x, size.y + _offscreenPad);
-        break;
-      default:
-        pos = Vector2(-_offscreenPad, _rng.nextDouble() * size.y);
-    }
+    final pos = Vector2(_rng.nextDouble() * size.x, -_offscreenPad);
     parent?.add(Enemy(position: pos, maxHp: game.state.enemyMaxHp));
   }
 }
