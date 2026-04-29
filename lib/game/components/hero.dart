@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../idle_game.dart';
 import '../state/game_state.dart';
+import 'combat_effects.dart';
 import 'enemy.dart';
 
 class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
@@ -69,11 +70,24 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
         return aDist.compareTo(bDist);
       });
     for (final enemy in targets.take(game.state.emberTargets)) {
+      parent?.add(
+        SlashArcEffect(
+          from: position.clone(),
+          to: enemy.position.clone(),
+          color: const Color(0xFF00E5FF),
+        ),
+      );
       enemy.takeDamage(game.state.heroDamage);
     }
   }
 
   void _castFlameNova() {
+    parent?.add(
+      NovaPulseEffect(
+        effectCenter: position.clone(),
+        radius: game.state.flameNovaRadius,
+      ),
+    );
     for (final enemy in _enemiesInRange(game.state.flameNovaRadius)) {
       enemy.takeDamage(game.state.flameNovaDamage);
     }
@@ -82,6 +96,12 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
   void _castFirewall() {
     final wallY = position.y - 165;
     final halfWidth = game.state.firewallWidth / 2;
+    parent?.add(
+      FirewallEffect(
+        effectCenter: Vector2(position.x, wallY),
+        effectWidth: game.state.firewallWidth,
+      ),
+    );
     final enemies = _aliveEnemies().where((enemy) {
       final insideWidth = (enemy.position.x - position.x).abs() <= halfWidth;
       final nearWall = (enemy.position.y - wallY).abs() <= 28;
@@ -99,6 +119,9 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
     final target = enemies.first;
     final blastRadius = game.state.meteorMarkRadius;
     final blastRadiusSquared = blastRadius * blastRadius;
+    parent?.add(
+      MeteorImpactEffect(target: target.position.clone(), radius: blastRadius),
+    );
     for (final enemy in enemies) {
       final inBlast =
           (enemy.position - target.position).length2 <= blastRadiusSquared;

@@ -9,15 +9,27 @@ import 'skill_catalog.dart';
 class SkillChoice {
   const SkillChoice({
     required this.definition,
+    required this.currentLevel,
     required this.level,
     required this.maxLevel,
     required this.description,
   });
 
   final SkillDefinition definition;
+  final int currentLevel;
   final int level;
   final int maxLevel;
   final String description;
+
+  bool get isNew => currentLevel == 0;
+
+  String get tierLabel {
+    return switch (level) {
+      1 || 3 => 'Stat / Range',
+      2 || 4 => 'Special',
+      _ => 'Ascendant',
+    };
+  }
 }
 
 class GameState extends ChangeNotifier {
@@ -183,9 +195,11 @@ class GameState extends ChangeNotifier {
   SkillChoice? _choiceFor(String id) {
     final definition = _skillById(id);
     if (definition == null) return null;
-    final nextLevel = skillLevel(id) + 1;
+    final currentLevel = skillLevel(id);
+    final nextLevel = currentLevel + 1;
     return SkillChoice(
       definition: definition,
+      currentLevel: currentLevel,
       level: nextLevel,
       maxLevel: SkillDefinition.maxLevel,
       description: definition.descriptionForLevel(nextLevel),
