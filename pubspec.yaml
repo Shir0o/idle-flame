@@ -1,5 +1,5 @@
 name: flame_game
-description: "A new Flutter project."
+description: "Idle Flame — auto-RPG dungeon descender."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -10,6 +10,8 @@ dependencies:
   flame: ^1.37.0
   flutter:
     sdk: flutter
+  provider: ^6.1.5
+  shared_preferences: ^2.5.0
 
 dev_dependencies:
   flutter_test:
@@ -18,5 +20,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/images/fortress/rotations/
