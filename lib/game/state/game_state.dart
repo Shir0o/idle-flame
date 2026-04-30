@@ -67,12 +67,15 @@ class GameState extends ChangeNotifier {
       baseAttacksPerSec * (1 + _archetypeLevel(SkillArchetype.barrage) * 0.06);
   double get heroAttackRange => double.infinity;
   int get emberTargets =>
-      (1 + (_archetypeLevel(SkillArchetype.chain) / 2).floor()).clamp(1, 8);
+      (1 + _archetypeLevel(SkillArchetype.chain)).clamp(1, 10);
   int get barrageLevel => _archetypeLevel(SkillArchetype.barrage);
   int get focusLevel => _archetypeLevel(SkillArchetype.focus);
   int get bountyLevel => _archetypeLevel(SkillArchetype.bounty);
   int get frostLevel => _archetypeLevel(SkillArchetype.frost);
   int get ruptureLevel => _archetypeLevel(SkillArchetype.rupture);
+  int get sentinelLevel => _archetypeLevel(SkillArchetype.sentinel);
+  int get sentinelCount => sentinelLevel == 0 ? 0 : (1 + (sentinelLevel / 3).floor()).clamp(0, 8);
+  double get sentinelDamage => heroDamage * (0.35 + sentinelLevel * 0.08);
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
   double get flameNovaRadius => 90 + flameNovaLevel * 10;
   double get flameNovaDamage => heroDamage * (1 + flameNovaLevel * 0.18);

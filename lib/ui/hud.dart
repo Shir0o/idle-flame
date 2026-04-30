@@ -471,6 +471,7 @@ class _ChoiceCard extends StatelessWidget {
       SkillArchetype.bounty => const Color(0xFFFFD54F),
       SkillArchetype.frost => const Color(0xFF80DEEA),
       SkillArchetype.rupture => const Color(0xFFFF5252),
+      SkillArchetype.sentinel => const Color(0xFFE1F5FE),
     };
   }
 
@@ -485,6 +486,7 @@ class _ChoiceCard extends StatelessWidget {
       SkillArchetype.bounty => Icons.paid,
       SkillArchetype.frost => Icons.ac_unit,
       SkillArchetype.rupture => Icons.flash_on,
+      SkillArchetype.sentinel => Icons.navigation,
     };
   }
 
@@ -507,6 +509,7 @@ class _ChoiceCard extends StatelessWidget {
       SkillArchetype.bounty => 'Bounty',
       SkillArchetype.frost => 'Frost',
       SkillArchetype.rupture => 'Rupture',
+      SkillArchetype.sentinel => 'Sentinel',
     };
   }
 }

@@ -8,6 +8,7 @@ enum SkillArchetype {
   bounty,
   frost,
   rupture,
+  sentinel,
 }
 
 class SkillDefinition {
@@ -87,6 +88,13 @@ class SkillDefinition {
         3 => 'Stat: execute pressure increases.',
         4 => 'Special: finishers stabilize crowded breach points.',
         _ => 'Big upgrade: hexed enemies collapse under final cuts.',
+      },
+      SkillArchetype.sentinel => switch (level) {
+        1 => 'Stat: summon an auto-seeking ghost blade.',
+        2 => 'Special: blades prioritize enemies near the nexus.',
+        3 => 'Stat: additional blades join the orbital swarm.',
+        4 => 'Special: blades strike with increased impact force.',
+        _ => 'Big upgrade: the swarm becomes a literal cloud of steel.',
       },
     };
   }
@@ -200,6 +208,18 @@ final List<SkillDefinition> skillCatalog = List.unmodifiable([
     'Shatter Seal',
     'Execution Rune',
     'Last Light Sever',
+  ]),
+  ..._skills(SkillArchetype.sentinel, [
+    'Ghost Blade Sentinel',
+    'Spirit Needle Drone',
+    'Void Dagger Swarm',
+    'Phase Kunai Orbit',
+    'Astral Stiletto',
+    'Neon Shard Seeker',
+    'Chrome Talon Dart',
+    'Mana Dart Volley',
+    'Echo Blade Phantom',
+    'Spectral Spike Array',
   ]),
 ]);
 

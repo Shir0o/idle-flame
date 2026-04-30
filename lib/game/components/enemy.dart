@@ -168,10 +168,10 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
         flashColor: Colors.white,
         textScale: 1,
         flashDuration: 0.08,
-        knockback: 34,
+        knockback: 120,
         sparkCount: 7,
         sparkSpread: 0.95,
-        sparkSpeed: 145,
+        sparkSpeed: 160,
       ),
       DamageType.nova => const _DamageVisual(
         textColor: Color(0xFFFF77C8),

@@ -26,9 +26,10 @@ class GameAudio {
   double _hitCooldown = 0;
   double _deathCooldown = 0;
   double _skillDamageCooldown = 0;
+  double _attackCooldown = 0;
 
   static const _hit = 'hit.mp3';
-  static const _basicAttack = 'basic_attack.mp3';
+  static const _basicAttack = 'basic_attack_v2.mp3';
   static const _skill = 'skill.mp3';
   static const _enemyDeath = 'enemy_death.mp3';
   static const _skillFiles = <SkillSound, String>{
@@ -55,22 +56,22 @@ class GameAudio {
 
     _pools[_hit] = await FlameAudio.createPool(
       _hit,
-      minPlayers: 1,
+      minPlayers: 0,
       maxPlayers: 4,
     );
     _pools[_basicAttack] = await FlameAudio.createPool(
       _basicAttack,
-      minPlayers: 1,
-      maxPlayers: 4,
+      minPlayers: 0,
+      maxPlayers: 6,
     );
     _pools[_skill] = await FlameAudio.createPool(
       _skill,
-      minPlayers: 1,
+      minPlayers: 0,
       maxPlayers: 3,
     );
     _pools[_enemyDeath] = await FlameAudio.createPool(
       _enemyDeath,
-      minPlayers: 1,
+      minPlayers: 0,
       maxPlayers: 3,
     );
 
@@ -87,6 +88,7 @@ class GameAudio {
     _hitCooldown = math.max(0, _hitCooldown - dt);
     _deathCooldown = math.max(0, _deathCooldown - dt);
     _skillDamageCooldown = math.max(0, _skillDamageCooldown - dt);
+    _attackCooldown = math.max(0, _attackCooldown - dt);
   }
 
   void playHit() {
@@ -96,7 +98,9 @@ class GameAudio {
   }
 
   void playBasicAttack() {
-    _playPool(_pools[_basicAttack], volume: 0.4);
+    if (_attackCooldown > 0) return;
+    _attackCooldown = 0.1;
+    _playPool(_pools[_basicAttack], volume: 0.65);
   }
 
   void playSkillCast() {

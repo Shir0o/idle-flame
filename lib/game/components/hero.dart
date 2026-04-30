@@ -5,6 +5,7 @@ import '../idle_game.dart';
 import '../state/game_state.dart';
 import 'combat_effects.dart';
 import 'enemy.dart';
+import 'sentinel_blade.dart';
 
 class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
   HeroComponent()
@@ -21,6 +22,7 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
   double _frostFieldTimer = 0;
   double _pulseTimer = 0;
   double _pulseDuration = 0.18;
+  final List<SentinelBlade> _sentinelBlades = [];
 
   @override
   void onMount() {
@@ -44,6 +46,8 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
       if (_pulseTimer <= 0) scale = Vector2.all(1);
     }
     if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
+
+    _updateSentinelBlades();
 
     final period = 1.0 / game.state.heroAttacksPerSec;
     _attackTimer += dt;
@@ -81,6 +85,20 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
     }
   }
 
+  void _updateSentinelBlades() {
+    final targetCount = game.state.sentinelCount;
+    while (_sentinelBlades.length < targetCount) {
+      final blade = SentinelBlade(orbitIndex: _sentinelBlades.length);
+      blade.position = position.clone();
+      _sentinelBlades.add(blade);
+      parent?.add(blade);
+    }
+    while (_sentinelBlades.length > targetCount) {
+      final blade = _sentinelBlades.removeLast();
+      blade.removeFromParent();
+    }
+  }
+
   void resetForNewRun() {
     _attackTimer = 0;
     _novaTimer = 0;
@@ -90,6 +108,10 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
     _pulseTimer = 0;
     _pulseDuration = 0.18;
     scale = Vector2.all(1);
+    for (final blade in _sentinelBlades) {
+      blade.removeFromParent();
+    }
+    _sentinelBlades.clear();
     _placeAtBottom(game.size);
   }
 
