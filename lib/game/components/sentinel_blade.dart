@@ -33,6 +33,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
       removeFromParent();
       return;
     }
+    if (game.state.hasPendingLevelUp) return;
 
     final heroPos = game.hero.position;
     _attackTimer = math.max(0, _attackTimer - dt);

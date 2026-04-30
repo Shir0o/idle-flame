@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-class HitSparkEffect extends PositionComponent {
+import '../idle_game.dart';
+
+class HitSparkEffect extends PositionComponent with HasGameReference<IdleGame> {
   HitSparkEffect({
     required this.effectCenter,
     required this.direction,
@@ -45,6 +47,7 @@ class HitSparkEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }
@@ -94,7 +97,7 @@ class HitSparkEffect extends PositionComponent {
   }
 }
 
-class DeathBurstEffect extends PositionComponent {
+class DeathBurstEffect extends PositionComponent with HasGameReference<IdleGame> {
   DeathBurstEffect({
     required this.effectCenter,
     this.color = const Color(0xFFFF2D95),
@@ -123,6 +126,7 @@ class DeathBurstEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }
@@ -173,7 +177,7 @@ class DeathBurstEffect extends PositionComponent {
   }
 }
 
-class CoinBurstEffect extends PositionComponent {
+class CoinBurstEffect extends PositionComponent with HasGameReference<IdleGame> {
   CoinBurstEffect({required this.effectCenter})
     : _particles = _buildParticles(),
       super(priority: 88);
@@ -199,6 +203,7 @@ class CoinBurstEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }
@@ -228,7 +233,7 @@ class CoinBurstEffect extends PositionComponent {
   }
 }
 
-class SlashArcEffect extends PositionComponent {
+class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
   SlashArcEffect({
     required this.from,
     required this.to,
@@ -246,6 +251,7 @@ class SlashArcEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }
@@ -292,7 +298,7 @@ class SlashArcEffect extends PositionComponent {
   }
 }
 
-class BarrageStreakEffect extends PositionComponent {
+class BarrageStreakEffect extends PositionComponent with HasGameReference<IdleGame> {
   BarrageStreakEffect({
     required this.effectCenter,
     this.color = const Color(0xFF64FFDA),
@@ -306,6 +312,7 @@ class BarrageStreakEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }
@@ -343,7 +350,7 @@ class BarrageStreakEffect extends PositionComponent {
   }
 }
 
-class FocusStrikeEffect extends PositionComponent {
+class FocusStrikeEffect extends PositionComponent with HasGameReference<IdleGame> {
   FocusStrikeEffect({
     required this.from,
     required this.to,
@@ -359,6 +366,7 @@ class FocusStrikeEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }
@@ -396,7 +404,7 @@ class FocusStrikeEffect extends PositionComponent {
   }
 }
 
-class FrostFieldEffect extends PositionComponent {
+class FrostFieldEffect extends PositionComponent with HasGameReference<IdleGame> {
   FrostFieldEffect({
     required this.effectCenter,
     required this.fieldSize,
@@ -412,6 +420,7 @@ class FrostFieldEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }
@@ -451,7 +460,7 @@ class FrostFieldEffect extends PositionComponent {
   }
 }
 
-class RuptureMarkEffect extends PositionComponent {
+class RuptureMarkEffect extends PositionComponent with HasGameReference<IdleGame> {
   RuptureMarkEffect({required this.effectCenter}) : super(priority: 92);
 
   final Vector2 effectCenter;
@@ -461,6 +470,7 @@ class RuptureMarkEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }
@@ -516,7 +526,7 @@ class _SparkParticle {
   final double radius;
 }
 
-class NovaPulseEffect extends PositionComponent {
+class NovaPulseEffect extends PositionComponent with HasGameReference<IdleGame> {
   NovaPulseEffect({
     required this.effectCenter,
     required this.radius,
@@ -532,6 +542,7 @@ class NovaPulseEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }
@@ -577,7 +588,7 @@ class NovaPulseEffect extends PositionComponent {
   }
 }
 
-class FirewallEffect extends PositionComponent {
+class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
   FirewallEffect({
     required this.effectCenter,
     required this.effectWidth,
@@ -593,6 +604,7 @@ class FirewallEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }
@@ -678,7 +690,7 @@ class FirewallEffect extends PositionComponent {
   }
 }
 
-class MeteorImpactEffect extends PositionComponent {
+class MeteorImpactEffect extends PositionComponent with HasGameReference<IdleGame> {
   MeteorImpactEffect({
     required this.target,
     required this.radius,
@@ -694,6 +706,7 @@ class MeteorImpactEffect extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     if (_age >= _duration) removeFromParent();
   }

@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-class DamageText extends TextComponent {
+import '../idle_game.dart';
+
+class DamageText extends TextComponent with HasGameReference<IdleGame> {
   DamageText({
     required Vector2 position,
     required int amount,
@@ -42,6 +44,7 @@ class DamageText extends TextComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     _age += dt;
     final t = (_age / _duration).clamp(0.0, 1.0);
     final eased = Curves.easeOutCubic.transform(t);

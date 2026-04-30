@@ -48,6 +48,8 @@ class IdleGame extends FlameGame {
   @override
   void update(double dt) {
     super.update(dt);
+    if (state.hasPendingLevelUp || state.isRunOver) return;
+
     audio.update(dt);
     if (_seenResetGeneration != state.resetGeneration) {
       _seenResetGeneration = state.resetGeneration;
