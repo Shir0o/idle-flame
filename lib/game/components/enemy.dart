@@ -31,6 +31,7 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
   double _breachTimer = 0;
   Vector2 _knockbackVelocity = Vector2.zero();
   bool _dying = false;
+  bool _lastDamageWasExecute = false;
   bool get isAlive => !_dying;
 
   static const double _speed = 60;
@@ -142,6 +143,7 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
         : 1.0;
     final finalAmount = amount * executeBonus;
     final isExecute = executeBonus > 1;
+    _lastDamageWasExecute = isExecute;
     final visual = _visualFor(type, isExecute);
     final incoming = source == null ? Vector2(0, -1) : position - source;
     final pushDirection = incoming.length2 == 0
@@ -181,11 +183,48 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
     if (hp <= 0) _die();
   }
 
+  Iterable<Enemy> _otherAliveEnemies() {
+    final siblings = parent?.children ?? const Iterable.empty();
+    return siblings.whereType<Enemy>().where((e) => e.isAlive && e != this);
+  }
+
   void _die() {
     _dying = true;
     game.audio.playEnemyDeath();
     if (game.state.bountyLevel > 0) {
       parent?.add(CoinBurstEffect(effectCenter: position.clone()));
+    }
+    final meta = game.state.meta;
+    // Shatter: frost-slowed enemies explode for AoE on death
+    if (meta.hasKeystone('shatter') && game.state.frostLevel > 0) {
+      final blastRadiusSq = 110.0 * 110.0;
+      final dmg = game.state.heroDamage * 0.8;
+      parent?.add(NovaPulseEffect(effectCenter: position.clone(), radius: 110));
+      for (final other in _otherAliveEnemies()) {
+        if ((other.position - position).length2 <= blastRadiusSq) {
+          other.takeDamage(dmg, source: position.clone(), type: DamageType.nova);
+        }
+      }
+    }
+    // Spread: execute kills propagate to nearest enemy
+    if (meta.hasKeystone('spread') && _lastDamageWasExecute) {
+      Enemy? nearest;
+      double best = double.infinity;
+      for (final other in _otherAliveEnemies()) {
+        final d2 = (other.position - position).length2;
+        if (d2 < best) {
+          best = d2;
+          nearest = other;
+        }
+      }
+      if (nearest != null) {
+        parent?.add(RuptureMarkEffect(effectCenter: nearest.position.clone()));
+        nearest.takeDamage(
+          game.state.heroDamage * 1.5,
+          source: position.clone(),
+          type: DamageType.basic,
+        );
+      }
     }
     game.state.registerKill();
     parent?.add(DeathBurstEffect(effectCenter: position.clone()));

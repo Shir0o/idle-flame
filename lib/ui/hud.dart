@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../game/state/game_state.dart';
 import '../game/state/skill_catalog.dart';
+import 'meta_screen.dart';
 
 class Hud extends StatelessWidget {
   const Hud({super.key});
@@ -370,14 +371,24 @@ class _LevelUpPicker extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 12),
+                      _PickerActions(state: state),
+                      const SizedBox(height: 12),
                       ...choices.map(
                         (choice) => Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: _ChoiceCard(
                             choice: choice,
+                            isLocked:
+                                state.lockedUpgradeId == choice.definition.id,
+                            canLock: state.meta.lockEnabled,
+                            canBanish: state.banishesRemaining > 0,
                             onTap: () =>
                                 state.selectUpgrade(choice.definition.id),
+                            onToggleLock: () =>
+                                state.toggleLock(choice.definition.id),
+                            onBanish: () =>
+                                state.banishChoice(choice.definition.id),
                           ),
                         ),
                       ),
@@ -390,6 +401,94 @@ class _LevelUpPicker extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _PickerActions extends StatelessWidget {
+  const _PickerActions({required this.state});
+  final GameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final canReroll = state.rerollsRemaining > 0;
+    if (!canReroll && state.banishesRemaining == 0) {
+      return const SizedBox.shrink();
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      alignment: WrapAlignment.center,
+      children: [
+        if (state.meta.rerollsPerRun > 0)
+          _ActionChip(
+            icon: Icons.refresh,
+            label: 'Reroll (${state.rerollsRemaining})',
+            enabled: canReroll,
+            onTap: canReroll ? state.rerollChoices : null,
+          ),
+        if (state.meta.banishesPerRun > 0)
+          _ActionChip(
+            icon: Icons.block,
+            label: 'Banish (${state.banishesRemaining})',
+            enabled: false,
+            onTap: null,
+            tooltip: 'Tap a card\'s X to banish it',
+          ),
+      ],
+    );
+  }
+}
+
+class _ActionChip extends StatelessWidget {
+  const _ActionChip({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+    this.tooltip,
+  });
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback? onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = enabled
+        ? const Color(0xFF64FFDA)
+        : Colors.white.withValues(alpha: 0.35);
+    final chip = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: color.withValues(alpha: 0.5)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 14),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return tooltip == null ? chip : Tooltip(message: tooltip!, child: chip);
   }
 }
 
@@ -463,93 +562,36 @@ class _RunOverPanel extends StatelessWidget {
     return Consumer<GameState>(
       builder: (_, state, _) {
         if (!state.isRunOver) return const SizedBox.shrink();
-        return ColoredBox(
-          color: Colors.black.withValues(alpha: 0.72),
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 380),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF111827),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: const Color(0xFFFF5252).withValues(alpha: 0.55),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFF5252).withValues(alpha: 0.18),
-                        blurRadius: 26,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.warning_amber,
-                          color: Color(0xFFFF5252),
-                          size: 34,
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'Nexus Breached',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'You reached floor ${state.floor} and earned ${state.gold} gold.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 14,
-                            height: 1.25,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF5252),
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: state.resetProgress,
-                            icon: const Icon(Icons.restart_alt),
-                            label: const Text('Retry Run'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
+        return const MetaShopScreen();
       },
     );
   }
 }
 
 class _ChoiceCard extends StatelessWidget {
-  const _ChoiceCard({required this.choice, required this.onTap});
+  const _ChoiceCard({
+    required this.choice,
+    required this.onTap,
+    this.isLocked = false,
+    this.canLock = false,
+    this.canBanish = false,
+    this.onToggleLock,
+    this.onBanish,
+  });
 
   final SkillChoice choice;
   final VoidCallback onTap;
+  final bool isLocked;
+  final bool canLock;
+  final bool canBanish;
+  final VoidCallback? onToggleLock;
+  final VoidCallback? onBanish;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    return Stack(
+      children: [
+        Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
@@ -559,7 +601,12 @@ class _ChoiceCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF111827),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: _accent.withValues(alpha: 0.8)),
+            border: Border.all(
+              color: isLocked
+                  ? const Color(0xFFFFC107)
+                  : _accent.withValues(alpha: 0.8),
+              width: isLocked ? 2 : 1,
+            ),
             boxShadow: [
               BoxShadow(
                 color: _accent.withValues(alpha: 0.16),
@@ -640,6 +687,32 @@ class _ChoiceCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
+        if (canLock || canBanish)
+          Positioned(
+            top: 4,
+            right: 4,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (canLock)
+                  _CornerIconButton(
+                    icon: isLocked ? Icons.lock : Icons.lock_open,
+                    color: isLocked
+                        ? const Color(0xFFFFC107)
+                        : Colors.white.withValues(alpha: 0.6),
+                    onTap: onToggleLock,
+                  ),
+                if (canBanish)
+                  _CornerIconButton(
+                    icon: Icons.close,
+                    color: const Color(0xFFFF5252),
+                    onTap: onBanish,
+                  ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
@@ -756,6 +829,40 @@ class _IdleRewardToast extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _CornerIconButton extends StatelessWidget {
+  const _CornerIconButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 26,
+          height: 26,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.5),
+            shape: BoxShape.circle,
+            border: Border.all(color: color.withValues(alpha: 0.5)),
+          ),
+          child: Icon(icon, color: color, size: 14),
+        ),
+      ),
     );
   }
 }

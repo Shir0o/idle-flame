@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'meta_state.dart';
 import 'skill_catalog.dart';
 
 class SkillChoice {
@@ -33,11 +34,15 @@ class SkillChoice {
 }
 
 class GameState extends ChangeNotifier {
+  GameState({MetaState? meta}) : meta = meta ?? MetaState();
+
   final Random _rng = Random();
+  final MetaState meta;
 
   int gold = 0;
   int floor = 1;
   int killsOnFloor = 0;
+  int totalKills = 0;
   int lastIdleReward = 0;
   int resetGeneration = 0;
   double nexusHp = maxNexusHp;
@@ -45,6 +50,15 @@ class GameState extends ChangeNotifier {
   final Map<String, int> _skillLevels = {};
   List<String> _pendingUpgradeIds = [];
   int? autoSelectSecondsRemaining;
+
+  int rerollsRemaining = 0;
+  int banishesRemaining = 0;
+  final Set<String> _bannedIds = {};
+  String? lockedUpgradeId;
+  int levelUpCount = 0;
+  int _streakStacks = 0;
+  DateTime? _lastKillAt;
+  bool _embersAwardedThisRun = false;
 
   static const double maxNexusHp = 100;
   static const int killsPerFloor = 10;
@@ -99,7 +113,8 @@ class GameState extends ChangeNotifier {
   int get goldPerKill {
     final base = _baseGoldPerKill * pow(_goldGrowth, floor - 1);
     final bountyMultiplier = 1 + bountyLevel * 0.08;
-    return (base * bountyMultiplier).round();
+    final streakMultiplier = 1 + _streakStacks * 0.1;
+    return (base * bountyMultiplier * streakMultiplier).round();
   }
 
   double get estimatedTimeToKill =>
@@ -129,8 +144,19 @@ class GameState extends ChangeNotifier {
 
   void registerKill() {
     if (isRunOver) return;
+    if (meta.hasKeystone('streak')) {
+      final now = DateTime.now();
+      if (_lastKillAt != null &&
+          now.difference(_lastKillAt!).inMilliseconds <= 1000) {
+        _streakStacks = (_streakStacks + 1).clamp(0, 5);
+      } else {
+        _streakStacks = 0;
+      }
+      _lastKillAt = now;
+    }
     gold += goldPerKill;
     killsOnFloor += 1;
+    totalKills += 1;
     if (killsOnFloor >= killsPerFloor) {
       killsOnFloor = 0;
       floor += 1;
@@ -143,9 +169,47 @@ class GameState extends ChangeNotifier {
   void selectUpgrade(String id) {
     if (isRunOver || !_pendingUpgradeIds.contains(id) || _isMaxed(id)) return;
     _skillLevels[id] = skillLevel(id) + 1;
+    levelUpCount += 1;
+    if (lockedUpgradeId == id) lockedUpgradeId = null;
     _clearPending();
     notifyListeners();
     _saveSoon();
+  }
+
+  void rerollChoices() {
+    if (isRunOver || !hasPendingLevelUp) return;
+    if (rerollsRemaining <= 0) return;
+    rerollsRemaining -= 1;
+    final preserveLocked = lockedUpgradeId;
+    _autoSelectTimer?.cancel();
+    _countdownTimer?.cancel();
+    autoSelectSecondsRemaining = null;
+    _pendingUpgradeIds = [];
+    _rollUpgradeChoices(forceLockedId: preserveLocked);
+    notifyListeners();
+  }
+
+  void banishChoice(String id) {
+    if (isRunOver || !_pendingUpgradeIds.contains(id)) return;
+    if (banishesRemaining <= 0) return;
+    banishesRemaining -= 1;
+    _bannedIds.add(id);
+    if (lockedUpgradeId == id) lockedUpgradeId = null;
+    _pendingUpgradeIds.remove(id);
+    if (_pendingUpgradeIds.isEmpty) {
+      _autoSelectTimer?.cancel();
+      _countdownTimer?.cancel();
+      autoSelectSecondsRemaining = null;
+      _rollUpgradeChoices();
+    }
+    notifyListeners();
+  }
+
+  void toggleLock(String id) {
+    if (isRunOver || !meta.lockEnabled) return;
+    if (!_pendingUpgradeIds.contains(id)) return;
+    lockedUpgradeId = lockedUpgradeId == id ? null : id;
+    notifyListeners();
   }
 
   void _clearPending() {
@@ -164,9 +228,17 @@ class GameState extends ChangeNotifier {
     nexusHp = max(0, nexusHp - amount);
     if (isRunOver) {
       _clearPending();
+      _awardEmbersForRun();
     }
     notifyListeners();
     _saveSoon();
+  }
+
+  void _awardEmbersForRun() {
+    if (_embersAwardedThisRun) return;
+    _embersAwardedThisRun = true;
+    final earned = floor * 5 + totalKills;
+    if (earned > 0) meta.awardEmbers(earned);
   }
 
   void clearIdleReward() {
@@ -180,16 +252,19 @@ class GameState extends ChangeNotifier {
     gold = 0;
     floor = 1;
     killsOnFloor = 0;
+    totalKills = 0;
     lastIdleReward = 0;
     nexusHp = maxNexusHp;
     resetGeneration += 1;
     _skillLevels.clear();
     _clearPending();
+    _resetPerRunMeta();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kGold);
     await prefs.remove(_kFloor);
     await prefs.remove(_kKills);
+    await prefs.remove(_kTotalKills);
     await prefs.remove(_kNexusHp);
     await prefs.remove(_kSkillLevels);
     await prefs.remove(_kPendingUpgrades);
@@ -200,7 +275,19 @@ class GameState extends ChangeNotifier {
     await prefs.remove(_kOldDamageLevel);
     await _writeLastSeen(prefs);
 
+    if (meta.prePick) _rollUpgradeChoices();
     notifyListeners();
+  }
+
+  void _resetPerRunMeta() {
+    rerollsRemaining = meta.rerollsPerRun;
+    banishesRemaining = meta.banishesPerRun;
+    _bannedIds.clear();
+    lockedUpgradeId = null;
+    levelUpCount = 0;
+    _streakStacks = 0;
+    _lastKillAt = null;
+    _embersAwardedThisRun = false;
   }
 
   Future<void> load() async {
@@ -208,7 +295,9 @@ class GameState extends ChangeNotifier {
     gold = prefs.getInt(_kGold) ?? 0;
     floor = prefs.getInt(_kFloor) ?? 1;
     killsOnFloor = prefs.getInt(_kKills) ?? 0;
+    totalKills = prefs.getInt(_kTotalKills) ?? 0;
     nexusHp = (prefs.getDouble(_kNexusHp) ?? maxNexusHp).clamp(0, maxNexusHp);
+    _resetPerRunMeta();
     _skillLevels
       ..clear()
       ..addAll(_decodeSkillLevels(prefs.getStringList(_kSkillLevels)));
@@ -243,6 +332,7 @@ class GameState extends ChangeNotifier {
     await prefs.setInt(_kGold, gold);
     await prefs.setInt(_kFloor, floor);
     await prefs.setInt(_kKills, killsOnFloor);
+    await prefs.setInt(_kTotalKills, totalKills);
     await prefs.setDouble(_kNexusHp, nexusHp);
     await prefs.setStringList(_kSkillLevels, _encodeSkillLevels());
     await prefs.setStringList(_kPendingUpgrades, _pendingUpgradeIds);
@@ -257,11 +347,35 @@ class GameState extends ChangeNotifier {
     super.dispose();
   }
 
-  void _rollUpgradeChoices() {
+  void _rollUpgradeChoices({String? forceLockedId}) {
+    final offerCount = meta.widerPick ? 4 : 3;
     final available = skillCatalog
-        .where((definition) => !_isMaxed(definition.id))
+        .where((d) => !_isMaxed(d.id) && !_bannedIds.contains(d.id))
         .toList();
-    _pendingUpgradeIds = _weightedUpgradeIds(available, 3);
+
+    final ids = <String>[];
+    final lockId = forceLockedId ?? lockedUpgradeId;
+    if (lockId != null && available.any((d) => d.id == lockId)) {
+      ids.add(lockId);
+    }
+
+    final guaranteeNew =
+        meta.rareCadence && levelUpCount > 0 && (levelUpCount + 1) % 5 == 0;
+    if (guaranteeNew) {
+      final fresh = available
+          .where((d) => skillLevel(d.id) == 0 && !ids.contains(d.id))
+          .toList();
+      if (fresh.isNotEmpty) {
+        ids.add(fresh[_rng.nextInt(fresh.length)].id);
+      }
+    }
+
+    final remaining = available.where((d) => !ids.contains(d.id)).toList();
+    final extra = _weightedUpgradeIds(remaining, offerCount - ids.length);
+    ids.addAll(extra);
+
+    _pendingUpgradeIds = ids;
+    lockedUpgradeId = null;
     if (hasPendingLevelUp) {
       _startAutoSelectTimer();
     }
@@ -407,6 +521,7 @@ class GameState extends ChangeNotifier {
   static const _kGold = 'gold';
   static const _kFloor = 'floor';
   static const _kKills = 'killsOnFloor';
+  static const _kTotalKills = 'totalKills';
   static const _kNexusHp = 'nexusHp';
   static const _kSkillLevels = 'skillLevels';
   static const _kPendingUpgrades = 'pendingUpgrades';

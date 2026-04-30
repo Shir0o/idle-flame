@@ -75,6 +75,13 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     final toTarget = _target!.position - position;
     if (toTarget.length < 10) {
       _target!.takeDamage(game.state.sentinelDamage, source: position, type: DamageType.basic);
+      if (game.state.meta.hasKeystone('twinblade') && _target!.isAlive) {
+        _target!.takeDamage(
+          game.state.sentinelDamage * 0.6,
+          source: position,
+          type: DamageType.basic,
+        );
+      }
       _attackTimer = _attackCooldown;
       return;
     }

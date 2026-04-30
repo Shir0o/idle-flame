@@ -4,24 +4,31 @@ import 'package:provider/provider.dart';
 
 import 'game/idle_game.dart';
 import 'game/state/game_state.dart';
+import 'game/state/meta_state.dart';
 import 'ui/hud.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final state = GameState();
+  final meta = MetaState();
+  await meta.load();
+  final state = GameState(meta: meta);
   await state.load();
-  runApp(IdleFlameApp(state: state));
+  runApp(IdleFlameApp(state: state, meta: meta));
 }
 
 class IdleFlameApp extends StatelessWidget {
-  const IdleFlameApp({super.key, required this.state});
+  const IdleFlameApp({super.key, required this.state, required this.meta});
 
   final GameState state;
+  final MetaState meta;
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<GameState>.value(
-      value: state,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<GameState>.value(value: state),
+        ChangeNotifierProvider<MetaState>.value(value: meta),
+      ],
       child: MaterialApp(
         title: 'Idle Flame',
         debugShowCheckedModeBanner: false,

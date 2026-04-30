@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
@@ -24,6 +26,10 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
   double _frostFieldTimer = 0;
   double _pulseTimer = 0;
   double _pulseDuration = 0.18;
+  double _aftershockTimer = -1;
+  double _backdraftTimer = -1;
+  int _twinShotCounter = 0;
+  final math.Random _critRng = math.Random();
   final List<SentinelBlade> _sentinelBlades = [];
 
   @override
@@ -122,6 +128,20 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
       _meteorTimer = 0;
       _castMeteorMark();
     }
+    if (_aftershockTimer > 0) {
+      _aftershockTimer -= dt;
+      if (_aftershockTimer <= 0) {
+        _aftershockTimer = -1;
+        _castFlameNova(damageScale: 0.5, isAftershock: true);
+      }
+    }
+    if (_backdraftTimer > 0) {
+      _backdraftTimer -= dt;
+      if (_backdraftTimer <= 0) {
+        _backdraftTimer = -1;
+        _castFirewall(isBackdraft: true);
+      }
+    }
     _frostFieldTimer += dt;
     if (game.state.frostLevel > 0 && _frostFieldTimer >= 2.1) {
       _frostFieldTimer = 0;
@@ -156,6 +176,9 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
     _frostFieldTimer = 0;
     _pulseTimer = 0;
     _pulseDuration = 0.18;
+    _aftershockTimer = -1;
+    _backdraftTimer = -1;
+    _twinShotCounter = 0;
     scale = Vector2.all(1);
     for (final blade in _sentinelBlades) {
       blade.removeFromParent();
@@ -179,12 +202,21 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
       animationTicker?.reset();
     }
 
-    for (final enemy in targets.take(game.state.emberTargets)) {
+    final meta = game.state.meta;
+    final critRoll = meta.hasKeystone('crit') && _critRng.nextDouble() < 0.08;
+    final critMul = critRoll ? 3.0 : 1.0;
+    final twinShot =
+        meta.hasKeystone('twin_shot') && (++_twinShotCounter % 4 == 0);
+
+    for (var i = 0; i < targets.take(game.state.emberTargets).length; i++) {
+      final enemy = targets[i];
       final focusLevel = game.state.focusLevel;
       final barrageLevel = game.state.barrageLevel;
-      final slashColor = focusLevel > 0
-          ? const Color(0xFFFFF176)
-          : const Color(0xFF00E5FF);
+      final slashColor = critRoll
+          ? const Color(0xFFFF6B35)
+          : (focusLevel > 0
+              ? const Color(0xFFFFF176)
+              : const Color(0xFF00E5FF));
       parent?.add(
         SlashArcEffect(
           from: position.clone(),
@@ -199,10 +231,26 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
         );
       }
       enemy.takeDamage(
-        game.state.heroDamage,
+        game.state.heroDamage * critMul,
         source: position.clone(),
         type: DamageType.basic,
       );
+      // Whiplash: primary target hit twice
+      if (i == 0 && meta.hasKeystone('whiplash')) {
+        enemy.takeDamage(
+          game.state.heroDamage * critMul * 0.6,
+          source: position.clone(),
+          type: DamageType.basic,
+        );
+      }
+      // Twin Shot: every 4th attack hits each target twice
+      if (twinShot) {
+        enemy.takeDamage(
+          game.state.heroDamage * critMul,
+          source: position.clone(),
+          type: DamageType.basic,
+        );
+      }
       if (barrageLevel > 0) {
         parent?.add(BarrageStreakEffect(effectCenter: position.clone()));
       }
@@ -210,26 +258,32 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
     if (targets.isNotEmpty) _pulse(0.14);
   }
 
-  void _castFlameNova() {
-    _pulse(0.2);
+  void _castFlameNova({double damageScale = 1.0, bool isAftershock = false}) {
+    if (!isAftershock) _pulse(0.2);
     game.audio.playSkillCast();
-    game.shakeCamera(intensity: 3.5, duration: 0.16);
+    game.shakeCamera(intensity: isAftershock ? 2 : 3.5, duration: 0.16);
     final radius = game.state.flameNovaRadius;
     final effectRadius = radius.isFinite ? radius : game.size.length;
     parent?.add(
-      NovaPulseEffect(effectCenter: position.clone(), radius: effectRadius),
+      NovaPulseEffect(
+        effectCenter: position.clone(),
+        radius: effectRadius * (isAftershock ? 0.7 : 1.0),
+      ),
     );
     for (final enemy in _enemiesInRange(radius)) {
       enemy.takeDamage(
-        game.state.flameNovaDamage,
+        game.state.flameNovaDamage * damageScale,
         source: position.clone(),
         type: DamageType.nova,
       );
     }
+    if (!isAftershock && game.state.meta.hasKeystone('aftershock')) {
+      _aftershockTimer = 0.5;
+    }
   }
 
-  void _castFirewall() {
-    _pulse(0.16);
+  void _castFirewall({bool isBackdraft = false}) {
+    if (!isBackdraft) _pulse(0.16);
     game.audio.playSkillCast();
     final wallY = position.y - 165;
     final width = game.state.firewallWidth;
@@ -250,6 +304,9 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
         source: wallCenter,
         type: DamageType.firewall,
       );
+    }
+    if (!isBackdraft && game.state.meta.hasKeystone('backdraft')) {
+      _backdraftTimer = 0.4;
     }
   }
 
@@ -275,6 +332,35 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
           game.state.meteorMarkDamage,
           source: target.position.clone(),
           type: DamageType.meteor,
+        );
+      }
+    }
+    if (game.state.meta.hasKeystone('cluster')) {
+      for (var i = 1; i <= 2; i++) {
+        final delay = 0.18 * i;
+        final offset = Vector2(
+          (_critRng.nextDouble() - 0.5) * 80,
+          (_critRng.nextDouble() - 0.5) * 80,
+        );
+        final clusterPos = target.position + offset;
+        Future.delayed(
+          Duration(milliseconds: (delay * 1000).round()),
+          () {
+            if (game.state.isRunOver) return;
+            parent?.add(
+              MeteorImpactEffect(target: clusterPos, radius: blastRadius * 0.6),
+            );
+            for (final enemy in _aliveEnemies()) {
+              if ((enemy.position - clusterPos).length2 <=
+                  blastRadiusSquared * 0.36) {
+                enemy.takeDamage(
+                  game.state.meteorMarkDamage * 0.5,
+                  source: clusterPos,
+                  type: DamageType.meteor,
+                );
+              }
+            }
+          },
         );
       }
     }
