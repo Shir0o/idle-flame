@@ -66,15 +66,16 @@ class GameState extends ChangeNotifier {
   double get heroAttacksPerSec =>
       baseAttacksPerSec * (1 + _archetypeLevel(SkillArchetype.barrage) * 0.06);
   double get heroAttackRange => double.infinity;
-  int get emberTargets =>
-      (1 + _archetypeLevel(SkillArchetype.chain)).clamp(1, 10);
+  int get chainLevel => _archetypeLevel(SkillArchetype.chain);
+  int get emberTargets => (1 + chainLevel).clamp(1, 10);
   int get barrageLevel => _archetypeLevel(SkillArchetype.barrage);
   int get focusLevel => _archetypeLevel(SkillArchetype.focus);
   int get bountyLevel => _archetypeLevel(SkillArchetype.bounty);
   int get frostLevel => _archetypeLevel(SkillArchetype.frost);
   int get ruptureLevel => _archetypeLevel(SkillArchetype.rupture);
   int get sentinelLevel => _archetypeLevel(SkillArchetype.sentinel);
-  int get sentinelCount => sentinelLevel == 0 ? 0 : (1 + (sentinelLevel / 3).floor()).clamp(0, 8);
+  int get sentinelCount =>
+      sentinelLevel == 0 ? 0 : (1 + (sentinelLevel / 3).floor()).clamp(0, 8);
   double get sentinelDamage => heroDamage * (0.35 + sentinelLevel * 0.08);
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
   double get flameNovaRadius => double.infinity;
@@ -98,6 +99,15 @@ class GameState extends ChangeNotifier {
     final bountyMultiplier = 1 + bountyLevel * 0.08;
     return (base * bountyMultiplier).round();
   }
+
+  double get estimatedTimeToKill =>
+      estimatedDps <= 0 ? double.infinity : enemyMaxHp / estimatedDps;
+  double get estimatedGoldPerSecond =>
+      estimatedTimeToKill.isFinite && estimatedTimeToKill > 0
+      ? goldPerKill / estimatedTimeToKill
+      : 0;
+  Map<String, int> get skillLevels =>
+      Map.unmodifiable(Map<String, int>.from(_skillLevels));
 
   double get estimatedDps {
     final directDps =
@@ -223,6 +233,12 @@ class GameState extends ChangeNotifier {
     await _writeLastSeen(prefs);
   }
 
+  @override
+  void dispose() {
+    _saveDebounce?.cancel();
+    super.dispose();
+  }
+
   void _rollUpgradeChoices() {
     final available = skillCatalog
         .where((definition) => !_isMaxed(definition.id))
@@ -329,9 +345,7 @@ class GameState extends ChangeNotifier {
         .inSeconds
         .clamp(0, _idleCapSeconds);
     if (seconds <= 0) return 0;
-    final timeToKill = enemyMaxHp / estimatedDps;
-    final goldPerSec = goldPerKill / timeToKill;
-    return (goldPerSec * seconds * _idleEfficiency).round();
+    return (estimatedGoldPerSecond * seconds * _idleEfficiency).round();
   }
 
   Future<void> _writeLastSeen(SharedPreferences prefs) {

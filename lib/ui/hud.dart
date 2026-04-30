@@ -14,12 +14,183 @@ class Hud extends StatelessWidget {
         children: const [
           Positioned(top: 12, left: 16, child: _FloorBadge()),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
+          Positioned(top: 92, left: 16, child: _BalanceDebugPanel()),
           Positioned(left: 16, right: 16, bottom: 16, child: _NexusHealthBar()),
           Positioned(right: 16, bottom: 16, child: _DevResetButton()),
           Positioned(left: 0, right: 0, top: 80, child: _IdleRewardToast()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _RunOverPanel()),
         ],
+      ),
+    );
+  }
+}
+
+class _BalanceDebugPanel extends StatefulWidget {
+  const _BalanceDebugPanel();
+
+  @override
+  State<_BalanceDebugPanel> createState() => _BalanceDebugPanelState();
+}
+
+class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        final timeToKill = state.estimatedTimeToKill;
+        return _Panel(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 240),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                InkWell(
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.tune,
+                          color: Color(0xFF64FFDA),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Balance',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          _expanded
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          color: Colors.white.withValues(alpha: 0.64),
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_expanded) ...[
+                  const SizedBox(height: 8),
+                  _MetricRow('DPS', state.estimatedDps.toStringAsFixed(1)),
+                  _MetricRow('Enemy HP', state.enemyMaxHp.toStringAsFixed(1)),
+                  _MetricRow('Gold/Kill', '${state.goldPerKill}'),
+                  _MetricRow(
+                    'TTK',
+                    timeToKill.isFinite
+                        ? '${timeToKill.toStringAsFixed(2)}s'
+                        : 'n/a',
+                  ),
+                  _MetricRow(
+                    'Gold/Sec',
+                    state.estimatedGoldPerSecond.toStringAsFixed(2),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 5,
+                    runSpacing: 5,
+                    children: [
+                      _SkillChip('Chain', state.chainLevel),
+                      _SkillChip('Nova', state.flameNovaLevel),
+                      _SkillChip('Wall', state.firewallLevel),
+                      _SkillChip('Meteor', state.meteorMarkLevel),
+                      _SkillChip('Barrage', state.barrageLevel),
+                      _SkillChip('Focus', state.focusLevel),
+                      _SkillChip('Bounty', state.bountyLevel),
+                      _SkillChip('Frost', state.frostLevel),
+                      _SkillChip('Rupture', state.ruptureLevel),
+                      _SkillChip('Blade', state.sentinelLevel),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MetricRow extends StatelessWidget {
+  const _MetricRow(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 76,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.56),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkillChip extends StatelessWidget {
+  const _SkillChip(this.label, this.level);
+
+  final String label;
+  final int level;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = level > 0;
+    final color = active
+        ? const Color(0xFF64FFDA)
+        : Colors.white.withValues(alpha: 0.42);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: active ? 0.13 : 0.06),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(
+          color: color.withValues(alpha: active ? 0.28 : 0.16),
+        ),
+      ),
+      child: Text(
+        '$label $level',
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0,
+        ),
       ),
     );
   }
@@ -195,7 +366,8 @@ class _LevelUpPicker extends StatelessWidget {
                             choice: choice,
                             onTap: () =>
                                 state.selectUpgrade(choice.definition.id),
-                          ),                        ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
