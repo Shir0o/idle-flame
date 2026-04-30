@@ -77,13 +77,13 @@ class GameState extends ChangeNotifier {
   int get sentinelCount => sentinelLevel == 0 ? 0 : (1 + (sentinelLevel / 3).floor()).clamp(0, 8);
   double get sentinelDamage => heroDamage * (0.35 + sentinelLevel * 0.08);
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
-  double get flameNovaRadius => 90 + flameNovaLevel * 10;
+  double get flameNovaRadius => double.infinity;
   double get flameNovaDamage => heroDamage * (1 + flameNovaLevel * 0.18);
   int get firewallLevel => _archetypeLevel(SkillArchetype.firewall);
-  double get firewallWidth => 150 + firewallLevel * 14;
+  double get firewallWidth => double.infinity;
   double get firewallDamage => heroDamage * (0.8 + firewallLevel * 0.12);
   int get meteorMarkLevel => _archetypeLevel(SkillArchetype.meteor);
-  double get meteorMarkRadius => 28 + meteorMarkLevel * 5;
+  double get meteorMarkRadius => double.infinity;
   double get meteorMarkDamage => heroDamage * (1.7 + meteorMarkLevel * 0.14);
   double get enemySpeedMultiplier => max(0.45, 1 - frostLevel * 0.025);
   double get executeDamageMultiplier => 1 + ruptureLevel * 0.035;

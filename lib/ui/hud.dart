@@ -195,8 +195,7 @@ class _LevelUpPicker extends StatelessWidget {
                             choice: choice,
                             onTap: () =>
                                 state.selectUpgrade(choice.definition.id),
-                          ),
-                        ),
+                          ),                        ),
                       ),
                     ],
                   ),

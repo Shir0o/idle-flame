@@ -24,10 +24,7 @@ class IdleGame extends FlameGame {
   int _seenResetGeneration = 0;
 
   @override
-  Color backgroundColor() {
-    final t = ((state.floor - 1) * 0.05).clamp(0.0, 0.7);
-    return Color.lerp(const Color(0xFF050816), const Color(0xFF26004D), t)!;
-  }
+  Color backgroundColor() => Colors.black;
 
   @override
   Future<void> onLoad() async {

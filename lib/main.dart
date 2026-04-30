@@ -28,7 +28,7 @@ class IdleFlameApp extends StatelessWidget {
         home: _AppLifecycle(
           state: state,
           child: Scaffold(
-            backgroundColor: const Color(0xFF0D0D1A),
+            backgroundColor: Colors.black,
             body: Stack(
               children: [
                 Positioned.fill(

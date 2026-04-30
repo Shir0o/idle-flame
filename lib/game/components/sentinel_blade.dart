@@ -14,7 +14,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   
   static const double _orbitRadius = 60;
   static const double _orbitSpeed = 2.4;
-  static const double _attackRange = 280;
+  static const double _attackRange = double.infinity;
   static const double _attackCooldown = 0.8;
   static const double _dashSpeed = 650;
 
@@ -68,7 +68,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     _target = best;
   }
 
-  void _dashAtTarget(dt) {
+  void _dashAtTarget(double dt) {
     if (_target == null) return;
     
     final toTarget = _target!.position - position;

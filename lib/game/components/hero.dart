@@ -162,13 +162,15 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
     _pulse(0.2);
     game.audio.playSkillCast();
     game.shakeCamera(intensity: 3.5, duration: 0.16);
+    final radius = game.state.flameNovaRadius;
+    final effectRadius = radius.isFinite ? radius : game.size.length;
     parent?.add(
       NovaPulseEffect(
         effectCenter: position.clone(),
-        radius: game.state.flameNovaRadius,
+        radius: effectRadius,
       ),
     );
-    for (final enemy in _enemiesInRange(game.state.flameNovaRadius)) {
+    for (final enemy in _enemiesInRange(radius)) {
       enemy.takeDamage(
         game.state.flameNovaDamage,
         source: position.clone(),
@@ -181,12 +183,14 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
     _pulse(0.16);
     game.audio.playSkillCast();
     final wallY = position.y - 165;
-    final halfWidth = game.state.firewallWidth / 2;
+    final width = game.state.firewallWidth;
+    final effectWidth = width.isFinite ? width : game.size.x;
+    final halfWidth = effectWidth / 2;
     final wallCenter = Vector2(position.x, wallY);
     parent?.add(
       FirewallEffect(
         effectCenter: wallCenter,
-        effectWidth: game.state.firewallWidth,
+        effectWidth: effectWidth,
       ),
     );
     final enemies = _aliveEnemies().where((enemy) {
@@ -209,8 +213,9 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
     game.audio.playSkillCast();
     enemies.sort((a, b) => b.position.y.compareTo(a.position.y));
     final target = enemies.first;
-    final blastRadius = game.state.meteorMarkRadius;
-    final blastRadiusSquared = blastRadius * blastRadius;
+    final radius = game.state.meteorMarkRadius;
+    final blastRadius = radius.isFinite ? radius : game.size.length;
+    final blastRadiusSquared = radius * radius;
     parent?.add(
       MeteorImpactEffect(target: target.position.clone(), radius: blastRadius),
     );
