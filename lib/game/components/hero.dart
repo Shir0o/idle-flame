@@ -18,6 +18,9 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
   double _novaTimer = 0;
   double _firewallTimer = 0;
   double _meteorTimer = 0;
+  double _frostFieldTimer = 0;
+  double _pulseTimer = 0;
+  double _pulseDuration = 0.18;
 
   @override
   void onMount() {
@@ -34,6 +37,12 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
   @override
   void update(double dt) {
     super.update(dt);
+    if (_pulseTimer > 0) {
+      _pulseTimer -= dt;
+      final t = (_pulseTimer / _pulseDuration).clamp(0.0, 1.0);
+      scale = Vector2.all(1 + Curves.easeOutBack.transform(t) * 0.1);
+      if (_pulseTimer <= 0) scale = Vector2.all(1);
+    }
     if (game.state.hasPendingLevelUp) return;
 
     final period = 1.0 / game.state.heroAttacksPerSec;
@@ -60,6 +69,28 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
       _meteorTimer = 0;
       _castMeteorMark();
     }
+    _frostFieldTimer += dt;
+    if (game.state.frostLevel > 0 && _frostFieldTimer >= 2.1) {
+      _frostFieldTimer = 0;
+      parent?.add(
+        FrostFieldEffect(
+          effectCenter: game.size / 2,
+          fieldSize: Vector2(game.size.x, game.size.y),
+        ),
+      );
+    }
+  }
+
+  void resetForNewRun() {
+    _attackTimer = 0;
+    _novaTimer = 0;
+    _firewallTimer = 0;
+    _meteorTimer = 0;
+    _frostFieldTimer = 0;
+    _pulseTimer = 0;
+    _pulseDuration = 0.18;
+    scale = Vector2.all(1);
+    _placeAtBottom(game.size);
   }
 
   void _tryAttack() {
@@ -70,18 +101,40 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
         return aDist.compareTo(bDist);
       });
     for (final enemy in targets.take(game.state.emberTargets)) {
+      final focusLevel = game.state.focusLevel;
+      final barrageLevel = game.state.barrageLevel;
+      final slashColor = focusLevel > 0
+          ? const Color(0xFFFFF176)
+          : const Color(0xFF00E5FF);
       parent?.add(
         SlashArcEffect(
           from: position.clone(),
           to: enemy.position.clone(),
-          color: const Color(0xFF00E5FF),
+          color: slashColor,
+          widthMultiplier: 1 + focusLevel * 0.04,
         ),
       );
-      enemy.takeDamage(game.state.heroDamage);
+      if (focusLevel > 0) {
+        parent?.add(
+          FocusStrikeEffect(from: position.clone(), to: enemy.position.clone()),
+        );
+      }
+      enemy.takeDamage(
+        game.state.heroDamage,
+        source: position.clone(),
+        type: DamageType.basic,
+      );
+      if (barrageLevel > 0) {
+        parent?.add(BarrageStreakEffect(effectCenter: position.clone()));
+      }
     }
+    if (targets.isNotEmpty) _pulse(0.14);
   }
 
   void _castFlameNova() {
+    _pulse(0.2);
+    game.audio.playSkillCast();
+    game.shakeCamera(intensity: 3.5, duration: 0.16);
     parent?.add(
       NovaPulseEffect(
         effectCenter: position.clone(),
@@ -89,16 +142,23 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
       ),
     );
     for (final enemy in _enemiesInRange(game.state.flameNovaRadius)) {
-      enemy.takeDamage(game.state.flameNovaDamage);
+      enemy.takeDamage(
+        game.state.flameNovaDamage,
+        source: position.clone(),
+        type: DamageType.nova,
+      );
     }
   }
 
   void _castFirewall() {
+    _pulse(0.16);
+    game.audio.playSkillCast();
     final wallY = position.y - 165;
     final halfWidth = game.state.firewallWidth / 2;
+    final wallCenter = Vector2(position.x, wallY);
     parent?.add(
       FirewallEffect(
-        effectCenter: Vector2(position.x, wallY),
+        effectCenter: wallCenter,
         effectWidth: game.state.firewallWidth,
       ),
     );
@@ -108,13 +168,18 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
       return insideWidth && nearWall;
     });
     for (final enemy in enemies) {
-      enemy.takeDamage(game.state.firewallDamage);
+      enemy.takeDamage(
+        game.state.firewallDamage,
+        source: wallCenter,
+        type: DamageType.firewall,
+      );
     }
   }
 
   void _castMeteorMark() {
     final enemies = _aliveEnemies();
     if (enemies.isEmpty) return;
+    game.audio.playSkillCast();
     enemies.sort((a, b) => b.position.y.compareTo(a.position.y));
     final target = enemies.first;
     final blastRadius = game.state.meteorMarkRadius;
@@ -122,10 +187,18 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
     parent?.add(
       MeteorImpactEffect(target: target.position.clone(), radius: blastRadius),
     );
+    _pulse(0.24);
+    game.shakeCamera(intensity: 7, duration: 0.22);
     for (final enemy in enemies) {
       final inBlast =
           (enemy.position - target.position).length2 <= blastRadiusSquared;
-      if (inBlast) enemy.takeDamage(game.state.meteorMarkDamage);
+      if (inBlast) {
+        enemy.takeDamage(
+          game.state.meteorMarkDamage,
+          source: target.position.clone(),
+          type: DamageType.meteor,
+        );
+      }
     }
   }
 
@@ -144,5 +217,10 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
   void _placeAtBottom(Vector2 size) {
     final y = size.y < 300 ? size.y * 0.72 : size.y - 120;
     position = Vector2(size.x / 2, y);
+  }
+
+  void _pulse(double duration) {
+    _pulseTimer = duration;
+    _pulseDuration = duration;
   }
 }

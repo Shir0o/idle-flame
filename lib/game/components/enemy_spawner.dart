@@ -23,6 +23,10 @@ class EnemySpawner extends Component with HasGameReference<IdleGame> {
     }
   }
 
+  void resetForNewRun() {
+    _timer = 0;
+  }
+
   void _spawn() {
     final size = game.size;
     final pos = Vector2(_rng.nextDouble() * size.x, -_offscreenPad);

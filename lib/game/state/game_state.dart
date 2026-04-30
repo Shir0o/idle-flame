@@ -39,22 +39,25 @@ class GameState extends ChangeNotifier {
   int floor = 1;
   int killsOnFloor = 0;
   int lastIdleReward = 0;
+  int resetGeneration = 0;
 
   final Map<String, int> _skillLevels = {};
   List<String> _pendingUpgradeIds = [];
 
   static const int killsPerFloor = 10;
-  static const double baseDamage = 5;
+  static const double baseDamage = 7;
   static const double baseAttacksPerSec = 1;
   static const double flameNovaCooldown = 5;
   static const double firewallCooldown = 3.5;
   static const double meteorMarkCooldown = 4.5;
-  static const double _enemyHpGrowth = 1.25;
+  static const double _enemyHpGrowth = 1.12;
   static const double _goldGrowth = 1.15;
-  static const double _baseEnemyHp = 10;
+  static const double _baseEnemyHp = 6;
   static const int _baseGoldPerKill = 1;
   static const double _idleEfficiency = 0.5;
   static const int _idleCapSeconds = 8 * 3600;
+  static const int _newSkillOfferWeight = 1;
+  static const int _ownedSkillOfferWeight = 4;
 
   double get heroDamage =>
       baseDamage * (1 + _archetypeLevel(SkillArchetype.focus) * 0.08);
@@ -63,6 +66,11 @@ class GameState extends ChangeNotifier {
   double get heroAttackRange => double.infinity;
   int get emberTargets =>
       (1 + (_archetypeLevel(SkillArchetype.chain) / 2).floor()).clamp(1, 8);
+  int get barrageLevel => _archetypeLevel(SkillArchetype.barrage);
+  int get focusLevel => _archetypeLevel(SkillArchetype.focus);
+  int get bountyLevel => _archetypeLevel(SkillArchetype.bounty);
+  int get frostLevel => _archetypeLevel(SkillArchetype.frost);
+  int get ruptureLevel => _archetypeLevel(SkillArchetype.rupture);
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
   double get flameNovaRadius => 90 + flameNovaLevel * 10;
   double get flameNovaDamage => heroDamage * (1 + flameNovaLevel * 0.18);
@@ -72,17 +80,15 @@ class GameState extends ChangeNotifier {
   int get meteorMarkLevel => _archetypeLevel(SkillArchetype.meteor);
   double get meteorMarkRadius => 28 + meteorMarkLevel * 5;
   double get meteorMarkDamage => heroDamage * (1.7 + meteorMarkLevel * 0.14);
-  double get enemySpeedMultiplier =>
-      max(0.45, 1 - _archetypeLevel(SkillArchetype.frost) * 0.025);
-  double get executeDamageMultiplier =>
-      1 + _archetypeLevel(SkillArchetype.rupture) * 0.035;
+  double get enemySpeedMultiplier => max(0.45, 1 - frostLevel * 0.025);
+  double get executeDamageMultiplier => 1 + ruptureLevel * 0.035;
   bool get hasPendingLevelUp => _pendingUpgradeIds.isNotEmpty;
   List<SkillChoice> get pendingChoices =>
       _pendingUpgradeIds.map(_choiceFor).nonNulls.toList(growable: false);
   double get enemyMaxHp => _baseEnemyHp * pow(_enemyHpGrowth, floor - 1);
   int get goldPerKill {
     final base = _baseGoldPerKill * pow(_goldGrowth, floor - 1);
-    final bountyMultiplier = 1 + _archetypeLevel(SkillArchetype.bounty) * 0.08;
+    final bountyMultiplier = 1 + bountyLevel * 0.08;
     return (base * bountyMultiplier).round();
   }
 
@@ -130,6 +136,32 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> resetProgress() async {
+    _saveDebounce?.cancel();
+    gold = 0;
+    floor = 1;
+    killsOnFloor = 0;
+    lastIdleReward = 0;
+    resetGeneration += 1;
+    _skillLevels.clear();
+    _pendingUpgradeIds = [];
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kGold);
+    await prefs.remove(_kFloor);
+    await prefs.remove(_kKills);
+    await prefs.remove(_kSkillLevels);
+    await prefs.remove(_kPendingUpgrades);
+    await prefs.remove(_kOldEmberChainLevel);
+    await prefs.remove(_kOldFlameNovaLevel);
+    await prefs.remove(_kOldFirewallLevel);
+    await prefs.remove(_kOldMeteorMarkLevel);
+    await prefs.remove(_kOldDamageLevel);
+    await _writeLastSeen(prefs);
+
+    notifyListeners();
+  }
+
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     gold = prefs.getInt(_kGold) ?? 0;
@@ -170,13 +202,35 @@ class GameState extends ChangeNotifier {
   }
 
   void _rollUpgradeChoices() {
-    final available =
-        skillCatalog
-            .where((definition) => !_isMaxed(definition.id))
-            .map((definition) => definition.id)
-            .toList()
-          ..shuffle(_rng);
-    _pendingUpgradeIds = available.take(3).toList();
+    final available = skillCatalog
+        .where((definition) => !_isMaxed(definition.id))
+        .toList();
+    _pendingUpgradeIds = _weightedUpgradeIds(available, 3);
+  }
+
+  List<String> _weightedUpgradeIds(List<SkillDefinition> available, int count) {
+    final pool = available.toList();
+    final selected = <String>[];
+    while (pool.isNotEmpty && selected.length < count) {
+      final totalWeight = pool.fold<int>(
+        0,
+        (total, definition) => total + _offerWeight(definition.id),
+      );
+      if (totalWeight <= 0) break;
+
+      var roll = _rng.nextDouble() * totalWeight;
+      for (var i = 0; i < pool.length; i++) {
+        roll -= _offerWeight(pool[i].id);
+        if (roll > 0) continue;
+        selected.add(pool.removeAt(i).id);
+        break;
+      }
+    }
+    return selected;
+  }
+
+  int _offerWeight(String id) {
+    return skillLevel(id) > 0 ? _ownedSkillOfferWeight : _newSkillOfferWeight;
   }
 
   bool _isMaxed(String id) => skillLevel(id) >= SkillDefinition.maxLevel;

@@ -14,6 +14,7 @@ class Hud extends StatelessWidget {
         children: const [
           Positioned(top: 12, left: 16, child: _FloorBadge()),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
+          Positioned(right: 16, bottom: 16, child: _DevResetButton()),
           Positioned(left: 0, right: 0, top: 80, child: _IdleRewardToast()),
           Positioned.fill(child: _LevelUpPicker()),
         ],
@@ -92,6 +93,58 @@ class _GoldBadge extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _DevResetButton extends StatelessWidget {
+  const _DevResetButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      child: IconButton(
+        tooltip: 'Reset progress',
+        visualDensity: VisualDensity.compact,
+        icon: const Icon(Icons.restart_alt, color: Color(0xFFFF5252)),
+        onPressed: () => _confirmReset(context),
+      ),
+    );
+  }
+
+  Future<void> _confirmReset(BuildContext context) async {
+    final state = context.read<GameState>();
+    final reset = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF111827),
+        title: const Text(
+          'Reset Progress?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'This clears gold, floor progress, and all upgrades.',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.72)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5252),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.restart_alt),
+            label: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+    if (reset == true) {
+      await state.resetProgress();
+    }
   }
 }
 
