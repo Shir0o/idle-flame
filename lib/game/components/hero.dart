@@ -7,15 +7,16 @@ import 'combat_effects.dart';
 import 'enemy.dart';
 import 'sentinel_blade.dart';
 
-class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
+enum HeroState { idle, attack }
+
+class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
+    with HasGameReference<IdleGame> {
   HeroComponent()
     : super(
-        size: Vector2(68, 68),
+        size: Vector2(84, 84),
         anchor: Anchor.center,
-        paint: Paint()..color = const Color(0xFF00E5FF),
       );
 
-  Sprite? _sprite;
   double _attackTimer = 0;
   double _novaTimer = 0;
   double _firewallTimer = 0;
@@ -28,21 +29,42 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    try {
-      _sprite = await game.loadSprite('characters/neon_ronin/north.png');
-    } catch (_) {
-      _sprite = null;
-    }
+
+    final idleAnimation = await _loadAnimation(
+      'characters/vanguard_mech/idle_north',
+      4,
+      0.15,
+    );
+    final attackAnimation = await _loadAnimation(
+      'characters/vanguard_mech/attack_north',
+      6,
+      0.08,
+      loop: false,
+    );
+
+    animations = {
+      HeroState.idle: idleAnimation,
+      HeroState.attack: attackAnimation,
+    };
+    current = HeroState.idle;
   }
 
-  @override
-  void render(Canvas canvas) {
-    final sprite = _sprite;
-    if (sprite == null) {
-      super.render(canvas);
-      return;
+  Future<SpriteAnimation> _loadAnimation(
+    String path,
+    int frames,
+    double stepTime, {
+    bool loop = true,
+  }) async {
+    final sprites = <Sprite>[];
+    for (var i = 0; i < frames; i++) {
+      final frameNum = i.toString().padLeft(3, '0');
+      sprites.add(await game.loadSprite('$path/frame_$frameNum.png'));
     }
-    sprite.render(canvas, size: size);
+    return SpriteAnimation.spriteList(
+      sprites,
+      stepTime: stepTime,
+      loop: loop,
+    );
   }
 
   @override
@@ -60,6 +82,12 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
   @override
   void update(double dt) {
     super.update(dt);
+
+    // If attack animation finished, go back to idle
+    if (current == HeroState.attack && animationTicker?.done() == true) {
+      current = HeroState.idle;
+    }
+
     if (_pulseTimer > 0) {
       _pulseTimer -= dt;
       final t = (_pulseTimer / _pulseDuration).clamp(0.0, 1.0);
@@ -134,6 +162,7 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
     }
     _sentinelBlades.clear();
     _placeAtBottom(game.size);
+    current = HeroState.idle;
   }
 
   void _tryAttack() {
@@ -146,6 +175,8 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
 
     if (targets.isNotEmpty) {
       game.audio.playBasicAttack();
+      current = HeroState.attack;
+      animationTicker?.reset();
     }
 
     for (final enemy in targets.take(game.state.emberTargets)) {

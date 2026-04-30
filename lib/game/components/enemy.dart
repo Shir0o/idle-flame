@@ -15,7 +15,7 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
     : hp = maxHp,
       super(
         position: position,
-        size: Vector2(68, 68),
+        size: Vector2(84, 84),
         anchor: Anchor.center,
         paint: Paint()..color = _baseColor,
       );

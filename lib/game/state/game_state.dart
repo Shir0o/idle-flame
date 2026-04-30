@@ -44,6 +44,7 @@ class GameState extends ChangeNotifier {
 
   final Map<String, int> _skillLevels = {};
   List<String> _pendingUpgradeIds = [];
+  int? autoSelectSecondsRemaining;
 
   static const double maxNexusHp = 100;
   static const int killsPerFloor = 10;
@@ -60,6 +61,7 @@ class GameState extends ChangeNotifier {
   static const int _idleCapSeconds = 8 * 3600;
   static const int _newSkillOfferWeight = 1;
   static const int _ownedSkillOfferWeight = 4;
+  static const int autoSelectDuration = 60;
 
   double get heroDamage =>
       baseDamage * (1 + _archetypeLevel(SkillArchetype.focus) * 0.08);
@@ -141,9 +143,18 @@ class GameState extends ChangeNotifier {
   void selectUpgrade(String id) {
     if (isRunOver || !_pendingUpgradeIds.contains(id) || _isMaxed(id)) return;
     _skillLevels[id] = skillLevel(id) + 1;
-    _pendingUpgradeIds = [];
+    _clearPending();
     notifyListeners();
     _saveSoon();
+  }
+
+  void _clearPending() {
+    _pendingUpgradeIds = [];
+    autoSelectSecondsRemaining = null;
+    _autoSelectTimer?.cancel();
+    _autoSelectTimer = null;
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
   }
 
   int skillLevel(String id) => _skillLevels[id] ?? 0;
@@ -152,7 +163,7 @@ class GameState extends ChangeNotifier {
     if (isRunOver || amount <= 0) return;
     nexusHp = max(0, nexusHp - amount);
     if (isRunOver) {
-      _pendingUpgradeIds = [];
+      _clearPending();
     }
     notifyListeners();
     _saveSoon();
@@ -173,7 +184,7 @@ class GameState extends ChangeNotifier {
     nexusHp = maxNexusHp;
     resetGeneration += 1;
     _skillLevels.clear();
-    _pendingUpgradeIds = [];
+    _clearPending();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kGold);
@@ -208,6 +219,11 @@ class GameState extends ChangeNotifier {
             ?.where((id) => _skillById(id) != null && !_isMaxed(id))
             .toList() ??
         [];
+    
+    if (hasPendingLevelUp) {
+      _startAutoSelectTimer();
+    }
+
     final lastSeen = prefs.getInt(_kLastSeen);
     if (lastSeen != null) {
       final reward = _computeIdleReward(
@@ -236,6 +252,8 @@ class GameState extends ChangeNotifier {
   @override
   void dispose() {
     _saveDebounce?.cancel();
+    _autoSelectTimer?.cancel();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -244,6 +262,34 @@ class GameState extends ChangeNotifier {
         .where((definition) => !_isMaxed(definition.id))
         .toList();
     _pendingUpgradeIds = _weightedUpgradeIds(available, 3);
+    if (hasPendingLevelUp) {
+      _startAutoSelectTimer();
+    }
+  }
+
+  Timer? _autoSelectTimer;
+  Timer? _countdownTimer;
+
+  void _startAutoSelectTimer() {
+    _autoSelectTimer?.cancel();
+    _countdownTimer?.cancel();
+    
+    autoSelectSecondsRemaining = autoSelectDuration;
+    
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (autoSelectSecondsRemaining != null && autoSelectSecondsRemaining! > 0) {
+        autoSelectSecondsRemaining = autoSelectSecondsRemaining! - 1;
+        notifyListeners();
+      } else {
+        timer.cancel();
+      }
+    });
+
+    _autoSelectTimer = Timer(const Duration(seconds: autoSelectDuration), () {
+      if (hasPendingLevelUp) {
+        selectUpgrade(_pendingUpgradeIds.first);
+      }
+    });
   }
 
   List<String> _weightedUpgradeIds(List<SkillDefinition> available, int count) {

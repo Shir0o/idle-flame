@@ -349,6 +349,18 @@ class _LevelUpPicker extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      if (state.autoSelectSecondsRemaining != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Auto-selecting in ${state.autoSelectSecondsRemaining}s',
+                            style: const TextStyle(
+                              color: Color(0xFFFFC107),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
                       const SizedBox(height: 6),
                       Text(
                         'Choose one floor ${state.floor} upgrade',
