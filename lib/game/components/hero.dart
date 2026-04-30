@@ -100,6 +100,11 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
         final bDist = (b.position - position).length2;
         return aDist.compareTo(bDist);
       });
+
+    if (targets.isNotEmpty) {
+      game.audio.playBasicAttack();
+    }
+
     for (final enemy in targets.take(game.state.emberTargets)) {
       final focusLevel = game.state.focusLevel;
       final barrageLevel = game.state.barrageLevel;

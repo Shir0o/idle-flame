@@ -28,6 +28,7 @@ class GameAudio {
   double _skillDamageCooldown = 0;
 
   static const _hit = 'hit.mp3';
+  static const _basicAttack = 'basic_attack.mp3';
   static const _skill = 'skill.mp3';
   static const _enemyDeath = 'enemy_death.mp3';
   static const _skillFiles = <SkillSound, String>{
@@ -46,6 +47,7 @@ class GameAudio {
   Future<void> load() async {
     await FlameAudio.audioCache.loadAll([
       _hit,
+      _basicAttack,
       _skill,
       _enemyDeath,
       ..._skillFiles.values,
@@ -53,6 +55,11 @@ class GameAudio {
 
     _pools[_hit] = await FlameAudio.createPool(
       _hit,
+      minPlayers: 1,
+      maxPlayers: 4,
+    );
+    _pools[_basicAttack] = await FlameAudio.createPool(
+      _basicAttack,
       minPlayers: 1,
       maxPlayers: 4,
     );
@@ -86,6 +93,10 @@ class GameAudio {
     if (_hitCooldown > 0) return;
     _hitCooldown = 0.045;
     _playPool(_pools[_hit], volume: 0.35);
+  }
+
+  void playBasicAttack() {
+    _playPool(_pools[_basicAttack], volume: 0.4);
   }
 
   void playSkillCast() {
