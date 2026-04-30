@@ -25,7 +25,7 @@ class SkillChoice {
 
   String get tierLabel {
     return switch (level) {
-      1 || 3 => 'Stat / Range',
+      1 || 3 => 'Stat',
       2 || 4 => 'Special',
       _ => 'Ascendant',
     };
@@ -46,7 +46,6 @@ class GameState extends ChangeNotifier {
   static const int killsPerFloor = 10;
   static const double baseDamage = 5;
   static const double baseAttacksPerSec = 1;
-  static const double baseAttackRange = 260;
   static const double flameNovaCooldown = 5;
   static const double firewallCooldown = 3.5;
   static const double meteorMarkCooldown = 4.5;
@@ -61,8 +60,7 @@ class GameState extends ChangeNotifier {
       baseDamage * (1 + _archetypeLevel(SkillArchetype.focus) * 0.08);
   double get heroAttacksPerSec =>
       baseAttacksPerSec * (1 + _archetypeLevel(SkillArchetype.barrage) * 0.06);
-  double get heroAttackRange =>
-      baseAttackRange + _archetypeLevel(SkillArchetype.reach) * 10;
+  double get heroAttackRange => double.infinity;
   int get emberTargets =>
       (1 + (_archetypeLevel(SkillArchetype.chain) / 2).floor()).clamp(1, 8);
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
