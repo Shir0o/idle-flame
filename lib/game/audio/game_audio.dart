@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flame_audio/flame_audio.dart';
@@ -19,6 +20,9 @@ class GameAudio {
   GameAudio();
 
   final math.Random _rng = math.Random();
+  final Map<String, AudioPool> _pools = {};
+  final Map<SkillSound, AudioPool> _skillPools = {};
+  final Map<AudioPool, int> _activePlayers = {};
   double _hitCooldown = 0;
   double _deathCooldown = 0;
   double _skillDamageCooldown = 0;
@@ -39,13 +43,37 @@ class GameAudio {
     SkillSound.physical: 'skill_physical.mp3',
   };
 
-  Future<void> load() {
-    return FlameAudio.audioCache.loadAll([
+  Future<void> load() async {
+    await FlameAudio.audioCache.loadAll([
       _hit,
       _skill,
       _enemyDeath,
       ..._skillFiles.values,
     ]);
+
+    _pools[_hit] = await FlameAudio.createPool(
+      _hit,
+      minPlayers: 1,
+      maxPlayers: 4,
+    );
+    _pools[_skill] = await FlameAudio.createPool(
+      _skill,
+      minPlayers: 1,
+      maxPlayers: 3,
+    );
+    _pools[_enemyDeath] = await FlameAudio.createPool(
+      _enemyDeath,
+      minPlayers: 1,
+      maxPlayers: 3,
+    );
+
+    for (final entry in _skillFiles.entries) {
+      _skillPools[entry.key] = await FlameAudio.createPool(
+        entry.value,
+        minPlayers: 0,
+        maxPlayers: 2,
+      );
+    }
   }
 
   void update(double dt) {
@@ -57,17 +85,17 @@ class GameAudio {
   void playHit() {
     if (_hitCooldown > 0) return;
     _hitCooldown = 0.045;
-    FlameAudio.play(_hit, volume: 0.35);
+    _playPool(_pools[_hit], volume: 0.35);
   }
 
   void playSkillCast() {
-    FlameAudio.play(_skill, volume: 0.5);
+    _playPool(_pools[_skill], volume: 0.5);
   }
 
   void playSkillDamage(SkillSound sound) {
     if (_skillDamageCooldown > 0) return;
     _skillDamageCooldown = 0.08;
-    FlameAudio.play(_skillFiles[sound]!, volume: 0.45);
+    _playPool(_skillPools[sound], volume: 0.45);
   }
 
   void playRandomSkillDamage() {
@@ -78,6 +106,44 @@ class GameAudio {
   void playEnemyDeath() {
     if (_deathCooldown > 0) return;
     _deathCooldown = 0.06;
-    FlameAudio.play(_enemyDeath, volume: 0.45);
+    _playPool(_pools[_enemyDeath], volume: 0.45);
+  }
+
+  Future<void> dispose() async {
+    await Future.wait([
+      ..._pools.values.map((pool) => pool.dispose()),
+      ..._skillPools.values.map((pool) => pool.dispose()),
+    ]);
+    _activePlayers.clear();
+    _pools.clear();
+    _skillPools.clear();
+  }
+
+  void _playPool(AudioPool? pool, {required double volume}) {
+    if (pool == null || (_activePlayers[pool] ?? 0) >= pool.maxPlayers) return;
+    _activePlayers[pool] = (_activePlayers[pool] ?? 0) + 1;
+    unawaited(_startPooledSound(pool, volume: volume));
+  }
+
+  Future<void> _startPooledSound(
+    AudioPool pool, {
+    required double volume,
+  }) async {
+    try {
+      await pool.start(volume: volume);
+      Timer(const Duration(milliseconds: 600), () => _releasePoolSlot(pool));
+    } catch (_) {
+      _releasePoolSlot(pool);
+    }
+  }
+
+  void _releasePoolSlot(AudioPool pool) {
+    final active = _activePlayers[pool];
+    if (active == null) return;
+    if (active <= 1) {
+      _activePlayers.remove(pool);
+      return;
+    }
+    _activePlayers[pool] = active - 1;
   }
 }

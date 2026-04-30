@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flame/components.dart';
@@ -39,6 +40,12 @@ class IdleGame extends FlameGame {
     _seenResetGeneration = state.resetGeneration;
     world.add(hero);
     world.add(spawner);
+  }
+
+  @override
+  void onRemove() {
+    unawaited(audio.dispose());
+    super.onRemove();
   }
 
   @override
