@@ -40,10 +40,12 @@ class GameState extends ChangeNotifier {
   int killsOnFloor = 0;
   int lastIdleReward = 0;
   int resetGeneration = 0;
+  double nexusHp = maxNexusHp;
 
   final Map<String, int> _skillLevels = {};
   List<String> _pendingUpgradeIds = [];
 
+  static const double maxNexusHp = 100;
   static const int killsPerFloor = 10;
   static const double baseDamage = 7;
   static const double baseAttacksPerSec = 1;
@@ -82,10 +84,12 @@ class GameState extends ChangeNotifier {
   double get meteorMarkDamage => heroDamage * (1.7 + meteorMarkLevel * 0.14);
   double get enemySpeedMultiplier => max(0.45, 1 - frostLevel * 0.025);
   double get executeDamageMultiplier => 1 + ruptureLevel * 0.035;
+  bool get isRunOver => nexusHp <= 0;
   bool get hasPendingLevelUp => _pendingUpgradeIds.isNotEmpty;
   List<SkillChoice> get pendingChoices =>
       _pendingUpgradeIds.map(_choiceFor).nonNulls.toList(growable: false);
   double get enemyMaxHp => _baseEnemyHp * pow(_enemyHpGrowth, floor - 1);
+  double get enemyBreachDamage => 4 + floor * 0.8;
   int get goldPerKill {
     final base = _baseGoldPerKill * pow(_goldGrowth, floor - 1);
     final bountyMultiplier = 1 + bountyLevel * 0.08;
@@ -109,6 +113,7 @@ class GameState extends ChangeNotifier {
   }
 
   void registerKill() {
+    if (isRunOver) return;
     gold += goldPerKill;
     killsOnFloor += 1;
     if (killsOnFloor >= killsPerFloor) {
@@ -121,7 +126,7 @@ class GameState extends ChangeNotifier {
   }
 
   void selectUpgrade(String id) {
-    if (!_pendingUpgradeIds.contains(id) || _isMaxed(id)) return;
+    if (isRunOver || !_pendingUpgradeIds.contains(id) || _isMaxed(id)) return;
     _skillLevels[id] = skillLevel(id) + 1;
     _pendingUpgradeIds = [];
     notifyListeners();
@@ -129,6 +134,16 @@ class GameState extends ChangeNotifier {
   }
 
   int skillLevel(String id) => _skillLevels[id] ?? 0;
+
+  void damageNexus(double amount) {
+    if (isRunOver || amount <= 0) return;
+    nexusHp = max(0, nexusHp - amount);
+    if (isRunOver) {
+      _pendingUpgradeIds = [];
+    }
+    notifyListeners();
+    _saveSoon();
+  }
 
   void clearIdleReward() {
     if (lastIdleReward == 0) return;
@@ -142,6 +157,7 @@ class GameState extends ChangeNotifier {
     floor = 1;
     killsOnFloor = 0;
     lastIdleReward = 0;
+    nexusHp = maxNexusHp;
     resetGeneration += 1;
     _skillLevels.clear();
     _pendingUpgradeIds = [];
@@ -150,6 +166,7 @@ class GameState extends ChangeNotifier {
     await prefs.remove(_kGold);
     await prefs.remove(_kFloor);
     await prefs.remove(_kKills);
+    await prefs.remove(_kNexusHp);
     await prefs.remove(_kSkillLevels);
     await prefs.remove(_kPendingUpgrades);
     await prefs.remove(_kOldEmberChainLevel);
@@ -167,6 +184,7 @@ class GameState extends ChangeNotifier {
     gold = prefs.getInt(_kGold) ?? 0;
     floor = prefs.getInt(_kFloor) ?? 1;
     killsOnFloor = prefs.getInt(_kKills) ?? 0;
+    nexusHp = (prefs.getDouble(_kNexusHp) ?? maxNexusHp).clamp(0, maxNexusHp);
     _skillLevels
       ..clear()
       ..addAll(_decodeSkillLevels(prefs.getStringList(_kSkillLevels)));
@@ -196,6 +214,7 @@ class GameState extends ChangeNotifier {
     await prefs.setInt(_kGold, gold);
     await prefs.setInt(_kFloor, floor);
     await prefs.setInt(_kKills, killsOnFloor);
+    await prefs.setDouble(_kNexusHp, nexusHp);
     await prefs.setStringList(_kSkillLevels, _encodeSkillLevels());
     await prefs.setStringList(_kPendingUpgrades, _pendingUpgradeIds);
     await _writeLastSeen(prefs);
@@ -301,6 +320,7 @@ class GameState extends ChangeNotifier {
   }
 
   int _computeIdleReward(DateTime lastSeen) {
+    if (isRunOver) return 0;
     final seconds = DateTime.now()
         .difference(lastSeen)
         .inSeconds
@@ -324,6 +344,7 @@ class GameState extends ChangeNotifier {
   static const _kGold = 'gold';
   static const _kFloor = 'floor';
   static const _kKills = 'killsOnFloor';
+  static const _kNexusHp = 'nexusHp';
   static const _kSkillLevels = 'skillLevels';
   static const _kPendingUpgrades = 'pendingUpgrades';
   static const _kOldEmberChainLevel = 'emberChainLevel';

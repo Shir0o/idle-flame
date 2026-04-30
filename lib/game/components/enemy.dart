@@ -24,12 +24,14 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
   double hp;
   double _flashTimer = 0;
   double _hitPopTimer = 0;
+  double _breachTimer = 0;
   Vector2 _knockbackVelocity = Vector2.zero();
   bool _dying = false;
   bool get isAlive => !_dying;
 
   static const double _speed = 60;
   static const double _stopRadius = 70;
+  static const double _breachInterval = 1;
   static const Color _baseColor = Color(0xFFFF2D95);
 
   @override
@@ -49,7 +51,7 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
       position += _knockbackVelocity * dt;
       _knockbackVelocity *= math.pow(0.06, dt).toDouble();
     }
-    if (game.state.hasPendingLevelUp) return;
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
     if (_dying) return;
     final hero = game.hero;
     final toHero = hero.position - position;
@@ -57,6 +59,24 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
     if (dist > _stopRadius) {
       position +=
           toHero.normalized() * _speed * game.state.enemySpeedMultiplier * dt;
+      _breachTimer = 0;
+      return;
+    }
+    _breachTimer += dt;
+    if (_breachTimer >= _breachInterval) {
+      _breachTimer = 0;
+      game.state.damageNexus(game.state.enemyBreachDamage);
+      game.shakeCamera(intensity: 5, duration: 0.18);
+      parent?.add(
+        HitSparkEffect(
+          effectCenter: game.hero.position.clone(),
+          direction: Vector2(0, -1),
+          color: const Color(0xFFFF5252),
+          count: 10,
+          spread: 2.2,
+          speed: 130,
+        ),
+      );
     }
   }
 
@@ -65,7 +85,7 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
     Vector2? source,
     DamageType type = DamageType.basic,
   }) {
-    if (_dying) return;
+    if (_dying || game.state.isRunOver) return;
     final executeBonus = hp / maxHp <= 0.5
         ? game.state.executeDamageMultiplier
         : 1.0;

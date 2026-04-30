@@ -14,9 +14,11 @@ class Hud extends StatelessWidget {
         children: const [
           Positioned(top: 12, left: 16, child: _FloorBadge()),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
+          Positioned(left: 16, right: 16, bottom: 16, child: _NexusHealthBar()),
           Positioned(right: 16, bottom: 16, child: _DevResetButton()),
           Positioned(left: 0, right: 0, top: 80, child: _IdleRewardToast()),
           Positioned.fill(child: _LevelUpPicker()),
+          Positioned.fill(child: _RunOverPanel()),
         ],
       ),
     );
@@ -156,7 +158,7 @@ class _LevelUpPicker extends StatelessWidget {
     return Consumer<GameState>(
       builder: (_, state, _) {
         final choices = state.pendingChoices;
-        if (choices.isEmpty) return const SizedBox.shrink();
+        if (choices.isEmpty || state.isRunOver) return const SizedBox.shrink();
         return ColoredBox(
           color: Colors.black.withValues(alpha: 0.68),
           child: Center(
@@ -197,6 +199,154 @@ class _LevelUpPicker extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _NexusHealthBar extends StatelessWidget {
+  const _NexusHealthBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) => Align(
+        alignment: Alignment.bottomLeft,
+        child: _Panel(
+          child: SizedBox(
+            width: 210,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.favorite,
+                      color: Color(0xFFFF5252),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Nexus',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.86),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${state.nexusHp.ceil()}/${GameState.maxNexusHp.round()}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: state.nexusHp / GameState.maxNexusHp,
+                    minHeight: 7,
+                    backgroundColor: Colors.white.withValues(alpha: 0.12),
+                    valueColor: const AlwaysStoppedAnimation(Color(0xFFFF5252)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RunOverPanel extends StatelessWidget {
+  const _RunOverPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        if (!state.isRunOver) return const SizedBox.shrink();
+        return ColoredBox(
+          color: Colors.black.withValues(alpha: 0.72),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 380),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111827),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFFFF5252).withValues(alpha: 0.55),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF5252).withValues(alpha: 0.18),
+                        blurRadius: 26,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.warning_amber,
+                          color: Color(0xFFFF5252),
+                          size: 34,
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Nexus Breached',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'You reached floor ${state.floor} and earned ${state.gold} gold.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 14,
+                            height: 1.25,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFFFF5252),
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: state.resetProgress,
+                            icon: const Icon(Icons.restart_alt),
+                            label: const Text('Retry Run'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

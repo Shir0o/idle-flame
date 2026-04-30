@@ -43,7 +43,7 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
       scale = Vector2.all(1 + Curves.easeOutBack.transform(t) * 0.1);
       if (_pulseTimer <= 0) scale = Vector2.all(1);
     }
-    if (game.state.hasPendingLevelUp) return;
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
 
     final period = 1.0 / game.state.heroAttacksPerSec;
     _attackTimer += dt;
