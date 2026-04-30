@@ -15,13 +15,17 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
     : hp = maxHp,
       super(
         position: position,
-        size: Vector2(36, 36),
+        size: Vector2(68, 68),
         anchor: Anchor.center,
         paint: Paint()..color = _baseColor,
       );
 
   final double maxHp;
   double hp;
+  Sprite? _sprite;
+  List<Sprite> _walkFrames = const [];
+  double _animationTimer = 0;
+  int _animationFrame = 0;
   double _flashTimer = 0;
   double _hitPopTimer = 0;
   double _breachTimer = 0;
@@ -35,8 +39,40 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
   static const Color _baseColor = Color(0xFFFF2D95);
 
   @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    try {
+      _sprite = await game.loadSprite('characters/cyber_grunt/south.png');
+      _walkFrames = await Future.wait([
+        for (var i = 0; i < 6; i++)
+          game.loadSprite(
+            'characters/cyber_grunt/walk_south/frame_${i.toString().padLeft(3, '0')}.png',
+          ),
+      ]);
+    } catch (_) {
+      _sprite = null;
+      _walkFrames = const [];
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final sprite = _currentSprite;
+    if (sprite == null) {
+      super.render(canvas);
+      return;
+    }
+    sprite.render(
+      canvas,
+      size: size,
+      overridePaint: _flashTimer > 0 ? paint : null,
+    );
+  }
+
+  @override
   void update(double dt) {
     super.update(dt);
+    _advanceAnimation(dt);
     if (_flashTimer > 0) {
       _flashTimer -= dt;
       if (_flashTimer <= 0) paint.color = _baseColor;
@@ -77,6 +113,21 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
           speed: 130,
         ),
       );
+    }
+  }
+
+  Sprite? get _currentSprite {
+    if (_walkFrames.isEmpty) return _sprite;
+    return _walkFrames[_animationFrame % _walkFrames.length];
+  }
+
+  void _advanceAnimation(double dt) {
+    if (_walkFrames.length <= 1 || _dying) return;
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
+    _animationTimer += dt;
+    while (_animationTimer >= 0.12) {
+      _animationTimer -= 0.12;
+      _animationFrame = (_animationFrame + 1) % _walkFrames.length;
     }
   }
 

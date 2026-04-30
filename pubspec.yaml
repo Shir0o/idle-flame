@@ -23,3 +23,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/audio/
+    - assets/images/characters/neon_ronin/
+    - assets/images/characters/cyber_grunt/
+    - assets/images/characters/cyber_grunt/walk_south/

@@ -10,11 +10,12 @@ import 'sentinel_blade.dart';
 class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
   HeroComponent()
     : super(
-        size: Vector2(48, 48),
+        size: Vector2(68, 68),
         anchor: Anchor.center,
         paint: Paint()..color = const Color(0xFF00E5FF),
       );
 
+  Sprite? _sprite;
   double _attackTimer = 0;
   double _novaTimer = 0;
   double _firewallTimer = 0;
@@ -23,6 +24,26 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
   double _pulseTimer = 0;
   double _pulseDuration = 0.18;
   final List<SentinelBlade> _sentinelBlades = [];
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    try {
+      _sprite = await game.loadSprite('characters/neon_ronin/north.png');
+    } catch (_) {
+      _sprite = null;
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final sprite = _sprite;
+    if (sprite == null) {
+      super.render(canvas);
+      return;
+    }
+    sprite.render(canvas, size: size);
+  }
 
   @override
   void onMount() {
@@ -165,10 +186,7 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
     final radius = game.state.flameNovaRadius;
     final effectRadius = radius.isFinite ? radius : game.size.length;
     parent?.add(
-      NovaPulseEffect(
-        effectCenter: position.clone(),
-        radius: effectRadius,
-      ),
+      NovaPulseEffect(effectCenter: position.clone(), radius: effectRadius),
     );
     for (final enemy in _enemiesInRange(radius)) {
       enemy.takeDamage(
@@ -188,10 +206,7 @@ class HeroComponent extends RectangleComponent with HasGameReference<IdleGame> {
     final halfWidth = effectWidth / 2;
     final wallCenter = Vector2(position.x, wallY);
     parent?.add(
-      FirewallEffect(
-        effectCenter: wallCenter,
-        effectWidth: effectWidth,
-      ),
+      FirewallEffect(effectCenter: wallCenter, effectWidth: effectWidth),
     );
     final enemies = _aliveEnemies().where((enemy) {
       final insideWidth = (enemy.position.x - position.x).abs() <= halfWidth;

@@ -23,6 +23,7 @@ class GameAudio {
   final Map<String, AudioPool> _pools = {};
   final Map<SkillSound, AudioPool> _skillPools = {};
   final Map<AudioPool, int> _activePlayers = {};
+  bool _enabled = true;
   double _hitCooldown = 0;
   double _deathCooldown = 0;
   double _skillDamageCooldown = 0;
@@ -46,41 +47,47 @@ class GameAudio {
   };
 
   Future<void> load() async {
-    await FlameAudio.audioCache.loadAll([
-      _hit,
-      _basicAttack,
-      _skill,
-      _enemyDeath,
-      ..._skillFiles.values,
-    ]);
+    try {
+      await FlameAudio.audioCache.loadAll([
+        _hit,
+        _basicAttack,
+        _skill,
+        _enemyDeath,
+        ..._skillFiles.values,
+      ]);
 
-    _pools[_hit] = await FlameAudio.createPool(
-      _hit,
-      minPlayers: 0,
-      maxPlayers: 4,
-    );
-    _pools[_basicAttack] = await FlameAudio.createPool(
-      _basicAttack,
-      minPlayers: 0,
-      maxPlayers: 6,
-    );
-    _pools[_skill] = await FlameAudio.createPool(
-      _skill,
-      minPlayers: 0,
-      maxPlayers: 3,
-    );
-    _pools[_enemyDeath] = await FlameAudio.createPool(
-      _enemyDeath,
-      minPlayers: 0,
-      maxPlayers: 3,
-    );
-
-    for (final entry in _skillFiles.entries) {
-      _skillPools[entry.key] = await FlameAudio.createPool(
-        entry.value,
+      _pools[_hit] = await FlameAudio.createPool(
+        _hit,
         minPlayers: 0,
-        maxPlayers: 2,
+        maxPlayers: 4,
       );
+      _pools[_basicAttack] = await FlameAudio.createPool(
+        _basicAttack,
+        minPlayers: 0,
+        maxPlayers: 6,
+      );
+      _pools[_skill] = await FlameAudio.createPool(
+        _skill,
+        minPlayers: 0,
+        maxPlayers: 3,
+      );
+      _pools[_enemyDeath] = await FlameAudio.createPool(
+        _enemyDeath,
+        minPlayers: 0,
+        maxPlayers: 3,
+      );
+
+      for (final entry in _skillFiles.entries) {
+        _skillPools[entry.key] = await FlameAudio.createPool(
+          entry.value,
+          minPlayers: 0,
+          maxPlayers: 2,
+        );
+      }
+    } catch (_) {
+      _enabled = false;
+      _pools.clear();
+      _skillPools.clear();
     }
   }
 
@@ -135,6 +142,7 @@ class GameAudio {
   }
 
   void _playPool(AudioPool? pool, {required double volume}) {
+    if (!_enabled) return;
     if (pool == null || (_activePlayers[pool] ?? 0) >= pool.maxPlayers) return;
     _activePlayers[pool] = (_activePlayers[pool] ?? 0) + 1;
     unawaited(_startPooledSound(pool, volume: volume));

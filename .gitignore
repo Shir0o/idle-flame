@@ -47,3 +47,19 @@ app.*.map.json
 # Local screenshots / scratch
 /*.png
 
+# Local game assets. Keep generated/prototype media out of Git history.
+/assets/**
+!/assets/
+!/assets/**/
+!/assets/**/.gitkeep
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.aseprite
+*.mp3
+*.wav
+*.ogg
+*.flac
+*.zip
