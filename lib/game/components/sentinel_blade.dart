@@ -5,9 +5,10 @@ import '../idle_game.dart';
 import 'enemy.dart';
 
 class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
-  SentinelBlade({required this.orbitIndex}) : super(priority: 62);
+  SentinelBlade({required this.orbitIndex, this.level = 1}) : super(priority: 62);
 
   final int orbitIndex;
+  final int level;
   double _orbitAngle = 0;
   Enemy? _target;
   double _attackTimer = 0;
@@ -116,9 +117,36 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     // Draw a small diamond-shaped blade
     canvas.save();
     canvas.rotate(math.pi / 4); // Adjust for the diamond shape
-    final rect = Rect.fromCenter(center: Offset.zero, width: 12, height: 12);
-    canvas.drawRect(rect.inflate(4), _glowPaint);
+    
+    final sizeBase = 12.0 * (level >= 3 ? 1.3 : 1.0);
+    final rect = Rect.fromCenter(center: Offset.zero, width: sizeBase, height: sizeBase);
+    
+    // Evolution: Larger glow at high levels
+    final glowSize = 4.0 * (level >= 4 ? 1.8 : 1.0);
+    canvas.drawRect(rect.inflate(glowSize), _glowPaint);
     canvas.drawRect(rect, _bladePaint);
+
+    // Evolution: Mastery Level 5 - Orbiting Shards
+    if (level >= 5) {
+      final shardPaint = Paint()
+        ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.6)
+        ..style = PaintingStyle.fill;
+      
+      final shardGlow = Paint()
+        ..color = const Color(0xFF00B0FF).withValues(alpha: 0.3)
+        ..style = PaintingStyle.fill;
+
+      // Note: we can use _orbitAngle as a base for shard rotation too
+      for (var i = 0; i < 3; i++) {
+        final shardAngle = (_orbitAngle * 2.0) + (i * math.pi * 2 / 3);
+        final dist = 14.0;
+        final shardPos = Offset(math.cos(shardAngle) * dist, math.sin(shardAngle) * dist);
+        final shardRect = Rect.fromCenter(center: shardPos, width: 4, height: 4);
+        canvas.drawRect(shardRect.inflate(2), shardGlow);
+        canvas.drawRect(shardRect, shardPaint);
+      }
+    }
+    
     canvas.restore();
   }
 }

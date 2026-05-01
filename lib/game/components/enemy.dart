@@ -155,7 +155,12 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
       game.audio.playRandomSkillDamage();
     }
     if (isExecute && game.state.ruptureLevel > 0) {
-      parent?.add(RuptureMarkEffect(effectCenter: position.clone()));
+      parent?.add(
+        RuptureMarkEffect(
+          effectCenter: position.clone(),
+          level: game.state.ruptureLevel,
+        ),
+      );
     }
     _color = visual.flashColor;
     _flashTimer = visual.flashDuration;
@@ -178,7 +183,13 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
     if (meta.hasKeystone('shatter') && game.state.frostLevel > 0) {
       final blastRadiusSq = 110.0 * 110.0;
       final dmg = game.state.heroDamage * 0.8;
-      parent?.add(NovaPulseEffect(effectCenter: position.clone(), radius: 110));
+      parent?.add(
+        NovaPulseEffect(
+          effectCenter: position.clone(),
+          radius: 110,
+          level: game.state.flameNovaLevel,
+        ),
+      );
       for (final other in _otherAliveEnemies()) {
         if ((other.position - position).length2 <= blastRadiusSq) {
           other.takeDamage(dmg, source: position.clone(), type: DamageType.nova);
@@ -197,7 +208,12 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
         }
       }
       if (nearest != null) {
-        parent?.add(RuptureMarkEffect(effectCenter: nearest.position.clone()));
+        parent?.add(
+          RuptureMarkEffect(
+            effectCenter: nearest.position.clone(),
+            level: game.state.ruptureLevel,
+          ),
+        );
         nearest.takeDamage(
           game.state.heroDamage * 1.5,
           source: position.clone(),

@@ -157,6 +157,7 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
         FrostFieldEffect(
           effectCenter: game.size / 2,
           fieldSize: Vector2(game.size.x, game.size.y),
+          level: game.state.frostLevel,
         ),
       );
     }
@@ -165,7 +166,10 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
   void _updateSentinelBlades() {
     final targetCount = game.state.sentinelCount;
     while (_sentinelBlades.length < targetCount) {
-      final blade = SentinelBlade(orbitIndex: _sentinelBlades.length);
+      final blade = SentinelBlade(
+        orbitIndex: _sentinelBlades.length,
+        level: game.state.sentinelLevel,
+      );
       blade.position = position.clone();
       _sentinelBlades.add(blade);
       parent?.add(blade);
@@ -236,11 +240,16 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
           to: enemy.position.clone(),
           color: slashColor,
           widthMultiplier: 1 + focusLevel * 0.04,
+          level: game.state.chainLevel,
         ),
       );
       if (focusLevel > 0) {
         parent?.add(
-          FocusStrikeEffect(from: position.clone(), to: enemy.position.clone()),
+          FocusStrikeEffect(
+            from: position.clone(),
+            to: enemy.position.clone(),
+            level: focusLevel,
+          ),
         );
       }
       enemy.takeDamage(
@@ -265,7 +274,12 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
         );
       }
       if (barrageLevel > 0) {
-        parent?.add(BarrageStreakEffect(effectCenter: position.clone()));
+        parent?.add(
+          BarrageStreakEffect(
+            effectCenter: position.clone(),
+            level: barrageLevel,
+          ),
+        );
       }
     }
     if (targets.isNotEmpty) _pulse(0.14);
@@ -281,6 +295,7 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
       NovaPulseEffect(
         effectCenter: position.clone(),
         radius: effectRadius * (isAftershock ? 0.7 : 1.0),
+        level: game.state.flameNovaLevel,
       ),
     );
     for (final enemy in _enemiesInRange(radius)) {
@@ -304,7 +319,11 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     final halfWidth = effectWidth / 2;
     final wallCenter = Vector2(position.x, wallY);
     parent?.add(
-      FirewallEffect(effectCenter: wallCenter, effectWidth: effectWidth),
+      FirewallEffect(
+        effectCenter: wallCenter,
+        effectWidth: effectWidth,
+        level: game.state.firewallLevel,
+      ),
     );
     final enemies = _aliveEnemies().where((enemy) {
       final insideWidth = (enemy.position.x - position.x).abs() <= halfWidth;
@@ -333,7 +352,11 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     final blastRadius = radius.isFinite ? radius : game.size.length;
     final blastRadiusSquared = radius * radius;
     parent?.add(
-      MeteorImpactEffect(target: target.position.clone(), radius: blastRadius),
+      MeteorImpactEffect(
+        target: target.position.clone(),
+        radius: blastRadius,
+        level: game.state.meteorMarkLevel,
+      ),
     );
     _pulse(0.24);
     game.shakeCamera(intensity: 7, duration: 0.22);
@@ -359,7 +382,11 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
         Future.delayed(Duration(milliseconds: (delay * 1000).round()), () {
           if (game.state.isRunOver) return;
           parent?.add(
-            MeteorImpactEffect(target: clusterPos, radius: blastRadius * 0.6),
+            MeteorImpactEffect(
+              target: clusterPos,
+              radius: blastRadius * 0.6,
+              level: game.state.meteorMarkLevel,
+            ),
           );
           for (final enemy in _aliveEnemies()) {
             if ((enemy.position - clusterPos).length2 <=
