@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../idle_game.dart';
 import '../state/game_state.dart';
+import '../state/mech_catalog.dart';
 import 'combat_effects.dart';
 import 'enemy.dart';
 import 'sentinel_blade.dart';
@@ -13,11 +14,13 @@ enum HeroState { idle, attack }
 
 class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
     with HasGameReference<IdleGame> {
-  HeroComponent()
+  HeroComponent({this.mechType = MechType.tank})
     : super(
-        size: Vector2(84, 84),
+        size: Vector2.all(mechDefinitionFor(mechType).spriteSize),
         anchor: Anchor.center,
       );
+
+  MechType mechType;
 
   double _attackTimer = 0;
   double _novaTimer = 0;
@@ -36,13 +39,26 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
   Future<void> onLoad() async {
     await super.onLoad();
 
+    await _loadMechAnimations();
+  }
+
+  Future<void> setMechType(MechType nextMechType) async {
+    if (mechType == nextMechType) return;
+    mechType = nextMechType;
+    size = Vector2.all(mechDefinitionFor(mechType).spriteSize);
+    await _loadMechAnimations();
+    _placeAtBottom(game.size);
+  }
+
+  Future<void> _loadMechAnimations() async {
+    final path = mechDefinitionFor(mechType).assetPath;
     final idleAnimation = await _loadAnimation(
-      'characters/vanguard_mech/idle_north',
+      'characters/$path/idle_north',
       4,
       0.15,
     );
     final attackAnimation = await _loadAnimation(
-      'characters/vanguard_mech/attack_north',
+      'characters/$path/attack_north',
       6,
       0.08,
       loop: false,
@@ -66,11 +82,7 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
       final frameNum = i.toString().padLeft(3, '0');
       sprites.add(await game.loadSprite('$path/frame_$frameNum.png'));
     }
-    return SpriteAnimation.spriteList(
-      sprites,
-      stepTime: stepTime,
-      loop: loop,
-    );
+    return SpriteAnimation.spriteList(sprites, stepTime: stepTime, loop: loop);
   }
 
   @override
@@ -215,8 +227,8 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
       final slashColor = critRoll
           ? const Color(0xFFFF6B35)
           : (focusLevel > 0
-              ? const Color(0xFFFFF176)
-              : const Color(0xFF00E5FF));
+                ? const Color(0xFFFFF176)
+                : const Color(0xFF00E5FF));
       parent?.add(
         SlashArcEffect(
           from: position.clone(),
@@ -343,25 +355,22 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
           (_critRng.nextDouble() - 0.5) * 80,
         );
         final clusterPos = target.position + offset;
-        Future.delayed(
-          Duration(milliseconds: (delay * 1000).round()),
-          () {
-            if (game.state.isRunOver) return;
-            parent?.add(
-              MeteorImpactEffect(target: clusterPos, radius: blastRadius * 0.6),
-            );
-            for (final enemy in _aliveEnemies()) {
-              if ((enemy.position - clusterPos).length2 <=
-                  blastRadiusSquared * 0.36) {
-                enemy.takeDamage(
-                  game.state.meteorMarkDamage * 0.5,
-                  source: clusterPos,
-                  type: DamageType.meteor,
-                );
-              }
+        Future.delayed(Duration(milliseconds: (delay * 1000).round()), () {
+          if (game.state.isRunOver) return;
+          parent?.add(
+            MeteorImpactEffect(target: clusterPos, radius: blastRadius * 0.6),
+          );
+          for (final enemy in _aliveEnemies()) {
+            if ((enemy.position - clusterPos).length2 <=
+                blastRadiusSquared * 0.36) {
+              enemy.takeDamage(
+                game.state.meteorMarkDamage * 0.5,
+                source: clusterPos,
+                type: DamageType.meteor,
+              );
             }
-          },
-        );
+          }
+        });
       }
     }
   }

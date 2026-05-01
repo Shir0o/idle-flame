@@ -23,6 +23,12 @@ flutter:
   uses-material-design: true
   assets:
     - assets/audio/
+    - assets/images/characters/ultra_mech/idle_north/
+    - assets/images/characters/ultra_mech/attack_north/
+    - assets/images/characters/tank_mech/idle_north/
+    - assets/images/characters/tank_mech/attack_north/
+    - assets/images/characters/bulky_mech/idle_north/
+    - assets/images/characters/bulky_mech/attack_north/
     - assets/images/characters/vanguard_mech/
     - assets/images/characters/vanguard_mech/idle_north/
     - assets/images/characters/vanguard_mech/attack_north/

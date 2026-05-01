@@ -32,7 +32,7 @@ class IdleGame extends FlameGame {
     camera.viewfinder.anchor = Anchor.topLeft;
     camera.viewfinder.position = Vector2.zero();
 
-    hero = HeroComponent();
+    hero = HeroComponent(mechType: state.selectedMech);
     spawner = EnemySpawner();
     _seenResetGeneration = state.resetGeneration;
     world.add(hero);
@@ -54,6 +54,9 @@ class IdleGame extends FlameGame {
     if (_seenResetGeneration != state.resetGeneration) {
       _seenResetGeneration = state.resetGeneration;
       _resetWorldForNewRun();
+    }
+    if (hero.mechType != state.selectedMech) {
+      unawaited(hero.setMechType(state.selectedMech));
     }
     if (_shakeTime > 0) {
       _shakeTime -= dt;

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'mech_catalog.dart';
 import 'meta_state.dart';
 import 'skill_catalog.dart';
 
@@ -34,7 +35,9 @@ class SkillChoice {
 }
 
 class GameState extends ChangeNotifier {
-  GameState({MetaState? meta}) : meta = meta ?? MetaState();
+  GameState({MetaState? meta}) : meta = meta ?? MetaState() {
+    nexusHp = nexusMaxHp;
+  }
 
   final Random _rng = Random();
   final MetaState meta;
@@ -46,6 +49,7 @@ class GameState extends ChangeNotifier {
   int lastIdleReward = 0;
   int resetGeneration = 0;
   double nexusHp = maxNexusHp;
+  MechType selectedMech = MechType.tank;
 
   final Map<String, int> _skillLevels = {};
   List<String> _pendingUpgradeIds = [];
@@ -77,10 +81,16 @@ class GameState extends ChangeNotifier {
   static const int _ownedSkillOfferWeight = 4;
   static const int autoSelectDuration = 60;
 
+  MechDefinition get mech => mechDefinitionFor(selectedMech);
+  double get nexusMaxHp => maxNexusHp * mech.maxHpMultiplier;
   double get heroDamage =>
-      baseDamage * (1 + _archetypeLevel(SkillArchetype.focus) * 0.08);
+      baseDamage *
+      mech.damageMultiplier *
+      (1 + _archetypeLevel(SkillArchetype.focus) * 0.08);
   double get heroAttacksPerSec =>
-      baseAttacksPerSec * (1 + _archetypeLevel(SkillArchetype.barrage) * 0.06);
+      baseAttacksPerSec *
+      mech.attackSpeedMultiplier *
+      (1 + _archetypeLevel(SkillArchetype.barrage) * 0.06);
   double get heroAttackRange => double.infinity;
   int get chainLevel => _archetypeLevel(SkillArchetype.chain);
   int get emberTargets => (1 + chainLevel).clamp(1, 10);
@@ -212,6 +222,16 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void selectMech(MechType mechType) {
+    if (selectedMech == mechType) return;
+    final oldMaxHp = nexusMaxHp;
+    final hpRatio = oldMaxHp <= 0 ? 1.0 : nexusHp / oldMaxHp;
+    selectedMech = mechType;
+    nexusHp = (nexusMaxHp * hpRatio).clamp(0, nexusMaxHp);
+    notifyListeners();
+    _saveSoon();
+  }
+
   void _clearPending() {
     _pendingUpgradeIds = [];
     autoSelectSecondsRemaining = null;
@@ -225,7 +245,7 @@ class GameState extends ChangeNotifier {
 
   void damageNexus(double amount) {
     if (isRunOver || amount <= 0) return;
-    nexusHp = max(0, nexusHp - amount);
+    nexusHp = max(0, min(nexusMaxHp, nexusHp) - amount);
     if (isRunOver) {
       _clearPending();
       _awardEmbersForRun();
@@ -254,7 +274,7 @@ class GameState extends ChangeNotifier {
     killsOnFloor = 0;
     totalKills = 0;
     lastIdleReward = 0;
-    nexusHp = maxNexusHp;
+    nexusHp = nexusMaxHp;
     resetGeneration += 1;
     _skillLevels.clear();
     _clearPending();
@@ -296,7 +316,8 @@ class GameState extends ChangeNotifier {
     floor = prefs.getInt(_kFloor) ?? 1;
     killsOnFloor = prefs.getInt(_kKills) ?? 0;
     totalKills = prefs.getInt(_kTotalKills) ?? 0;
-    nexusHp = (prefs.getDouble(_kNexusHp) ?? maxNexusHp).clamp(0, maxNexusHp);
+    selectedMech = mechTypeFromId(prefs.getString(_kSelectedMech));
+    nexusHp = (prefs.getDouble(_kNexusHp) ?? nexusMaxHp).clamp(0, nexusMaxHp);
     _resetPerRunMeta();
     _skillLevels
       ..clear()
@@ -308,7 +329,7 @@ class GameState extends ChangeNotifier {
             ?.where((id) => _skillById(id) != null && !_isMaxed(id))
             .toList() ??
         [];
-    
+
     if (hasPendingLevelUp) {
       _startAutoSelectTimer();
     }
@@ -334,6 +355,7 @@ class GameState extends ChangeNotifier {
     await prefs.setInt(_kKills, killsOnFloor);
     await prefs.setInt(_kTotalKills, totalKills);
     await prefs.setDouble(_kNexusHp, nexusHp);
+    await prefs.setString(_kSelectedMech, selectedMech.name);
     await prefs.setStringList(_kSkillLevels, _encodeSkillLevels());
     await prefs.setStringList(_kPendingUpgrades, _pendingUpgradeIds);
     await _writeLastSeen(prefs);
@@ -387,11 +409,12 @@ class GameState extends ChangeNotifier {
   void _startAutoSelectTimer() {
     _autoSelectTimer?.cancel();
     _countdownTimer?.cancel();
-    
+
     autoSelectSecondsRemaining = autoSelectDuration;
-    
+
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (autoSelectSecondsRemaining != null && autoSelectSecondsRemaining! > 0) {
+      if (autoSelectSecondsRemaining != null &&
+          autoSelectSecondsRemaining! > 0) {
         autoSelectSecondsRemaining = autoSelectSecondsRemaining! - 1;
         notifyListeners();
       } else {
@@ -523,6 +546,7 @@ class GameState extends ChangeNotifier {
   static const _kKills = 'killsOnFloor';
   static const _kTotalKills = 'totalKills';
   static const _kNexusHp = 'nexusHp';
+  static const _kSelectedMech = 'selectedMech';
   static const _kSkillLevels = 'skillLevels';
   static const _kPendingUpgrades = 'pendingUpgrades';
   static const _kOldEmberChainLevel = 'emberChainLevel';

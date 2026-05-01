@@ -1,4 +1,5 @@
 import 'package:flame_game/game/state/game_state.dart';
+import 'package:flame_game/game/state/mech_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -107,8 +108,47 @@ void main() {
     expect(state.gold, 0);
     expect(state.floor, 1);
     expect(state.killsOnFloor, 0);
-    expect(state.nexusHp, GameState.maxNexusHp);
+    expect(state.nexusHp, state.nexusMaxHp);
     expect(state.pendingChoices, isEmpty);
     expect(state.skillLevels, isEmpty);
+  });
+
+  test('mechs modify core combat stats and preserve nexus hp ratio', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.selectedMech, MechType.tank);
+    final tankHp = state.nexusMaxHp;
+    final tankDps = state.estimatedDps;
+
+    state.damageNexus(tankHp / 2);
+    state.selectMech(MechType.ultra);
+
+    expect(state.nexusMaxHp, lessThan(tankHp));
+    expect(state.nexusHp, closeTo(state.nexusMaxHp / 2, 0.0001));
+    expect(state.estimatedDps, greaterThan(tankDps));
+
+    state.selectMech(MechType.bulky);
+
+    expect(state.heroDamage, greaterThan(GameState.baseDamage));
+    expect(state.heroAttacksPerSec, lessThan(GameState.baseAttacksPerSec));
+  });
+
+  test('selected mech persists across load', () async {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    state.selectMech(MechType.ultra);
+    await state.save();
+
+    final loaded = GameState();
+    addTearDown(loaded.dispose);
+    await loaded.load();
+
+    expect(loaded.selectedMech, MechType.ultra);
+    expect(
+      loaded.nexusMaxHp,
+      mechDefinitionFor(MechType.ultra).maxHpMultiplier * GameState.maxNexusHp,
+    );
   });
 }
