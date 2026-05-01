@@ -56,7 +56,7 @@ class IdleGame extends FlameGame {
       _resetWorldForNewRun();
     }
     if (hero.mechType != state.selectedMech) {
-      unawaited(hero.setMechType(state.selectedMech));
+      hero.setMechType(state.selectedMech);
     }
     if (_shakeTime > 0) {
       _shakeTime -= dt;

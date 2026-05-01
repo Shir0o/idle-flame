@@ -10,9 +10,7 @@ import 'combat_effects.dart';
 import 'enemy.dart';
 import 'sentinel_blade.dart';
 
-enum HeroState { idle, attack }
-
-class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
+class HeroComponent extends PositionComponent
     with HasGameReference<IdleGame> {
   HeroComponent({this.mechType = MechType.tank})
     : super(
@@ -31,58 +29,17 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
   double _pulseDuration = 0.18;
   double _aftershockTimer = -1;
   double _backdraftTimer = -1;
+  double _attackFlashTimer = 0;
+  double _idlePhase = 0;
   int _twinShotCounter = 0;
   final math.Random _critRng = math.Random();
   final List<SentinelBlade> _sentinelBlades = [];
 
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-
-    await _loadMechAnimations();
-  }
-
-  Future<void> setMechType(MechType nextMechType) async {
+  void setMechType(MechType nextMechType) {
     if (mechType == nextMechType) return;
     mechType = nextMechType;
     size = Vector2.all(mechDefinitionFor(mechType).spriteSize);
-    await _loadMechAnimations();
     _placeAtBottom(game.size);
-  }
-
-  Future<void> _loadMechAnimations() async {
-    final path = mechDefinitionFor(mechType).assetPath;
-    final idleAnimation = await _loadAnimation(
-      'characters/$path/idle_north',
-      4,
-      0.15,
-    );
-    final attackAnimation = await _loadAnimation(
-      'characters/$path/attack_north',
-      6,
-      0.08,
-      loop: false,
-    );
-
-    animations = {
-      HeroState.idle: idleAnimation,
-      HeroState.attack: attackAnimation,
-    };
-    current = HeroState.idle;
-  }
-
-  Future<SpriteAnimation> _loadAnimation(
-    String path,
-    int frames,
-    double stepTime, {
-    bool loop = true,
-  }) async {
-    final sprites = <Sprite>[];
-    for (var i = 0; i < frames; i++) {
-      final frameNum = i.toString().padLeft(3, '0');
-      sprites.add(await game.loadSprite('$path/frame_$frameNum.png'));
-    }
-    return SpriteAnimation.spriteList(sprites, stepTime: stepTime, loop: loop);
   }
 
   @override
@@ -98,13 +55,110 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
   }
 
   @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    final visual = mechDefinitionFor(mechType).visual;
+    final w = size.x;
+    final h = size.y;
+    final cx = w / 2;
+    final cy = h / 2;
+    final attacking = _attackFlashTimer > 0;
+    final bob = math.sin(_idlePhase * 2.4) * 1.2;
+
+    final bodyW = w * visual.bodyWidth;
+    final bodyH = h * visual.bodyHeight;
+    final bodyRect = Rect.fromCenter(
+      center: Offset(cx, cy + h * 0.08 + bob),
+      width: bodyW,
+      height: bodyH,
+    );
+    final bodyRRect = RRect.fromRectAndRadius(
+      bodyRect,
+      Radius.circular(w * 0.08),
+    );
+    canvas.drawRRect(bodyRRect, Paint()..color = visual.body);
+    canvas.drawRRect(
+      bodyRRect,
+      Paint()
+        ..color = visual.outline
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+
+    // Shoulder line
+    canvas.drawLine(
+      Offset(bodyRect.left + 4, bodyRect.top + bodyH * 0.18),
+      Offset(bodyRect.right - 4, bodyRect.top + bodyH * 0.18),
+      Paint()
+        ..color = visual.accent
+        ..strokeWidth = 2,
+    );
+
+    // Head
+    final headCenter = Offset(cx, cy + h * visual.headOffsetY + bob * 0.5);
+    final headRadius = w * visual.headRadius;
+    canvas.drawCircle(headCenter, headRadius, Paint()..color = visual.body);
+    canvas.drawCircle(
+      headCenter,
+      headRadius,
+      Paint()
+        ..color = visual.outline
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+    // Visor slit
+    canvas.drawLine(
+      Offset(headCenter.dx - headRadius * 0.7, headCenter.dy),
+      Offset(headCenter.dx + headRadius * 0.7, headCenter.dy),
+      Paint()
+        ..color = attacking
+            ? Colors.white
+            : visual.accent
+        ..strokeWidth = 2.5,
+    );
+
+    // Gun barrels (vertical lines on each side, pointing up)
+    final barrelTop = bodyRect.top - h * 0.1;
+    final barrelPaint = Paint()
+      ..color = attacking ? Colors.white : visual.accent
+      ..strokeWidth = 3;
+    canvas.drawLine(
+      Offset(bodyRect.left + bodyW * 0.18, bodyRect.top + bodyH * 0.05),
+      Offset(bodyRect.left + bodyW * 0.18, barrelTop),
+      barrelPaint,
+    );
+    canvas.drawLine(
+      Offset(bodyRect.right - bodyW * 0.18, bodyRect.top + bodyH * 0.05),
+      Offset(bodyRect.right - bodyW * 0.18, barrelTop),
+      barrelPaint,
+    );
+
+    // Attack spike — forward muzzle flash
+    if (attacking) {
+      final t = (_attackFlashTimer / 0.18).clamp(0.0, 1.0);
+      final spikeLen = h * 0.35 * t;
+      final flashPaint = Paint()
+        ..color = visual.accent.withValues(alpha: 0.9)
+        ..strokeWidth = 4;
+      canvas.drawLine(
+        Offset(bodyRect.left + bodyW * 0.18, barrelTop),
+        Offset(bodyRect.left + bodyW * 0.18, barrelTop - spikeLen),
+        flashPaint,
+      );
+      canvas.drawLine(
+        Offset(bodyRect.right - bodyW * 0.18, barrelTop),
+        Offset(bodyRect.right - bodyW * 0.18, barrelTop - spikeLen),
+        flashPaint,
+      );
+    }
+  }
+
+  @override
   void update(double dt) {
     super.update(dt);
 
-    // If attack animation finished, go back to idle
-    if (current == HeroState.attack && animationTicker?.done() == true) {
-      current = HeroState.idle;
-    }
+    _idlePhase += dt;
+    if (_attackFlashTimer > 0) _attackFlashTimer -= dt;
 
     if (_pulseTimer > 0) {
       _pulseTimer -= dt;
@@ -190,6 +244,7 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
     _pulseDuration = 0.18;
     _aftershockTimer = -1;
     _backdraftTimer = -1;
+    _attackFlashTimer = 0;
     _twinShotCounter = 0;
     scale = Vector2.all(1);
     for (final blade in _sentinelBlades) {
@@ -197,7 +252,6 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
     }
     _sentinelBlades.clear();
     _placeAtBottom(game.size);
-    current = HeroState.idle;
   }
 
   void _tryAttack() {
@@ -210,8 +264,7 @@ class HeroComponent extends SpriteAnimationGroupComponent<HeroState>
 
     if (targets.isNotEmpty) {
       game.audio.playBasicAttack();
-      current = HeroState.attack;
-      animationTicker?.reset();
+      _attackFlashTimer = 0.18;
     }
 
     final meta = game.state.meta;

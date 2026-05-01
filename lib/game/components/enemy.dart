@@ -10,25 +10,22 @@ import 'damage_text.dart';
 
 enum DamageType { basic, nova, firewall, meteor }
 
-class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
+class Enemy extends PositionComponent with HasGameReference<IdleGame> {
   Enemy({required Vector2 position, required this.maxHp})
     : hp = maxHp,
       super(
         position: position,
         size: Vector2(84, 84),
         anchor: Anchor.center,
-        paint: Paint()..color = _baseColor,
       );
 
   final double maxHp;
   double hp;
-  Sprite? _sprite;
-  List<Sprite> _walkFrames = const [];
-  double _animationTimer = 0;
-  int _animationFrame = 0;
+  Color _color = _baseColor;
   double _flashTimer = 0;
   double _hitPopTimer = 0;
   double _breachTimer = 0;
+  double _walkPhase = 0;
   Vector2 _knockbackVelocity = Vector2.zero();
   bool _dying = false;
   bool _lastDamageWasExecute = false;
@@ -38,45 +35,57 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
   static const double _stopRadius = 70;
   static const double _breachInterval = 1;
   static const Color _baseColor = Color(0xFFFF2D95);
-
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-    try {
-      _sprite = await game.loadSprite('characters/cyber_grunt/south.png');
-      _walkFrames = await Future.wait([
-        for (var i = 0; i < 6; i++)
-          game.loadSprite(
-            'characters/cyber_grunt/walk_south/frame_${i.toString().padLeft(3, '0')}.png',
-          ),
-      ]);
-    } catch (_) {
-      _sprite = null;
-      _walkFrames = const [];
-    }
-  }
+  static const Color _outlineColor = Color(0xFFFFB3DC);
+  static const Color _accentColor = Color(0xFF8B0040);
 
   @override
   void render(Canvas canvas) {
-    final sprite = _currentSprite;
-    if (sprite == null) {
-      super.render(canvas);
-      return;
-    }
-    sprite.render(
-      canvas,
-      size: size,
-      overridePaint: _flashTimer > 0 ? paint : null,
+    super.render(canvas);
+    final w = size.x;
+    final h = size.y;
+    final cx = w / 2;
+    final cy = h / 2;
+    final bob = math.sin(_walkPhase * 7.2) * 2.4;
+
+    final path = Path()
+      ..moveTo(cx, bob)
+      ..lineTo(w, cy + bob)
+      ..lineTo(cx, h + bob)
+      ..lineTo(0, cy + bob)
+      ..close();
+
+    canvas.drawPath(path, Paint()..color = _color);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = _outlineColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5,
+    );
+
+    // Inner chevron
+    final chevronPaint = Paint()
+      ..color = _accentColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawLine(
+      Offset(cx - w * 0.22, cy + bob),
+      Offset(cx, cy - h * 0.18 + bob),
+      chevronPaint,
+    );
+    canvas.drawLine(
+      Offset(cx, cy - h * 0.18 + bob),
+      Offset(cx + w * 0.22, cy + bob),
+      chevronPaint,
     );
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    _advanceAnimation(dt);
     if (_flashTimer > 0) {
       _flashTimer -= dt;
-      if (_flashTimer <= 0) paint.color = _baseColor;
+      if (_flashTimer <= 0) _color = _baseColor;
     }
     if (_hitPopTimer > 0 && !_dying) {
       _hitPopTimer -= dt;
@@ -94,6 +103,7 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
     final toHero = hero.position - position;
     final dist = toHero.length;
     if (dist > _stopRadius) {
+      _walkPhase += dt;
       position +=
           toHero.normalized() * _speed * game.state.enemySpeedMultiplier * dt;
       _breachTimer = 0;
@@ -114,21 +124,6 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
           speed: 130,
         ),
       );
-    }
-  }
-
-  Sprite? get _currentSprite {
-    if (_walkFrames.isEmpty) return _sprite;
-    return _walkFrames[_animationFrame % _walkFrames.length];
-  }
-
-  void _advanceAnimation(double dt) {
-    if (_walkFrames.length <= 1 || _dying) return;
-    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
-    _animationTimer += dt;
-    while (_animationTimer >= 0.12) {
-      _animationTimer -= 0.12;
-      _animationFrame = (_animationFrame + 1) % _walkFrames.length;
     }
   }
 
@@ -178,7 +173,7 @@ class Enemy extends RectangleComponent with HasGameReference<IdleGame> {
     if (isExecute && game.state.ruptureLevel > 0) {
       parent?.add(RuptureMarkEffect(effectCenter: position.clone()));
     }
-    paint.color = visual.flashColor;
+    _color = visual.flashColor;
     _flashTimer = visual.flashDuration;
     if (hp <= 0) _die();
   }
