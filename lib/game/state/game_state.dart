@@ -49,7 +49,7 @@ class GameState extends ChangeNotifier {
   int lastIdleReward = 0;
   int resetGeneration = 0;
   double nexusHp = maxNexusHp;
-  MechType selectedMech = MechType.tank;
+  MechType selectedMech = MechType.standard;
 
   final Map<String, int> _skillLevels = {};
   List<String> _pendingUpgradeIds = [];
@@ -82,15 +82,11 @@ class GameState extends ChangeNotifier {
   static const int autoSelectDuration = 60;
 
   MechDefinition get mech => mechDefinitionFor(selectedMech);
-  double get nexusMaxHp => maxNexusHp * mech.maxHpMultiplier;
+  double get nexusMaxHp => maxNexusHp;
   double get heroDamage =>
-      baseDamage *
-      mech.damageMultiplier *
-      (1 + _archetypeLevel(SkillArchetype.focus) * 0.08);
+      baseDamage * (1 + _archetypeLevel(SkillArchetype.focus) * 0.08);
   double get heroAttacksPerSec =>
-      baseAttacksPerSec *
-      mech.attackSpeedMultiplier *
-      (1 + _archetypeLevel(SkillArchetype.barrage) * 0.06);
+      baseAttacksPerSec * (1 + _archetypeLevel(SkillArchetype.barrage) * 0.06);
   double get heroAttackRange => double.infinity;
   int get chainLevel => _archetypeLevel(SkillArchetype.chain);
   int get emberTargets => (1 + chainLevel).clamp(1, 10);
@@ -223,13 +219,7 @@ class GameState extends ChangeNotifier {
   }
 
   void selectMech(MechType mechType) {
-    if (selectedMech == mechType) return;
-    final oldMaxHp = nexusMaxHp;
-    final hpRatio = oldMaxHp <= 0 ? 1.0 : nexusHp / oldMaxHp;
-    selectedMech = mechType;
-    nexusHp = (nexusMaxHp * hpRatio).clamp(0, nexusMaxHp);
-    notifyListeners();
-    _saveSoon();
+    selectedMech = MechType.standard;
   }
 
   void _clearPending() {

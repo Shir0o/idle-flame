@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import '../idle_game.dart';
+import '../state/skill_catalog.dart';
 
 class HitSparkEffect extends PositionComponent with HasGameReference<IdleGame> {
   HitSparkEffect({
@@ -766,6 +767,111 @@ class MeteorImpactEffect extends PositionComponent
       canvas.drawLine(impact, end, crater);
     }
   }
+}
+
+class HeroAuraEffect extends PositionComponent with HasGameReference<IdleGame> {
+  HeroAuraEffect({required this.effectCenter}) : super(priority: 45);
+
+  final Vector2 effectCenter;
+  double _age = 0;
+  final math.Random _rng = math.Random();
+  final List<_AuraParticle> _particles = [];
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _age += dt;
+
+    if (_particles.length < 20 && _rng.nextDouble() < 0.3) {
+      _particles.add(_AuraParticle(
+        offset: Vector2((_rng.nextDouble() - 0.5) * 20, (_rng.nextDouble() - 0.5) * 20),
+        velocity: Vector2((_rng.nextDouble() - 0.5) * 15, -20 - _rng.nextDouble() * 30),
+        life: 0.6 + _rng.nextDouble() * 0.4,
+      ));
+    }
+
+    for (var i = _particles.length - 1; i >= 0; i--) {
+      final p = _particles[i];
+      p.offset += p.velocity * dt;
+      p.age += dt;
+      if (p.age >= p.life) {
+        _particles.removeAt(i);
+      }
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    final color = _getAuraColor();
+    final pulse = 0.5 + 0.5 * math.sin(_age * 4);
+    
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.15 + 0.1 * pulse)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+    
+    canvas.drawCircle(Offset(effectCenter.x, effectCenter.y), 24 + 4 * pulse, paint);
+
+    for (final p in _particles) {
+      final t = p.age / p.life;
+      final alpha = (1 - t) * 0.6;
+      final pPaint = Paint()
+        ..color = color.withValues(alpha: alpha)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(
+        Offset(effectCenter.x + p.offset.x, effectCenter.y + p.offset.y),
+        1.5 * (1 - t),
+        pPaint,
+      );
+    }
+  }
+
+  Color _getAuraColor() {
+    final state = game.state;
+    final archetypes = {
+      SkillArchetype.chain: state.chainLevel,
+      SkillArchetype.nova: state.flameNovaLevel,
+      SkillArchetype.firewall: state.firewallLevel,
+      SkillArchetype.meteor: state.meteorMarkLevel,
+      SkillArchetype.barrage: state.barrageLevel,
+      SkillArchetype.focus: state.focusLevel,
+      SkillArchetype.frost: state.frostLevel,
+      SkillArchetype.rupture: state.ruptureLevel,
+      SkillArchetype.sentinel: state.sentinelLevel,
+    };
+
+    var maxLevel = 0;
+    var topType = SkillArchetype.chain;
+    archetypes.forEach((type, level) {
+      if (level > maxLevel) {
+        maxLevel = level;
+        topType = type;
+      }
+    });
+
+    if (maxLevel == 0) return const Color(0xFF00E5FF);
+
+    return switch (topType) {
+      SkillArchetype.chain => const Color(0xFF00E5FF),
+      SkillArchetype.nova => const Color(0xFFFF2D95),
+      SkillArchetype.firewall => const Color(0xFFFFD166),
+      SkillArchetype.meteor => const Color(0xFF7C4DFF),
+      SkillArchetype.barrage => const Color(0xFF64FFDA),
+      SkillArchetype.focus => const Color(0xFFFFF176),
+      SkillArchetype.bounty => const Color(0xFFFFD54F),
+      SkillArchetype.frost => const Color(0xFF80DEEA),
+      SkillArchetype.rupture => const Color(0xFFFF5252),
+      SkillArchetype.sentinel => const Color(0xFFE1F5FE),
+    };
+  }
+}
+
+class _AuraParticle {
+  _AuraParticle({required this.offset, required this.velocity, required this.life});
+  Vector2 offset;
+  Vector2 velocity;
+  double life;
+  double age = 0;
 }
 
 void _drawSnowflake(Canvas canvas, Offset center, double radius, Paint paint) {

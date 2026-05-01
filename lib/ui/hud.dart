@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../game/state/game_state.dart';
-import '../game/state/mech_catalog.dart';
 import '../game/state/skill_catalog.dart';
 import 'meta_screen.dart';
 
@@ -15,7 +14,6 @@ class Hud extends StatelessWidget {
       child: Stack(
         children: const [
           Positioned(top: 12, left: 16, child: _FloorBadge()),
-          Positioned(top: 12, left: 0, right: 0, child: _MechBadge()),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
           Positioned(top: 92, left: 16, child: _BalanceDebugPanel()),
           Positioned(left: 16, right: 16, bottom: 16, child: _NexusHealthBar()),
@@ -104,18 +102,10 @@ class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
                   Wrap(
                     spacing: 5,
                     runSpacing: 5,
-                    children: [
-                      _SkillChip('Chain', state.chainLevel),
-                      _SkillChip('Nova', state.flameNovaLevel),
-                      _SkillChip('Wall', state.firewallLevel),
-                      _SkillChip('Meteor', state.meteorMarkLevel),
-                      _SkillChip('Barrage', state.barrageLevel),
-                      _SkillChip('Focus', state.focusLevel),
-                      _SkillChip('Bounty', state.bountyLevel),
-                      _SkillChip('Frost', state.frostLevel),
-                      _SkillChip('Rupture', state.ruptureLevel),
-                      _SkillChip('Blade', state.sentinelLevel),
-                    ],
+                    children: state.skillLevels.entries.map((entry) {
+                      final def = skillCatalog.firstWhere((d) => d.id == entry.key);
+                      return _SkillChip(def.title, entry.value);
+                    }).toList(),
                   ),
                 ],
               ],
@@ -266,188 +256,6 @@ class _GoldBadge extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MechBadge extends StatelessWidget {
-  const _MechBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Consumer<GameState>(
-        builder: (_, state, _) => _Panel(
-          child: InkWell(
-            onTap: () => _showMechPicker(context),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.precision_manufacturing,
-                    color: Color(0xFF64FFDA),
-                    size: 17,
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    state.mech.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Colors.white.withValues(alpha: 0.62),
-                    size: 16,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showMechPicker(BuildContext context) {
-    return showDialog<void>(
-      context: context,
-      builder: (context) => const _MechPickerDialog(),
-    );
-  }
-}
-
-class _MechPickerDialog extends StatelessWidget {
-  const _MechPickerDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<GameState>(
-      builder: (_, state, _) => AlertDialog(
-        backgroundColor: const Color(0xFF111827),
-        title: const Text(
-          'Choose Mech',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: mechCatalog.map((definition) {
-              final selected = state.selectedMech == definition.type;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _MechChoiceTile(
-                  definition: definition,
-                  selected: selected,
-                  onTap: () {
-                    state.selectMech(definition.type);
-                    Navigator.of(context).pop();
-                  },
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MechChoiceTile extends StatelessWidget {
-  const _MechChoiceTile({
-    required this.definition,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final MechDefinition definition;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = selected
-        ? const Color(0xFF64FFDA)
-        : Colors.white.withValues(alpha: 0.36);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Ink(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: accent.withValues(alpha: selected ? 0.12 : 0.06),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: accent.withValues(alpha: 0.55)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    selected ? Icons.radio_button_checked : Icons.circle,
-                    color: accent,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      definition.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                definition.description,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.68),
-                  fontSize: 12,
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _Tag(
-                    label:
-                        'HP x${definition.maxHpMultiplier.toStringAsFixed(2)}',
-                    color: const Color(0xFFFF5252),
-                  ),
-                  _Tag(
-                    label:
-                        'DMG x${definition.damageMultiplier.toStringAsFixed(2)}',
-                    color: const Color(0xFFFFD166),
-                  ),
-                  _Tag(
-                    label:
-                        'SPD x${definition.attackSpeedMultiplier.toStringAsFixed(2)}',
-                    color: const Color(0xFF64FFDA),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ),
       ),
     );

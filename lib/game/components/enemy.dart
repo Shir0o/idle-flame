@@ -15,7 +15,7 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
     : hp = maxHp,
       super(
         position: position,
-        size: Vector2(84, 84),
+        size: Vector2(64, 64),
         anchor: Anchor.center,
       );
 
@@ -32,8 +32,8 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
   bool get isAlive => !_dying;
 
   static const double _speed = 60;
-  static const double _stopRadius = 70;
-  static const double _breachInterval = 1;
+  static const double _stopRadius = 50;
+  static const double _breachInterval = 1.0;
   static const Color _baseColor = Color(0xFFFF2D95);
   static const Color _outlineColor = Color(0xFFFFB3DC);
   static const Color _accentColor = Color(0xFF8B0040);
@@ -61,22 +61,6 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
         ..color = _outlineColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5,
-    );
-
-    // Inner chevron
-    final chevronPaint = Paint()
-      ..color = _accentColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawLine(
-      Offset(cx - w * 0.22, cy + bob),
-      Offset(cx, cy - h * 0.18 + bob),
-      chevronPaint,
-    );
-    canvas.drawLine(
-      Offset(cx, cy - h * 0.18 + bob),
-      Offset(cx + w * 0.22, cy + bob),
-      chevronPaint,
     );
   }
 

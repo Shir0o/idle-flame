@@ -113,42 +113,35 @@ void main() {
     expect(state.skillLevels, isEmpty);
   });
 
-  test('mechs modify core combat stats and preserve nexus hp ratio', () {
+  test('hero uses standard combat stats', () {
     final state = GameState();
     addTearDown(state.dispose);
 
-    expect(state.selectedMech, MechType.tank);
-    final tankHp = state.nexusMaxHp;
-    final tankDps = state.estimatedDps;
+    expect(state.selectedMech, MechType.standard);
+    expect(state.nexusMaxHp, GameState.maxNexusHp);
+    expect(state.heroDamage, GameState.baseDamage);
+    expect(state.heroAttacksPerSec, GameState.baseAttacksPerSec);
 
-    state.damageNexus(tankHp / 2);
-    state.selectMech(MechType.ultra);
+    state.damageNexus(state.nexusMaxHp / 2);
+    state.selectMech(MechType.standard);
 
-    expect(state.nexusMaxHp, lessThan(tankHp));
-    expect(state.nexusHp, closeTo(state.nexusMaxHp / 2, 0.0001));
-    expect(state.estimatedDps, greaterThan(tankDps));
-
-    state.selectMech(MechType.bulky);
-
-    expect(state.heroDamage, greaterThan(GameState.baseDamage));
-    expect(state.heroAttacksPerSec, lessThan(GameState.baseAttacksPerSec));
+    expect(state.nexusMaxHp, GameState.maxNexusHp);
+    expect(state.nexusHp, closeTo(GameState.maxNexusHp / 2, 0.0001));
+    expect(state.estimatedDps, GameState.baseDamage);
   });
 
-  test('selected mech persists across load', () async {
+  test('standard hero persists across load', () async {
     final state = GameState();
     addTearDown(state.dispose);
 
-    state.selectMech(MechType.ultra);
+    state.selectMech(MechType.standard);
     await state.save();
 
     final loaded = GameState();
     addTearDown(loaded.dispose);
     await loaded.load();
 
-    expect(loaded.selectedMech, MechType.ultra);
-    expect(
-      loaded.nexusMaxHp,
-      mechDefinitionFor(MechType.ultra).maxHpMultiplier * GameState.maxNexusHp,
-    );
+    expect(loaded.selectedMech, MechType.standard);
+    expect(loaded.nexusMaxHp, GameState.maxNexusHp);
   });
 }

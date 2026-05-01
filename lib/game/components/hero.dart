@@ -10,9 +10,8 @@ import 'combat_effects.dart';
 import 'enemy.dart';
 import 'sentinel_blade.dart';
 
-class HeroComponent extends PositionComponent
-    with HasGameReference<IdleGame> {
-  HeroComponent({this.mechType = MechType.tank})
+class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
+  HeroComponent({this.mechType = MechType.standard})
     : super(
         size: Vector2.all(mechDefinitionFor(mechType).spriteSize),
         anchor: Anchor.center,
@@ -46,6 +45,7 @@ class HeroComponent extends PositionComponent
   void onMount() {
     super.onMount();
     _placeAtBottom(game.size);
+    parent?.add(HeroAuraEffect(effectCenter: position));
   }
 
   @override
@@ -65,92 +65,34 @@ class HeroComponent extends PositionComponent
     final attacking = _attackFlashTimer > 0;
     final bob = math.sin(_idlePhase * 2.4) * 1.2;
 
-    final bodyW = w * visual.bodyWidth;
-    final bodyH = h * visual.bodyHeight;
-    final bodyRect = Rect.fromCenter(
-      center: Offset(cx, cy + h * 0.08 + bob),
-      width: bodyW,
-      height: bodyH,
-    );
-    final bodyRRect = RRect.fromRectAndRadius(
-      bodyRect,
-      Radius.circular(w * 0.08),
-    );
-    canvas.drawRRect(bodyRRect, Paint()..color = visual.body);
-    canvas.drawRRect(
-      bodyRRect,
-      Paint()
-        ..color = visual.outline
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
+    _drawHeroShape(canvas, visual, cx, cy, w, h, bob, attacking);
+  }
 
-    // Shoulder line
-    canvas.drawLine(
-      Offset(bodyRect.left + 4, bodyRect.top + bodyH * 0.18),
-      Offset(bodyRect.right - 4, bodyRect.top + bodyH * 0.18),
-      Paint()
-        ..color = visual.accent
-        ..strokeWidth = 2,
-    );
+  void _drawHeroShape(
+    Canvas canvas,
+    MechVisual visual,
+    double cx,
+    double cy,
+    double w,
+    double h,
+    double bob,
+    bool attacking,
+  ) {
+    final center = Offset(cx, cy + bob);
+    final radius = w * 0.15;
+    final fill = attacking
+        ? Color.lerp(visual.body, visual.accent, 0.35)!
+        : visual.body;
+    final outline = attacking ? Colors.white : visual.outline;
 
-    // Head
-    final headCenter = Offset(cx, cy + h * visual.headOffsetY + bob * 0.5);
-    final headRadius = w * visual.headRadius;
-    canvas.drawCircle(headCenter, headRadius, Paint()..color = visual.body);
-    canvas.drawCircle(
-      headCenter,
-      headRadius,
-      Paint()
-        ..color = visual.outline
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
-    // Visor slit
-    canvas.drawLine(
-      Offset(headCenter.dx - headRadius * 0.7, headCenter.dy),
-      Offset(headCenter.dx + headRadius * 0.7, headCenter.dy),
-      Paint()
-        ..color = attacking
-            ? Colors.white
-            : visual.accent
-        ..strokeWidth = 2.5,
-    );
+    final fillPaint = Paint()..color = fill;
+    final outlinePaint = Paint()
+      ..color = outline
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = attacking ? 3 : 2;
 
-    // Gun barrels (vertical lines on each side, pointing up)
-    final barrelTop = bodyRect.top - h * 0.1;
-    final barrelPaint = Paint()
-      ..color = attacking ? Colors.white : visual.accent
-      ..strokeWidth = 3;
-    canvas.drawLine(
-      Offset(bodyRect.left + bodyW * 0.18, bodyRect.top + bodyH * 0.05),
-      Offset(bodyRect.left + bodyW * 0.18, barrelTop),
-      barrelPaint,
-    );
-    canvas.drawLine(
-      Offset(bodyRect.right - bodyW * 0.18, bodyRect.top + bodyH * 0.05),
-      Offset(bodyRect.right - bodyW * 0.18, barrelTop),
-      barrelPaint,
-    );
-
-    // Attack spike — forward muzzle flash
-    if (attacking) {
-      final t = (_attackFlashTimer / 0.18).clamp(0.0, 1.0);
-      final spikeLen = h * 0.35 * t;
-      final flashPaint = Paint()
-        ..color = visual.accent.withValues(alpha: 0.9)
-        ..strokeWidth = 4;
-      canvas.drawLine(
-        Offset(bodyRect.left + bodyW * 0.18, barrelTop),
-        Offset(bodyRect.left + bodyW * 0.18, barrelTop - spikeLen),
-        flashPaint,
-      );
-      canvas.drawLine(
-        Offset(bodyRect.right - bodyW * 0.18, barrelTop),
-        Offset(bodyRect.right - bodyW * 0.18, barrelTop - spikeLen),
-        flashPaint,
-      );
-    }
+    canvas.drawCircle(center, radius, fillPaint);
+    canvas.drawCircle(center, radius, outlinePaint);
   }
 
   @override
@@ -272,6 +214,12 @@ class HeroComponent extends PositionComponent
     final critMul = critRoll ? 3.0 : 1.0;
     final twinShot =
         meta.hasKeystone('twin_shot') && (++_twinShotCounter % 4 == 0);
+
+    if (critRoll && targets.isNotEmpty) {
+      game.shakeCamera(intensity: 5, duration: 0.12);
+      // Small hit-stop effect
+      _idlePhase -= 0.05; 
+    }
 
     for (var i = 0; i < targets.take(game.state.emberTargets).length; i++) {
       final enemy = targets[i];
