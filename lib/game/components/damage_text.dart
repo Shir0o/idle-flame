@@ -19,19 +19,28 @@ class DamageText extends TextComponent with HasGameReference<IdleGame> {
          position: position,
          anchor: Anchor.bottomCenter,
          priority: 1000,
-         textRenderer: TextPaint(
-           style: TextStyle(
-             color: color,
-             fontSize: 20,
-             fontWeight: FontWeight.w800,
-             shadows: const [
-               Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1)),
-               Shadow(color: Colors.black, blurRadius: 9),
-             ],
-           ),
-         ),
+         textRenderer: _getPaint(color),
        ) {
     this.scale = Vector2.all(scale);
+  }
+
+  static final Map<Color, TextPaint> _paintCache = {};
+
+  static TextPaint _getPaint(Color color) {
+    return _paintCache.putIfAbsent(
+      color,
+      () => TextPaint(
+        style: TextStyle(
+          color: color,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          shadows: const [
+            Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1)),
+            Shadow(color: Colors.black, blurRadius: 9),
+          ],
+        ),
+      ),
+    );
   }
 
   final Color color;

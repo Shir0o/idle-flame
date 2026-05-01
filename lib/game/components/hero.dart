@@ -411,7 +411,7 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
   }
 
   List<Enemy> _aliveEnemies() {
-    return game.activeEnemies.where((enemy) => enemy.isAlive).toList();
+    return game.aliveEnemies;
   }
 
   void _placeAtBottom(Vector2 size) {

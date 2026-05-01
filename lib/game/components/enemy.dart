@@ -175,7 +175,7 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
   }
 
   Iterable<Enemy> _otherAliveEnemies() {
-    return game.activeEnemies.where((e) => e.isAlive && e != this);
+    return game.aliveEnemies.where((e) => e != this);
   }
 
   void _die() {

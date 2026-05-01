@@ -55,7 +55,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   }
 
   void _findTarget(Vector2 heroPos) {
-    final enemies = game.world.children.whereType<Enemy>().where((e) => e.isAlive);
+    final enemies = game.aliveEnemies;
     if (enemies.isEmpty) return;
 
     Enemy? best;

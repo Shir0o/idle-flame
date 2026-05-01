@@ -19,6 +19,7 @@ class IdleGame extends FlameGame {
   late final HeroComponent hero;
   late final EnemySpawner spawner;
   final Set<Enemy> activeEnemies = {};
+  List<Enemy> aliveEnemies = [];
   final math.Random _rng = math.Random();
   double _shakeTime = 0;
   double _shakeDuration = 0;
@@ -49,6 +50,7 @@ class IdleGame extends FlameGame {
 
   @override
   void update(double dt) {
+    aliveEnemies = activeEnemies.where((e) => e.isAlive).toList();
     super.update(dt);
     if (state.hasPendingLevelUp || state.isRunOver) return;
 
