@@ -11,7 +11,7 @@ class DamageText extends TextComponent with HasGameReference<IdleGame> {
     required int amount,
     this.color = const Color(0xFFFFEB3B),
     double scale = 1,
-  }) : _baseFontSize = 20 * scale,
+  }) : _initialScale = scale,
        _drift = Vector2((_rng.nextDouble() - 0.5) * 42, -72),
        _start = position.clone(),
        super(
@@ -22,7 +22,7 @@ class DamageText extends TextComponent with HasGameReference<IdleGame> {
          textRenderer: TextPaint(
            style: TextStyle(
              color: color,
-             fontSize: 20 * scale,
+             fontSize: 20,
              fontWeight: FontWeight.w800,
              shadows: const [
                Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1)),
@@ -30,10 +30,12 @@ class DamageText extends TextComponent with HasGameReference<IdleGame> {
              ],
            ),
          ),
-       );
+       ) {
+    this.scale = Vector2.all(scale);
+  }
 
   final Color color;
-  final double _baseFontSize;
+  final double _initialScale;
   final Vector2 _drift;
   final Vector2 _start;
   double _age = 0;
@@ -49,26 +51,8 @@ class DamageText extends TextComponent with HasGameReference<IdleGame> {
     final t = (_age / _duration).clamp(0.0, 1.0);
     final eased = Curves.easeOutCubic.transform(t);
     position = _start + _drift * eased;
-    final alpha = (1 - Curves.easeIn.transform(t)).clamp(0.0, 1.0);
-    final pop = 1 + math.sin(t * math.pi) * 0.18;
-    textRenderer = TextPaint(
-      style: TextStyle(
-        color: color.withValues(alpha: alpha),
-        fontSize: _baseFontSize * pop,
-        fontWeight: FontWeight.w800,
-        shadows: [
-          Shadow(
-            color: Colors.black.withValues(alpha: alpha),
-            blurRadius: 4,
-            offset: const Offset(1, 1),
-          ),
-          Shadow(
-            color: Colors.black.withValues(alpha: alpha * 0.75),
-            blurRadius: 9,
-          ),
-        ],
-      ),
-    );
+    final pop = _initialScale * (1 + math.sin(t * math.pi) * 0.18);
+    scale = Vector2.all(pop);
     if (_age >= _duration) removeFromParent();
   }
 }

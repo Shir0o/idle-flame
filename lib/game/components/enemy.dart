@@ -13,11 +13,7 @@ enum DamageType { basic, nova, firewall, meteor }
 class Enemy extends PositionComponent with HasGameReference<IdleGame> {
   Enemy({required Vector2 position, required this.maxHp})
     : hp = maxHp,
-      super(
-        position: position,
-        size: Vector2(64, 64),
-        anchor: Anchor.center,
-      );
+      super(position: position, size: Vector2(64, 64), anchor: Anchor.center);
 
   final double maxHp;
   double hp;
@@ -36,7 +32,18 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
   static const double _breachInterval = 1.0;
   static const Color _baseColor = Color(0xFFFF2D95);
   static const Color _outlineColor = Color(0xFFFFB3DC);
-  static const Color _accentColor = Color(0xFF8B0040);
+
+  @override
+  void onMount() {
+    super.onMount();
+    game.activeEnemies.add(this);
+  }
+
+  @override
+  void onRemove() {
+    game.activeEnemies.remove(this);
+    super.onRemove();
+  }
 
   @override
   void render(Canvas canvas) {
@@ -168,8 +175,7 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
   }
 
   Iterable<Enemy> _otherAliveEnemies() {
-    final siblings = parent?.children ?? const Iterable.empty();
-    return siblings.whereType<Enemy>().where((e) => e.isAlive && e != this);
+    return game.activeEnemies.where((e) => e.isAlive && e != this);
   }
 
   void _die() {
@@ -192,7 +198,11 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
       );
       for (final other in _otherAliveEnemies()) {
         if ((other.position - position).length2 <= blastRadiusSq) {
-          other.takeDamage(dmg, source: position.clone(), type: DamageType.nova);
+          other.takeDamage(
+            dmg,
+            source: position.clone(),
+            type: DamageType.nova,
+          );
         }
       }
     }

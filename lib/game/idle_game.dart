@@ -6,6 +6,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import 'audio/game_audio.dart';
+import 'components/enemy.dart';
 import 'components/enemy_spawner.dart';
 import 'components/hero.dart';
 import 'state/game_state.dart';
@@ -17,6 +18,7 @@ class IdleGame extends FlameGame {
   final GameAudio audio = GameAudio();
   late final HeroComponent hero;
   late final EnemySpawner spawner;
+  final Set<Enemy> activeEnemies = {};
   final math.Random _rng = math.Random();
   double _shakeTime = 0;
   double _shakeDuration = 0;
@@ -81,6 +83,7 @@ class IdleGame extends FlameGame {
   }
 
   void _resetWorldForNewRun() {
+    activeEnemies.clear();
     for (final component in world.children.toList()) {
       if (component == hero || component == spawner) continue;
       component.removeFromParent();

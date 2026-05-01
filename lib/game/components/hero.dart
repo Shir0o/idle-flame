@@ -222,7 +222,7 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     if (critRoll && targets.isNotEmpty) {
       game.shakeCamera(intensity: 5, duration: 0.12);
       // Small hit-stop effect
-      _idlePhase -= 0.05; 
+      _idlePhase -= 0.05;
     }
 
     for (var i = 0; i < targets.take(game.state.emberTargets).length; i++) {
@@ -411,8 +411,7 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
   }
 
   List<Enemy> _aliveEnemies() {
-    final siblings = parent?.children ?? const Iterable.empty();
-    return siblings.whereType<Enemy>().where((enemy) => enemy.isAlive).toList();
+    return game.activeEnemies.where((enemy) => enemy.isAlive).toList();
   }
 
   void _placeAtBottom(Vector2 size) {
