@@ -97,7 +97,8 @@ class HitSparkEffect extends PositionComponent with HasGameReference<IdleGame> {
   }
 }
 
-class DeathBurstEffect extends PositionComponent with HasGameReference<IdleGame> {
+class DeathBurstEffect extends PositionComponent
+    with HasGameReference<IdleGame> {
   DeathBurstEffect({
     required this.effectCenter,
     this.color = const Color(0xFFFF2D95),
@@ -177,7 +178,8 @@ class DeathBurstEffect extends PositionComponent with HasGameReference<IdleGame>
   }
 }
 
-class CoinBurstEffect extends PositionComponent with HasGameReference<IdleGame> {
+class CoinBurstEffect extends PositionComponent
+    with HasGameReference<IdleGame> {
   CoinBurstEffect({required this.effectCenter})
     : _particles = _buildParticles(),
       super(priority: 88);
@@ -267,29 +269,29 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
     final direction = to - from;
     if (direction.length2 == 0) return;
     final normal = Vector2(-direction.y, direction.x)..normalize();
-    final control = mid + Offset(normal.x * 38, normal.y * 38);
+    final control = mid + Offset(normal.x * 48, normal.y * 48);
     final path = Path()
       ..moveTo(start.dx, start.dy)
       ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy);
     final wideGlow = Paint()
       ..color = color.withValues(alpha: alpha * 0.12)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 22 * widthMultiplier
+      ..strokeWidth = 28 * widthMultiplier
       ..strokeCap = StrokeCap.round;
     final glow = Paint()
       ..color = color.withValues(alpha: alpha * 0.28)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 11 * widthMultiplier
+      ..strokeWidth = 14 * widthMultiplier
       ..strokeCap = StrokeCap.round;
     final core = Paint()
       ..color = color.withValues(alpha: alpha)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3 * widthMultiplier
+      ..strokeWidth = 4.5 * widthMultiplier
       ..strokeCap = StrokeCap.round;
     final edge = Paint()
       ..color = Colors.white.withValues(alpha: alpha * 0.7)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2 * widthMultiplier
+      ..strokeWidth = 1.8 * widthMultiplier
       ..strokeCap = StrokeCap.round;
     canvas.drawPath(path, wideGlow);
     canvas.drawPath(path, glow);
@@ -298,7 +300,8 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
   }
 }
 
-class BarrageStreakEffect extends PositionComponent with HasGameReference<IdleGame> {
+class BarrageStreakEffect extends PositionComponent
+    with HasGameReference<IdleGame> {
   BarrageStreakEffect({
     required this.effectCenter,
     this.color = const Color(0xFF64FFDA),
@@ -350,7 +353,8 @@ class BarrageStreakEffect extends PositionComponent with HasGameReference<IdleGa
   }
 }
 
-class FocusStrikeEffect extends PositionComponent with HasGameReference<IdleGame> {
+class FocusStrikeEffect extends PositionComponent
+    with HasGameReference<IdleGame> {
   FocusStrikeEffect({
     required this.from,
     required this.to,
@@ -404,7 +408,8 @@ class FocusStrikeEffect extends PositionComponent with HasGameReference<IdleGame
   }
 }
 
-class FrostFieldEffect extends PositionComponent with HasGameReference<IdleGame> {
+class FrostFieldEffect extends PositionComponent
+    with HasGameReference<IdleGame> {
   FrostFieldEffect({
     required this.effectCenter,
     required this.fieldSize,
@@ -460,7 +465,8 @@ class FrostFieldEffect extends PositionComponent with HasGameReference<IdleGame>
   }
 }
 
-class RuptureMarkEffect extends PositionComponent with HasGameReference<IdleGame> {
+class RuptureMarkEffect extends PositionComponent
+    with HasGameReference<IdleGame> {
   RuptureMarkEffect({required this.effectCenter}) : super(priority: 92);
 
   final Vector2 effectCenter;
@@ -526,7 +532,8 @@ class _SparkParticle {
   final double radius;
 }
 
-class NovaPulseEffect extends PositionComponent with HasGameReference<IdleGame> {
+class NovaPulseEffect extends PositionComponent
+    with HasGameReference<IdleGame> {
   NovaPulseEffect({
     required this.effectCenter,
     required this.radius,
@@ -690,7 +697,8 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
   }
 }
 
-class MeteorImpactEffect extends PositionComponent with HasGameReference<IdleGame> {
+class MeteorImpactEffect extends PositionComponent
+    with HasGameReference<IdleGame> {
   MeteorImpactEffect({
     required this.target,
     required this.radius,
