@@ -8,7 +8,7 @@
 PRODUCT_NAME = flame_game
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.flameGame
+PRODUCT_BUNDLE_IDENTIFIER = com.twang.zenithzero
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 com.twang. All rights reserved.

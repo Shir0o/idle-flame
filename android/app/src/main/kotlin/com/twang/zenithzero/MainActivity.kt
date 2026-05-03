@@ -1,4 +1,4 @@
-package com.example.flame_game
+package com.twang.zenithzero
 
 import io.flutter.embedding.android.FlutterActivity
 

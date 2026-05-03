@@ -1,7 +1,7 @@
 name: flame_game
 description: "Idle Flame — auto-RPG dungeon descender."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.11.5
@@ -18,6 +18,21 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.5
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "/Users/twang/Downloads/images/idle-tower-def-pixel-style-game-mobile-app-icon--n.png"
+  min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#000000"
+  image: "/Users/twang/Downloads/images/idle-tower-def-pixel-style-game-mobile-app-icon--n.png"
+  android: true
+  ios: true
+  fullscreen: true
 
 flutter:
   uses-material-design: true
