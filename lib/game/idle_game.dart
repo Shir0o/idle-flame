@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'audio/game_audio.dart';
@@ -10,6 +11,8 @@ import 'components/enemy.dart';
 import 'components/enemy_spawner.dart';
 import 'components/hero.dart';
 import 'state/game_state.dart';
+
+const bool _showPerfOverlay = kDebugMode;
 
 class IdleGame extends FlameGame {
   IdleGame({required this.state});
@@ -40,6 +43,22 @@ class IdleGame extends FlameGame {
     _seenResetGeneration = state.resetGeneration;
     world.add(hero);
     world.add(spawner);
+
+    if (_showPerfOverlay) {
+      camera.viewport.add(
+        FpsTextComponent(
+          position: Vector2(8, 8),
+          textRenderer: TextPaint(
+            style: const TextStyle(
+              color: Color(0xFF80FF80),
+              fontSize: 12,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ),
+      );
+      camera.viewport.add(_PerfStatsComponent(this));
+    }
   }
 
   @override
@@ -96,5 +115,34 @@ class IdleGame extends FlameGame {
     _shakeDuration = 0;
     _shakeIntensity = 0;
     camera.viewfinder.position = Vector2.zero();
+  }
+}
+
+class _PerfStatsComponent extends TextComponent {
+  _PerfStatsComponent(this._game)
+    : super(
+        position: Vector2(8, 24),
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Color(0xFF80FF80),
+            fontSize: 12,
+            fontFamily: 'monospace',
+          ),
+        ),
+      );
+
+  final IdleGame _game;
+  double _accum = 0;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _accum += dt;
+    if (_accum >= 0.5) {
+      _accum = 0;
+      final enemies = _game.aliveEnemies.length;
+      final components = _game.world.children.length;
+      text = 'enemies: $enemies  comps: $components';
+    }
   }
 }

@@ -18,6 +18,11 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
   final double maxHp;
   double hp;
   Color _color = _baseColor;
+  final Paint _fillPaint = Paint()..color = _baseColor;
+  final Paint _strokePaint = Paint()
+    ..color = _outlineColor
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.5;
   double _flashTimer = 0;
   double _hitPopTimer = 0;
   double _breachTimer = 0;
@@ -61,14 +66,9 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
       ..lineTo(0, cy + bob)
       ..close();
 
-    canvas.drawPath(path, Paint()..color = _color);
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = _outlineColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5,
-    );
+    _fillPaint.color = _color;
+    canvas.drawPath(path, _fillPaint);
+    canvas.drawPath(path, _strokePaint);
   }
 
   @override
@@ -105,16 +105,18 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
       _breachTimer = 0;
       game.state.damageNexus(game.state.enemyBreachDamage);
       game.shakeCamera(intensity: 5, duration: 0.18);
-      parent?.add(
-        HitSparkEffect(
-          effectCenter: game.hero.position.clone(),
-          direction: Vector2(0, -1),
-          color: const Color(0xFFFF5252),
-          count: 10,
-          spread: 2.2,
-          speed: 130,
-        ),
-      );
+      if (!HitSparkEffect.atCap) {
+        parent?.add(
+          HitSparkEffect(
+            effectCenter: game.hero.position.clone(),
+            direction: Vector2(0, -1),
+            color: const Color(0xFFFF5252),
+            count: 10,
+            spread: 2.2,
+            speed: 130,
+          ),
+        );
+      }
     }
   }
 
@@ -146,16 +148,18 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
         scale: visual.textScale,
       ),
     );
-    parent?.add(
-      HitSparkEffect(
-        effectCenter: position.clone(),
-        direction: pushDirection,
-        color: visual.sparkColor,
-        count: visual.sparkCount,
-        spread: visual.sparkSpread,
-        speed: visual.sparkSpeed,
-      ),
-    );
+    if (!HitSparkEffect.atCap) {
+      parent?.add(
+        HitSparkEffect(
+          effectCenter: position.clone(),
+          direction: pushDirection,
+          color: visual.sparkColor,
+          count: visual.sparkCount,
+          spread: visual.sparkSpread,
+          speed: visual.sparkSpeed,
+        ),
+      );
+    }
     if (type == DamageType.basic) {
       game.audio.playHit();
     } else {

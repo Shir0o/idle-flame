@@ -17,11 +17,34 @@ class HitSparkEffect extends PositionComponent with HasGameReference<IdleGame> {
   }) : _particles = _buildParticles(direction, count, spread, speed),
        super(priority: 90);
 
+  static int _aliveCount = 0;
+  static const int _maxAlive = 60;
+  static bool get atCap => _aliveCount >= _maxAlive;
+
+  @override
+  void onMount() {
+    super.onMount();
+    _aliveCount++;
+  }
+
+  @override
+  void onRemove() {
+    _aliveCount--;
+    super.onRemove();
+  }
+
   final Vector2 effectCenter;
   final Vector2 direction;
   final Color color;
   final List<_SparkParticle> _particles;
   double _age = 0;
+
+  final Paint _flashPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.6
+    ..strokeCap = StrokeCap.round;
+  final Paint _particlePaint = Paint()..style = PaintingStyle.fill;
+  final Paint _glowPaint = Paint()..style = PaintingStyle.fill;
 
   static final math.Random _rng = math.Random();
   static const double _duration = 0.34;
@@ -60,39 +83,31 @@ class HitSparkEffect extends PositionComponent with HasGameReference<IdleGame> {
     final alpha = 1 - Curves.easeInCubic.transform(t);
     final gravity = Vector2(0, 95 * t);
     final center = Offset(effectCenter.x, effectCenter.y);
-    final flash = Paint()
-      ..color = Colors.white.withValues(alpha: alpha * 0.42)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6
-      ..strokeCap = StrokeCap.round;
+    _flashPaint.color = Colors.white.withValues(alpha: alpha * 0.42);
     final flashRadius = 6 + 13 * Curves.easeOut.transform(t);
     canvas.drawLine(
       center.translate(-flashRadius, 0),
       center.translate(flashRadius, 0),
-      flash,
+      _flashPaint,
     );
     canvas.drawLine(
       center.translate(0, -flashRadius),
       center.translate(0, flashRadius),
-      flash,
+      _flashPaint,
     );
+    _particlePaint.color = color.withValues(alpha: alpha);
+    _glowPaint.color = color.withValues(alpha: alpha * 0.2);
     for (final particle in _particles) {
       final offset = effectCenter + (particle.velocity + gravity) * _age;
-      final paint = Paint()
-        ..color = color.withValues(alpha: alpha)
-        ..style = PaintingStyle.fill;
-      final glow = Paint()
-        ..color = color.withValues(alpha: alpha * 0.2)
-        ..style = PaintingStyle.fill;
       canvas.drawCircle(
         Offset(offset.x, offset.y),
         particle.radius * 2.5 * (1 - t * 0.45),
-        glow,
+        _glowPaint,
       );
       canvas.drawCircle(
         Offset(offset.x, offset.y),
         particle.radius * (1 - t * 0.55),
-        paint,
+        _particlePaint,
       );
     }
   }
@@ -110,6 +125,14 @@ class DeathBurstEffect extends PositionComponent
   final Color color;
   final List<_SparkParticle> _particles;
   double _age = 0;
+
+  final Paint _flashPaint = Paint()..style = PaintingStyle.fill;
+  final Paint _ringPaint = Paint()..style = PaintingStyle.stroke;
+  final Paint _outerRingPaint = Paint()..style = PaintingStyle.stroke;
+  final Paint _particlePaint = Paint()..style = PaintingStyle.fill;
+  final Paint _streakPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round;
 
   static final math.Random _rng = math.Random();
   static const double _duration = 0.46;
@@ -140,40 +163,31 @@ class DeathBurstEffect extends PositionComponent
     final alpha = 1 - t;
     final center = Offset(effectCenter.x, effectCenter.y);
     final eased = Curves.easeOutCubic.transform(t);
-    final flash = Paint()
-      ..color = Colors.white.withValues(alpha: alpha * 0.45)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, 20 * (1 - t), flash);
-    final ring = Paint()
+    _flashPaint.color = Colors.white.withValues(alpha: alpha * 0.45);
+    canvas.drawCircle(center, 20 * (1 - t), _flashPaint);
+    _ringPaint
       ..color = color.withValues(alpha: alpha * 0.44)
-      ..style = PaintingStyle.stroke
       ..strokeWidth = 4 * (1 - t);
-    final outerRing = Paint()
+    _outerRingPaint
       ..color = Colors.white.withValues(alpha: alpha * 0.18)
-      ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5 * (1 - t);
-    canvas.drawCircle(center, eased * 34, ring);
-    canvas.drawCircle(center, eased * 52, outerRing);
+    canvas.drawCircle(center, eased * 34, _ringPaint);
+    canvas.drawCircle(center, eased * 52, _outerRingPaint);
+    _particlePaint.color = color.withValues(alpha: alpha);
+    _streakPaint.color = color.withValues(alpha: alpha * 0.42);
     for (final particle in _particles) {
       final offset = effectCenter + particle.velocity * eased * _duration;
-      final paint = Paint()
-        ..color = color.withValues(alpha: alpha)
-        ..style = PaintingStyle.fill;
-      final streak = Paint()
-        ..color = color.withValues(alpha: alpha * 0.42)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = particle.radius * 0.75
-        ..strokeCap = StrokeCap.round;
+      _streakPaint.strokeWidth = particle.radius * 0.75;
       final tail = effectCenter + (offset - effectCenter) * 0.62;
       canvas.drawLine(
         Offset(tail.x, tail.y),
         Offset(offset.x, offset.y),
-        streak,
+        _streakPaint,
       );
       canvas.drawCircle(
         Offset(offset.x, offset.y),
         particle.radius * (1 - t * 0.35),
-        paint,
+        _particlePaint,
       );
     }
   }
@@ -188,6 +202,11 @@ class CoinBurstEffect extends PositionComponent
   final Vector2 effectCenter;
   final List<_SparkParticle> _particles;
   double _age = 0;
+
+  final Paint _coinPaint = Paint()..style = PaintingStyle.fill;
+  final Paint _shinePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1;
 
   static final math.Random _rng = math.Random();
   static const double _duration = 0.56;
@@ -216,21 +235,20 @@ class CoinBurstEffect extends PositionComponent
     super.render(canvas);
     final t = (_age / _duration).clamp(0.0, 1.0);
     final alpha = 1 - Curves.easeIn.transform(t);
+    _coinPaint.color = const Color(0xFFFFD54F).withValues(alpha: alpha);
+    _shinePaint.color = Colors.white.withValues(alpha: alpha * 0.72);
     for (final particle in _particles) {
       final fall = Vector2(0, 160 * t * t);
       final offset = effectCenter + (particle.velocity * _age) + fall;
-      final coin = Paint()
-        ..color = const Color(0xFFFFD54F).withValues(alpha: alpha)
-        ..style = PaintingStyle.fill;
-      final shine = Paint()
-        ..color = Colors.white.withValues(alpha: alpha * 0.72)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1;
-      canvas.drawCircle(Offset(offset.x, offset.y), particle.radius, coin);
+      canvas.drawCircle(
+        Offset(offset.x, offset.y),
+        particle.radius,
+        _coinPaint,
+      );
       canvas.drawLine(
         Offset(offset.x - particle.radius * 0.5, offset.y),
         Offset(offset.x + particle.radius * 0.5, offset.y),
-        shine,
+        _shinePaint,
       );
     }
   }
@@ -252,6 +270,27 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
   final int level;
   double _age = 0;
   static const double _duration = 0.18;
+
+  late final Paint _wideGlow = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 28 * widthMultiplier * (level >= 3 ? 1.4 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  late final Paint _glow = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 14 * widthMultiplier * (level >= 4 ? 1.3 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  late final Paint _core = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 4.5 * widthMultiplier * (level >= 5 ? 1.5 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  late final Paint _edge = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.8 * widthMultiplier
+    ..strokeCap = StrokeCap.round;
+  final Paint _secondary = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2
+    ..strokeCap = StrokeCap.round;
 
   @override
   void update(double dt) {
@@ -281,35 +320,18 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
       ..moveTo(start.dx, start.dy)
       ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy);
     
-    final wideGlow = Paint()
-      ..color = color.withValues(alpha: alpha * 0.12)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 28 * widthMultiplier * (level >= 3 ? 1.4 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    final glow = Paint()
-      ..color = color.withValues(alpha: alpha * 0.28)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 14 * widthMultiplier * (level >= 4 ? 1.3 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    final core = Paint()
-      ..color = color.withValues(alpha: alpha)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.5 * widthMultiplier * (level >= 5 ? 1.5 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    final edge = Paint()
-      ..color = Colors.white.withValues(alpha: alpha * 0.7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8 * widthMultiplier
-      ..strokeCap = StrokeCap.round;
-    
-    canvas.drawPath(path, wideGlow);
-    canvas.drawPath(path, glow);
-    canvas.drawPath(path, core);
-    canvas.drawPath(path, edge);
+    _wideGlow.color = color.withValues(alpha: alpha * 0.12);
+    _glow.color = color.withValues(alpha: alpha * 0.28);
+    _core.color = color.withValues(alpha: alpha);
+    _edge.color = Colors.white.withValues(alpha: alpha * 0.7);
+
+    canvas.drawPath(path, _wideGlow);
+    canvas.drawPath(path, _glow);
+    canvas.drawPath(path, _core);
+    canvas.drawPath(path, _edge);
 
     // Evolution: Level 5 Mastery - Secondary Arcs (After-images)
     if (level >= 5) {
-      final secondaryAlpha = alpha * 0.4;
       final secondaryPath = Path()
         ..moveTo(start.dx, start.dy)
         ..quadraticBezierTo(
@@ -318,14 +340,8 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
           end.dx,
           end.dy,
         );
-      
-      final secondaryPaint = Paint()
-        ..color = color.withValues(alpha: secondaryAlpha)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round;
-      
-      canvas.drawPath(secondaryPath, secondaryPaint);
+      _secondary.color = color.withValues(alpha: alpha * 0.4);
+      canvas.drawPath(secondaryPath, _secondary);
     }
   }
 }
@@ -344,6 +360,22 @@ class BarrageStreakEffect extends PositionComponent
   double _age = 0;
   static const double _duration = 0.22;
 
+  late final Paint _strokePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.2 * (level >= 3 ? 1.4 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  late final Paint _glowPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 8 * (level >= 4 ? 1.5 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  final Paint _whitePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1
+    ..strokeCap = StrokeCap.round;
+  final Paint _trailPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 4;
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -357,24 +389,14 @@ class BarrageStreakEffect extends PositionComponent
     super.render(canvas);
     final t = (_age / _duration).clamp(0.0, 1.0);
     final alpha = 1 - Curves.easeIn.transform(t);
-    final paint = Paint()
-      ..color = color.withValues(alpha: alpha * 0.82)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2 * (level >= 3 ? 1.4 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    final glow = Paint()
-      ..color = color.withValues(alpha: alpha * 0.24)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 8 * (level >= 4 ? 1.5 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    final white = Paint()
-      ..color = Colors.white.withValues(alpha: alpha * 0.55)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..strokeCap = StrokeCap.round;
+    _strokePaint.color = color.withValues(alpha: alpha * 0.82);
+    _glowPaint.color = color.withValues(alpha: alpha * 0.24);
+    _whitePaint.color = Colors.white.withValues(alpha: alpha * 0.55);
+    if (level >= 5) {
+      _trailPaint.color = color.withValues(alpha: alpha * 0.15);
+    }
     final eased = Curves.easeOutCubic.transform(t);
 
-    // Evolution: More streaks
     final streakCount = level >= 5 ? 10 : (level >= 3 ? 8 : 6);
     final ySpan = level >= 4 ? 64.0 : 48.0;
 
@@ -383,18 +405,17 @@ class BarrageStreakEffect extends PositionComponent
       final phase = i * 0.13;
       final start = Offset(effectCenter.x - 42 - eased * 24 + phase * 18, y);
       final end = Offset(effectCenter.x + 42 + eased * 24 + phase * 18, y - 12);
-      
-      canvas.drawLine(start, end, glow);
-      canvas.drawLine(start, end, paint);
-      if (i.isEven) canvas.drawLine(start.translate(9, -3), end, white);
 
-      // Evolution: Level 5 Mastery - Speed Trails
+      canvas.drawLine(start, end, _glowPaint);
+      canvas.drawLine(start, end, _strokePaint);
+      if (i.isEven) canvas.drawLine(start.translate(9, -3), end, _whitePaint);
+
       if (level >= 5) {
-        final trailPaint = Paint()
-          ..color = color.withValues(alpha: alpha * 0.15)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 4;
-        canvas.drawLine(start.translate(-15, 5), end.translate(-15, 5), trailPaint);
+        canvas.drawLine(
+          start.translate(-15, 5),
+          end.translate(-15, 5),
+          _trailPaint,
+        );
       }
     }
   }
@@ -415,6 +436,21 @@ class FocusStrikeEffect extends PositionComponent
   final int level;
   double _age = 0;
   static const double _duration = 0.16;
+
+  late final Paint _corePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.5 * (level >= 4 ? 1.5 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  late final Paint _glowPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 10 * (level >= 3 ? 1.5 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  final Paint _targetingPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.2;
+  final Paint _piercingPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
 
   @override
   void update(double dt) {
@@ -438,41 +474,24 @@ class FocusStrikeEffect extends PositionComponent
     // Evolution: Wider beam at higher levels
     final half = 18 * (1 - t * 0.45) * (level >= 3 ? 1.4 : 1.0);
     
-    final paint = Paint()
-      ..color = color.withValues(alpha: alpha)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5 * (level >= 4 ? 1.5 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    final glow = Paint()
-      ..color = color.withValues(alpha: alpha * 0.2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10 * (level >= 3 ? 1.5 : 1.0)
-      ..strokeCap = StrokeCap.round;
+    _corePaint.color = color.withValues(alpha: alpha);
+    _glowPaint.color = color.withValues(alpha: alpha * 0.2);
+    _targetingPaint.color = color.withValues(alpha: alpha * 0.24);
     final start = center - normal * half;
     final end = center + normal * half;
-    
-    final targeting = Paint()
-      ..color = color.withValues(alpha: alpha * 0.24)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    
-    canvas.drawCircle(Offset(to.x, to.y), 18 * (1 - t * 0.3), targeting);
-    canvas.drawLine(Offset(start.x, start.y), Offset(end.x, end.y), glow);
-    canvas.drawLine(Offset(start.x, start.y), Offset(end.x, end.y), paint);
 
-    // Evolution: Level 5 Mastery - Piercing Pulse
+    canvas.drawCircle(Offset(to.x, to.y), 18 * (1 - t * 0.3), _targetingPaint);
+    canvas.drawLine(Offset(start.x, start.y), Offset(end.x, end.y), _glowPaint);
+    canvas.drawLine(Offset(start.x, start.y), Offset(end.x, end.y), _corePaint);
+
     if (level >= 5) {
-      final piercingPaint = Paint()
-        ..color = Colors.white.withValues(alpha: alpha * 0.5)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5;
-      
+      _piercingPaint.color = Colors.white.withValues(alpha: alpha * 0.5);
       final pierceStart = from + direction * (t * 0.2);
       final pierceEnd = from + direction * (t * 1.5);
       canvas.drawLine(
         Offset(pierceStart.x, pierceStart.y),
         Offset(pierceEnd.x, pierceEnd.y),
-        piercingPaint,
+        _piercingPaint,
       );
     }
   }
@@ -494,6 +513,18 @@ class FrostFieldEffect extends PositionComponent
   double _age = 0;
   static const double _duration = 0.85;
 
+  final Paint _washPaint = Paint()..style = PaintingStyle.fill;
+  late final Paint _linePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.4 * (level >= 4 ? 1.5 : 1.0);
+  final Paint _crackPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.1
+    ..strokeCap = StrokeCap.round;
+  final Paint _cyclonePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.2;
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -512,41 +543,32 @@ class FrostFieldEffect extends PositionComponent
       width: fieldSize.x,
       height: fieldSize.y,
     );
-    final wash = Paint()
-      ..color = color.withValues(alpha: alpha * (level >= 3 ? 0.12 : 0.07))
-      ..style = PaintingStyle.fill;
-    final line = Paint()
-      ..color = color.withValues(alpha: alpha * 0.36)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4 * (level >= 4 ? 1.5 : 1.0);
-    final crack = Paint()
-      ..color = Colors.white.withValues(alpha: alpha * 0.5)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.1
-      ..strokeCap = StrokeCap.round;
-    
-    canvas.drawRect(rect, wash);
-    
+    _washPaint.color =
+        color.withValues(alpha: alpha * (level >= 3 ? 0.12 : 0.07));
+    _linePaint.color = color.withValues(alpha: alpha * 0.36);
+    _crackPaint.color = Colors.white.withValues(alpha: alpha * 0.5);
+
+    canvas.drawRect(rect, _washPaint);
+
     final lineSpacing = level >= 4 ? 24.0 : 34.0;
     for (var y = rect.top + 22; y < rect.bottom; y += lineSpacing) {
-      canvas.drawLine(Offset(rect.left, y), Offset(rect.right, y - 12), line);
+      canvas.drawLine(
+        Offset(rect.left, y),
+        Offset(rect.right, y - 12),
+        _linePaint,
+      );
     }
-    
+
     final flakeCount = level >= 5 ? 15 : (level >= 3 ? 12 : 9);
     for (var i = 0; i < flakeCount; i++) {
       final x = rect.left + (i + 0.5) * rect.width / flakeCount;
       final y = rect.top + ((i * 47) % 100) / 100 * rect.height;
       final size = 12.0 + (i % 3) * 5;
-      _drawSnowflake(canvas, Offset(x, y), size, crack);
+      _drawSnowflake(canvas, Offset(x, y), size, _crackPaint);
     }
 
-    // Evolution: Level 5 Mastery - Glacial Cyclone
     if (level >= 5) {
-      final cyclonePaint = Paint()
-        ..color = color.withValues(alpha: alpha * 0.15)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2;
-      
+      _cyclonePaint.color = color.withValues(alpha: alpha * 0.15);
       final center = Offset(effectCenter.x, effectCenter.y);
       for (var i = 0; i < 3; i++) {
         final radius = 100.0 + i * 80.0;
@@ -556,14 +578,14 @@ class FrostFieldEffect extends PositionComponent
           rotation,
           math.pi * 0.5,
           false,
-          cyclonePaint,
+          _cyclonePaint,
         );
         canvas.drawArc(
           Rect.fromCircle(center: center, radius: radius),
           rotation + math.pi,
           math.pi * 0.5,
           false,
-          cyclonePaint,
+          _cyclonePaint,
         );
       }
     }
@@ -582,6 +604,18 @@ class RuptureMarkEffect extends PositionComponent
   double _age = 0;
   static const double _duration = 0.28;
 
+  late final Paint _strokePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3 * (level >= 4 ? 1.5 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  late final Paint _glowPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 10 * (level >= 3 ? 1.4 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  final Paint _crackPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.2;
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -595,34 +629,27 @@ class RuptureMarkEffect extends PositionComponent
     super.render(canvas);
     final t = (_age / _duration).clamp(0.0, 1.0);
     final alpha = 1 - t;
-    final paint = Paint()
-      ..color = const Color(0xFFFF5252).withValues(alpha: alpha)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3 * (level >= 4 ? 1.5 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    final glow = Paint()
-      ..color = const Color(0xFFFF5252).withValues(alpha: alpha * 0.24)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10 * (level >= 3 ? 1.4 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    
-    final radius = (16 + Curves.easeOutBack.transform(t) * 8) * (level >= 3 ? 1.3 : 1.0);
+    _strokePaint.color = const Color(0xFFFF5252).withValues(alpha: alpha);
+    _glowPaint.color = const Color(0xFFFF5252).withValues(alpha: alpha * 0.24);
+
+    final radius =
+        (16 + Curves.easeOutBack.transform(t) * 8) * (level >= 3 ? 1.3 : 1.0);
     final center = Offset(effectCenter.x, effectCenter.y);
-    
-    canvas.drawCircle(center, radius, glow);
-    canvas.drawCircle(center, radius * 0.6, glow);
-    
+
+    canvas.drawCircle(center, radius, _glowPaint);
+    canvas.drawCircle(center, radius * 0.6, _glowPaint);
+
     canvas.drawLine(
       Offset(center.dx - radius, center.dy - radius),
       Offset(center.dx + radius, center.dy + radius),
-      paint,
+      _strokePaint,
     );
     canvas.drawLine(
       Offset(center.dx + radius, center.dy - radius),
       Offset(center.dx - radius, center.dy + radius),
-      paint,
+      _strokePaint,
     );
-    
+
     final radialCount = level >= 4 ? 9 : 6;
     for (var i = 0; i < radialCount; i++) {
       final angle = i / radialCount * math.pi * 2 + t * 0.7;
@@ -634,31 +661,36 @@ class RuptureMarkEffect extends PositionComponent
         math.cos(angle) * radius * 1.25,
         math.sin(angle) * radius * 1.25,
       );
-      canvas.drawLine(start, end, glow);
+      canvas.drawLine(start, end, _glowPaint);
     }
 
-    // Evolution: Level 5 Mastery - Reality Crack
     if (level >= 5) {
-      final crackPaint = Paint()
-        ..color = Colors.white.withValues(alpha: alpha * 0.6)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2;
-      
+      _crackPaint.color = Colors.white.withValues(alpha: alpha * 0.6);
+
       for (var i = 0; i < 4; i++) {
         final angle = i * math.pi / 2 + math.pi / 4;
-        final start = center.translate(math.cos(angle) * radius, math.sin(angle) * radius);
+        final start = center.translate(
+          math.cos(angle) * radius,
+          math.sin(angle) * radius,
+        );
         final crackPath = Path()..moveTo(start.dx, start.dy);
-        
+
         var current = start;
         for (var j = 0; j < 3; j++) {
           final next = current.translate(
-            math.cos(angle + (math.Random(i * 5 + j).nextDouble() - 0.5) * 0.5) * 30,
-            math.sin(angle + (math.Random(i * 5 + j).nextDouble() - 0.5) * 0.5) * 30,
+            math.cos(
+                  angle + (math.Random(i * 5 + j).nextDouble() - 0.5) * 0.5,
+                ) *
+                30,
+            math.sin(
+                  angle + (math.Random(i * 5 + j).nextDouble() - 0.5) * 0.5,
+                ) *
+                30,
           );
           crackPath.lineTo(next.dx, next.dy);
           current = next;
         }
-        canvas.drawPath(crackPath, crackPaint);
+        canvas.drawPath(crackPath, _crackPaint);
       }
     }
   }
@@ -687,6 +719,23 @@ class NovaPulseEffect extends PositionComponent
   double _age = 0;
   static const double _duration = 0.42;
 
+  late final Paint _warmPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 18 * (level >= 3 ? 1.4 : 1.0);
+  final Paint _fillPaint = Paint()..style = PaintingStyle.fill;
+  late final Paint _glowPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 12 * (level >= 3 ? 1.5 : 1.0);
+  late final Paint _corePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2 * (level >= 4 ? 1.5 : 1.0);
+  final Paint _lightningPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.8;
+  final Paint _shockwavePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 4;
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -703,24 +752,12 @@ class NovaPulseEffect extends PositionComponent
     final alpha = 1 - t;
     final offset = Offset(effectCenter.x, effectCenter.y);
     
-    // Base rings and fill
-    final warm = Paint()
-      ..color = const Color(0xFFFFD166).withValues(alpha: alpha * 0.15)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 18 * (level >= 3 ? 1.4 : 1.0);
-    final fill = Paint()
-      ..color = color.withValues(alpha: alpha * 0.08)
-      ..style = PaintingStyle.fill;
-    final glow = Paint()
-      ..color = color.withValues(alpha: alpha * 0.36)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 12 * (level >= 3 ? 1.5 : 1.0);
-    final core = Paint()
-      ..color = Colors.white.withValues(alpha: alpha * 0.75)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2 * (level >= 4 ? 1.5 : 1.0);
+    _warmPaint.color =
+        const Color(0xFFFFD166).withValues(alpha: alpha * 0.15);
+    _fillPaint.color = color.withValues(alpha: alpha * 0.08);
+    _glowPaint.color = color.withValues(alpha: alpha * 0.36);
+    _corePaint.color = Colors.white.withValues(alpha: alpha * 0.75);
 
-    // Evolution: More petals and rotation speed
     final petalCount = level >= 5 ? 24 : (level >= 3 ? 18 : 14);
     final rotationSpeed = level >= 5 ? 3.2 : (level >= 3 ? 2.4 : 1.8);
 
@@ -735,40 +772,30 @@ class NovaPulseEffect extends PositionComponent
           offset.dx + math.cos(angle) * petalLength,
           offset.dy + math.sin(angle) * petalLength,
         );
-      canvas.drawPath(petal, warm);
+      canvas.drawPath(petal, _warmPaint);
     }
-    
-    canvas.drawCircle(offset, radius * eased, fill);
-    canvas.drawCircle(offset, radius * eased, glow);
-    canvas.drawCircle(offset, radius * eased, core);
 
-    // Evolution: Level 5 Mastery - Lightning Arcs and Shockwaves
+    canvas.drawCircle(offset, radius * eased, _fillPaint);
+    canvas.drawCircle(offset, radius * eased, _glowPaint);
+    canvas.drawCircle(offset, radius * eased, _corePaint);
+
     if (level >= 5) {
-      final lightningPaint = Paint()
-        ..color = Colors.white.withValues(alpha: alpha * 0.6)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8;
-      
-      final shockwavePaint = Paint()
-        ..color = color.withValues(alpha: alpha * 0.2)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4;
+      _lightningPaint.color = Colors.white.withValues(alpha: alpha * 0.6);
+      _shockwavePaint.color = color.withValues(alpha: alpha * 0.2);
 
-      // Faster secondary shockwave
       final fastEased = Curves.easeOutExpo.transform(t);
-      canvas.drawCircle(offset, radius * 1.3 * fastEased, shockwavePaint);
+      canvas.drawCircle(offset, radius * 1.3 * fastEased, _shockwavePaint);
 
-      // Jagged lightning
       for (var i = 0; i < 8; i++) {
         final angle = i / 8 * math.pi * 2 + _age * 5;
         final startDist = radius * 0.4 * eased;
         final endDist = radius * 1.2 * eased;
-        
+
         var currentPoint = offset.translate(
           math.cos(angle) * startDist,
           math.sin(angle) * startDist,
         );
-        
+
         final path = Path()..moveTo(currentPoint.dx, currentPoint.dy);
         for (var j = 1; j <= 3; j++) {
           final stepDist = startDist + (endDist - startDist) * (j / 3);
@@ -779,7 +806,7 @@ class NovaPulseEffect extends PositionComponent
           );
           path.lineTo(nextPoint.dx, nextPoint.dy);
         }
-        canvas.drawPath(path, lightningPaint);
+        canvas.drawPath(path, _lightningPaint);
       }
     }
   }
@@ -799,6 +826,20 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
   final int level;
   double _age = 0;
   static const double _duration = 0.5;
+
+  final Paint _glowPaint = Paint()..style = PaintingStyle.fill;
+  final Paint _heatPaint = Paint()..style = PaintingStyle.fill;
+  late final Paint _corePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3 * (level >= 4 ? 1.4 : 1.0);
+  final Paint _runePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
+  final Paint _flamePaint = Paint()..style = PaintingStyle.fill;
+  final Paint _whiteHotPaint = Paint()..style = PaintingStyle.fill;
+  final Paint _beamPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2;
 
   @override
   void update(double dt) {
@@ -820,41 +861,28 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
       width: effectWidth,
       height: wallHeight,
     );
-    final glow = Paint()
-      ..color = color.withValues(alpha: alpha * 0.28)
-      ..style = PaintingStyle.fill;
-    final heat = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          color.withValues(alpha: 0),
-          color.withValues(alpha: alpha * 0.38),
-          const Color(0xFFFF4D00).withValues(alpha: alpha * 0.22),
-          color.withValues(alpha: 0),
-        ],
-      ).createShader(rect)
-      ..style = PaintingStyle.fill;
-    final core = Paint()
-      ..color = color.withValues(alpha: alpha * 0.85)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3 * (level >= 4 ? 1.4 : 1.0);
-    final rune = Paint()
-      ..color = Colors.white.withValues(alpha: alpha * 0.72)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    
+    _glowPaint.color = color.withValues(alpha: alpha * 0.28);
+    _heatPaint.shader = LinearGradient(
+      colors: [
+        color.withValues(alpha: 0),
+        color.withValues(alpha: alpha * 0.38),
+        const Color(0xFFFF4D00).withValues(alpha: alpha * 0.22),
+        color.withValues(alpha: 0),
+      ],
+    ).createShader(rect);
+    _corePaint.color = color.withValues(alpha: alpha * 0.85);
+    _runePaint.color = Colors.white.withValues(alpha: alpha * 0.72);
+
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(6)),
-      glow,
+      _glowPaint,
     );
-    canvas.drawRect(rect.inflate(level >= 5 ? 20 : 10), heat);
-    canvas.drawLine(rect.centerLeft, rect.centerRight, core);
-    
-    final flame = Paint()
-      ..color = const Color(0xFFFF8A00).withValues(alpha: alpha * 0.78)
-      ..style = PaintingStyle.fill;
-    final whiteHot = Paint()
-      ..color = Colors.white.withValues(alpha: alpha * 0.54)
-      ..style = PaintingStyle.fill;
+    canvas.drawRect(rect.inflate(level >= 5 ? 20 : 10), _heatPaint);
+    canvas.drawLine(rect.centerLeft, rect.centerRight, _corePaint);
+
+    _flamePaint.color =
+        const Color(0xFFFF8A00).withValues(alpha: alpha * 0.78);
+    _whiteHotPaint.color = Colors.white.withValues(alpha: alpha * 0.54);
 
     // Evolution: More frequent and taller flames
     final flameSpacing = level >= 3 ? 12 : 16;
@@ -878,45 +906,41 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
           rect.center.dy + 12,
         )
         ..close();
-      canvas.drawPath(flamePath, flame);
+      canvas.drawPath(flamePath, _flamePaint);
       if ((x / flameSpacing).round().isEven) {
         canvas.drawCircle(
           Offset(x, rect.center.dy - height * 0.45),
           2.2,
-          whiteHot,
+          _whiteHotPaint,
         );
       }
     }
 
-    // Evolution: Mastery Level 5 - Energy Beams
     if (level >= 5) {
-      final beamPaint = Paint()
-        ..color = Colors.white.withValues(alpha: alpha * 0.4)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
-      
+      _beamPaint.color = Colors.white.withValues(alpha: alpha * 0.4);
+
       final beamY1 = rect.center.dy - 15;
       final beamY2 = rect.center.dy + 15;
       final beamProgress = (_age * 3).clamp(0.0, 1.0);
-      
+
       canvas.drawLine(
         Offset(rect.left, beamY1),
         Offset(rect.left + rect.width * beamProgress, beamY1),
-        beamPaint,
+        _beamPaint,
       );
       canvas.drawLine(
         Offset(rect.right, beamY2),
         Offset(rect.right - rect.width * beamProgress, beamY2),
-        beamPaint,
+        _beamPaint,
       );
     }
 
     for (var x = rect.left + 18; x < rect.right; x += 34) {
-      canvas.drawCircle(Offset(x, rect.center.dy), 7, rune);
+      canvas.drawCircle(Offset(x, rect.center.dy), 7, _runePaint);
       canvas.drawLine(
         Offset(x - 9, rect.center.dy - 12),
         Offset(x + 9, rect.center.dy + 12),
-        rune,
+        _runePaint,
       );
     }
   }
@@ -938,6 +962,28 @@ class MeteorImpactEffect extends PositionComponent
   double _age = 0;
   static const double _duration = 0.45;
 
+  late final Paint _skyGlowPaint = Paint()
+    ..strokeWidth = 26 * (level >= 3 ? 1.5 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  late final Paint _bladePaint = Paint()
+    ..strokeWidth = 4 * (level >= 4 ? 1.6 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  late final Paint _trailPaint = Paint()
+    ..strokeWidth = 13 * (level >= 3 ? 1.4 : 1.0)
+    ..strokeCap = StrokeCap.round;
+  late final Paint _blastPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 9 * (level >= 3 ? 1.3 : 1.0);
+  final Paint _firePaint = Paint()..style = PaintingStyle.fill;
+  final Paint _craterPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.4;
+  final Paint _shockwavePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 6;
+  final Paint _glowPaint = Paint()
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -954,41 +1000,23 @@ class MeteorImpactEffect extends PositionComponent
     final impact = Offset(target.x, target.y);
     final start = Offset(target.x - 34, target.y - 190 + 120 * t);
     
-    final skyGlow = Paint()
-      ..color = color.withValues(alpha: alpha * 0.18)
-      ..strokeWidth = 26 * (level >= 3 ? 1.5 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    final blade = Paint()
-      ..color = Colors.white.withValues(alpha: alpha)
-      ..strokeWidth = 4 * (level >= 4 ? 1.6 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    final trail = Paint()
-      ..color = color.withValues(alpha: alpha * 0.4)
-      ..strokeWidth = 13 * (level >= 3 ? 1.4 : 1.0)
-      ..strokeCap = StrokeCap.round;
-    
-    canvas.drawLine(start.translate(-10, -12), impact, skyGlow);
-    canvas.drawLine(start, impact, trail);
-    canvas.drawLine(start, impact, blade);
-    
-    final blast = Paint()
-      ..color = color.withValues(alpha: alpha * 0.32)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 9 * (level >= 3 ? 1.3 : 1.0);
-    final fire = Paint()
-      ..color = const Color(0xFFFFD166).withValues(alpha: alpha * 0.34)
-      ..style = PaintingStyle.fill;
-    final crater = Paint()
-      ..color = Colors.white.withValues(alpha: alpha * 0.35)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-    
-    final blastRadius = radius * Curves.easeOut.transform(t);
-    canvas.drawCircle(impact, blastRadius * 0.45, fire);
-    canvas.drawCircle(impact, blastRadius, blast);
-    canvas.drawCircle(impact, blastRadius * 0.65, crater);
+    _skyGlowPaint.color = color.withValues(alpha: alpha * 0.18);
+    _bladePaint.color = Colors.white.withValues(alpha: alpha);
+    _trailPaint.color = color.withValues(alpha: alpha * 0.4);
 
-    // Evolution: More radial lines
+    canvas.drawLine(start.translate(-10, -12), impact, _skyGlowPaint);
+    canvas.drawLine(start, impact, _trailPaint);
+    canvas.drawLine(start, impact, _bladePaint);
+
+    _blastPaint.color = color.withValues(alpha: alpha * 0.32);
+    _firePaint.color = const Color(0xFFFFD166).withValues(alpha: alpha * 0.34);
+    _craterPaint.color = Colors.white.withValues(alpha: alpha * 0.35);
+
+    final blastRadius = radius * Curves.easeOut.transform(t);
+    canvas.drawCircle(impact, blastRadius * 0.45, _firePaint);
+    canvas.drawCircle(impact, blastRadius, _blastPaint);
+    canvas.drawCircle(impact, blastRadius * 0.65, _craterPaint);
+
     final lineCount = level >= 5 ? 20 : (level >= 3 ? 16 : 12);
     for (var i = 0; i < lineCount; i++) {
       final angle = i / lineCount * math.pi * 2;
@@ -997,23 +1025,16 @@ class MeteorImpactEffect extends PositionComponent
         math.cos(angle) * length,
         math.sin(angle) * length,
       );
-      canvas.drawLine(impact, end, crater);
+      canvas.drawLine(impact, end, _craterPaint);
     }
 
-    // Evolution: Level 5 Mastery - Secondary Shockwave and persistent glow
     if (level >= 5) {
-      final shockwavePaint = Paint()
-        ..color = color.withValues(alpha: alpha * 0.15)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6;
-      
+      _shockwavePaint.color = color.withValues(alpha: alpha * 0.15);
       final shockRadius = blastRadius * 1.5 * Curves.easeOutQuart.transform(t);
-      canvas.drawCircle(impact, shockRadius, shockwavePaint);
-      
-      final glowPaint = Paint()
-        ..color = Colors.white.withValues(alpha: alpha * 0.2)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
-      canvas.drawCircle(impact, blastRadius * 0.3, glowPaint);
+      canvas.drawCircle(impact, shockRadius, _shockwavePaint);
+
+      _glowPaint.color = Colors.white.withValues(alpha: alpha * 0.2);
+      canvas.drawCircle(impact, blastRadius * 0.3, _glowPaint);
     }
   }
 }
@@ -1025,6 +1046,10 @@ class HeroAuraEffect extends PositionComponent with HasGameReference<IdleGame> {
   double _age = 0;
   final math.Random _rng = math.Random();
   final List<_AuraParticle> _particles = [];
+
+  final Paint _aurPaint = Paint()
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+  final Paint _particlePaint = Paint()..style = PaintingStyle.fill;
 
   @override
   void update(double dt) {
@@ -1055,22 +1080,21 @@ class HeroAuraEffect extends PositionComponent with HasGameReference<IdleGame> {
     final color = _getAuraColor();
     final pulse = 0.5 + 0.5 * math.sin(_age * 4);
     
-    final paint = Paint()
-      ..color = color.withValues(alpha: 0.15 + 0.1 * pulse)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
-    
-    canvas.drawCircle(Offset(effectCenter.x, effectCenter.y), 24 + 4 * pulse, paint);
+    _aurPaint.color = color.withValues(alpha: 0.15 + 0.1 * pulse);
+    canvas.drawCircle(
+      Offset(effectCenter.x, effectCenter.y),
+      24 + 4 * pulse,
+      _aurPaint,
+    );
 
     for (final p in _particles) {
       final t = p.age / p.life;
       final alpha = (1 - t) * 0.6;
-      final pPaint = Paint()
-        ..color = color.withValues(alpha: alpha)
-        ..style = PaintingStyle.fill;
+      _particlePaint.color = color.withValues(alpha: alpha);
       canvas.drawCircle(
         Offset(effectCenter.x + p.offset.x, effectCenter.y + p.offset.y),
         1.5 * (1 - t),
-        pPaint,
+        _particlePaint,
       );
     }
   }

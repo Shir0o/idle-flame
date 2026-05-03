@@ -201,12 +201,14 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
   }
 
   void _tryAttack() {
-    final targets = _enemiesInRange(game.state.heroAttackRange)
-      ..sort((a, b) {
+    final targets = _enemiesInRange(game.state.heroAttackRange);
+    if (targets.length > 1) {
+      targets.sort((a, b) {
         final aDist = (a.position - position).length2;
         final bDist = (b.position - position).length2;
         return aDist.compareTo(bDist);
       });
+    }
 
     if (targets.isNotEmpty) {
       game.audio.playBasicAttack();
@@ -379,26 +381,32 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
           (_critRng.nextDouble() - 0.5) * 80,
         );
         final clusterPos = target.position + offset;
-        Future.delayed(Duration(milliseconds: (delay * 1000).round()), () {
-          if (game.state.isRunOver) return;
-          parent?.add(
-            MeteorImpactEffect(
-              target: clusterPos,
-              radius: blastRadius * 0.6,
-              level: game.state.meteorMarkLevel,
-            ),
-          );
-          for (final enemy in _aliveEnemies()) {
-            if ((enemy.position - clusterPos).length2 <=
-                blastRadiusSquared * 0.36) {
-              enemy.takeDamage(
-                game.state.meteorMarkDamage * 0.5,
-                source: clusterPos,
-                type: DamageType.meteor,
+        parent?.add(
+          TimerComponent(
+            period: delay,
+            removeOnFinish: true,
+            onTick: () {
+              if (game.state.isRunOver) return;
+              parent?.add(
+                MeteorImpactEffect(
+                  target: clusterPos,
+                  radius: blastRadius * 0.6,
+                  level: game.state.meteorMarkLevel,
+                ),
               );
-            }
-          }
-        });
+              for (final enemy in _aliveEnemies()) {
+                if ((enemy.position - clusterPos).length2 <=
+                    blastRadiusSquared * 0.36) {
+                  enemy.takeDamage(
+                    game.state.meteorMarkDamage * 0.5,
+                    source: clusterPos,
+                    type: DamageType.meteor,
+                  );
+                }
+              }
+            },
+          ),
+        );
       }
     }
   }

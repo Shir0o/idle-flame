@@ -194,14 +194,15 @@ class _FloorBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<GameState>(
-      builder: (_, state, _) => _Panel(
+    return Selector<GameState, ({int floor, int kills})>(
+      selector: (_, state) => (floor: state.floor, kills: state.killsOnFloor),
+      builder: (_, data, _) => _Panel(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Floor ${state.floor}',
+              'Floor ${data.floor}',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -214,7 +215,7 @@ class _FloorBadge extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
-                  value: state.killsOnFloor / GameState.killsPerFloor,
+                  value: data.kills / GameState.killsPerFloor,
                   minHeight: 6,
                   backgroundColor: Colors.white.withValues(alpha: 0.15),
                   valueColor: const AlwaysStoppedAnimation(Color(0xFFFFC107)),
@@ -223,7 +224,7 @@ class _FloorBadge extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '${state.killsOnFloor}/${GameState.killsPerFloor} kills',
+              '${data.kills}/${GameState.killsPerFloor} kills',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 11,
@@ -241,14 +242,15 @@ class _GoldBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<GameState>(
-      builder: (_, state, _) => _Panel(
+    return Selector<GameState, int>(
+      selector: (_, state) => state.gold,
+      builder: (_, gold, _) => _Panel(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.attach_money, color: Color(0xFFFFC107), size: 18),
             Text(
-              '${state.gold}',
+              '$gold',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -489,8 +491,9 @@ class _NexusHealthBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<GameState>(
-      builder: (_, state, _) => Align(
+    return Selector<GameState, ({double hp, double maxHp})>(
+      selector: (_, state) => (hp: state.nexusHp, maxHp: state.nexusMaxHp),
+      builder: (_, data, _) => Align(
         alignment: Alignment.bottomLeft,
         child: _Panel(
           child: SizedBox(
@@ -518,7 +521,7 @@ class _NexusHealthBar extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${state.nexusHp.ceil()}/${state.nexusMaxHp.round()}',
+                      '${data.hp.ceil()}/${data.maxHp.round()}',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 11,
@@ -531,7 +534,7 @@ class _NexusHealthBar extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: state.nexusHp / state.nexusMaxHp,
+                    value: data.hp / data.maxHp,
                     minHeight: 7,
                     backgroundColor: Colors.white.withValues(alpha: 0.12),
                     valueColor: const AlwaysStoppedAnimation(Color(0xFFFF5252)),
