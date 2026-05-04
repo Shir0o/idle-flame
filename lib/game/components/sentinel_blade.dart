@@ -47,8 +47,8 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   static const int _maxTrailPoints = 24;
 
   static const double _attackRange = double.infinity;
-  static const double _dashSpeedRef = 600;
-  static const double _windupDuration = 0.14;
+  static const double _dashSpeedRef = 1000;
+  static const double _windupDuration = 0.10;
 
   final Paint _bladePaint = Paint()
     ..color = const Color(0xFFE1F5FE)
@@ -310,7 +310,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
         (_dashControl2 - _dashControl1).length +
         (_dashEnd - _dashControl2).length;
     _phaseDuration = math.max(
-      0.26,
+      0.16,
       math.min(0.65, approxArcLen / _dashSpeedRef),
     );
     _dashProgress = 0;
@@ -465,7 +465,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
 
     // Dynamic duration ensures the return flight feels consistent with the dash speed.
     final approxReturnLen = toSlotLen + swing * 0.6;
-    _phaseDuration = math.max(0.35, approxReturnLen / (_dashSpeedRef * 0.8));
+    _phaseDuration = math.max(0.22, approxReturnLen / (_dashSpeedRef * 0.8));
   }
 
   void _tickReturn(Vector2 heroPos, double dt) {
