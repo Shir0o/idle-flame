@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../idle_game.dart';
@@ -511,18 +512,18 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   // --- Rendering -----------------------------------------------------------
 
   Path _swordBladePath(double length, double width) {
-    final tip = length * 0.55;
-    final shoulder = length * 0.35;
-    final base = -length * 0.25;
+    final tip = length * 0.52;
+    final shoulder = length * 0.28;
+    final base = -length * 0.22;
     final half = width * 0.5;
 
-    // Extremely slender "Needle" shape: sharp taper, very narrow waist.
+    // Classic Jian shape: defined shoulders and a slender waist.
     return Path()
       ..moveTo(tip, 0)
-      ..lineTo(shoulder, -half)
-      ..lineTo(base, -half * 0.4)
-      ..lineTo(base - 2, 0) // Tiny pointed base
-      ..lineTo(base, half * 0.4)
+      ..lineTo(shoulder, -half) // Taper from tip to shoulder
+      ..lineTo(base, -half * 0.75) // Gentle waist taper to base
+      ..lineTo(base - 3, 0) // Elegant rounded base point
+      ..lineTo(base, half * 0.75)
       ..lineTo(shoulder, half)
       ..close();
   }
@@ -532,44 +533,67 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     double size,
     Paint bladePaint,
   ) {
-    // Needle-thin style: extremely slender and focused.
-    final bladeLength = size * 2.5;
-    final bladeWidth = size * 0.12; // Almost line-width thinness
+    // Celestial Jian: balanced, slender, and noble.
+    final bladeLength = size * 2.2;
+    final bladeWidth = size * 0.20; // More defined than the needle
     final bladePath = _swordBladePath(bladeLength, bladeWidth);
+
+    // Subtle outer shimmer (ethereal edge)
+    final shimmerPaint = Paint()
+      ..color = const Color(0xFFB2EBF2).withValues(alpha: 0.25)
+      ..style = PaintingStyle.fill;
+    canvas.save();
+    canvas.scale(1.18, 1.28);
+    canvas.drawPath(bladePath, shimmerPaint);
+    canvas.restore();
 
     // Main blade body
     canvas.drawPath(bladePath, bladePaint);
 
-    // Spirit Thread Core (concentrated central light)
+    // Integrated Spirit Core (soft central light)
     final corePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.92)
+      ..color = Colors.white.withValues(alpha: 0.8)
       ..style = PaintingStyle.fill;
-    // Core is slightly shorter to ensure the main tip remains sharp
-    final corePath = _swordBladePath(bladeLength * 0.85, bladeWidth * 0.45);
+    final corePath = _swordBladePath(bladeLength * 0.8, bladeWidth * 0.4);
     canvas.drawPath(corePath, corePaint);
 
-    // Sharp spirit edge spine
+    // Central Ridge / Spirit Spine
     final spinePaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.6)
-      ..strokeWidth = 0.7
+      ..strokeWidth = 1.0
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
     canvas.drawLine(
-      Offset(-bladeLength * 0.22, 0),
-      Offset(bladeLength * 0.48, 0),
+      Offset(-bladeLength * 0.15, 0),
+      Offset(bladeLength * 0.42, 0),
       spinePaint,
+    );
+
+    // Ornament: Minimalist Guard (spirit line)
+    final guardPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.4)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+
+    // A tiny horizontal line to suggest a guard without adding bulk
+    canvas.drawLine(
+      Offset(-bladeLength * 0.12, -bladeWidth * 0.58),
+      Offset(-bladeLength * 0.12, bladeWidth * 0.58),
+      guardPaint,
     );
   }
 
   void _renderRibbon(Canvas canvas, double headHalfWidth) {
     if (_trail.length < 2) return;
 
-    // Build a tapered ribbon polygon in world space, then translate into
-    // local space by subtracting current position.
     final n = _trail.length;
-    final left = <Offset>[];
-    final right = <Offset>[];
+    final vertices = <Offset>[];
+    final colors = <Color>[];
+
+    // Base colors for the gradient: Cyan/Celestial Blue to Transparent.
+    final startColor = const Color(0xFF00E5FF).withValues(alpha: 0.5);
+    final endColor = const Color(0xFFB2EBF2).withValues(alpha: 0.0);
 
     for (var i = 0; i < n; i++) {
       final p = _trail[i];
@@ -582,34 +606,41 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
       } else {
         tangent = (_trail[i - 1] - _trail[i + 1]);
       }
+      
       if (tangent.length2 == 0) continue;
       final t = tangent.normalized();
       final normal = Vector2(-t.y, t.x);
 
-      final taper = 1 - (i / (n - 1));
+      // Graceful cubic taper for a more "silk ribbon" feel.
+      final progress = i / (n - 1);
+      final taper = Curves.easeInCubic.transform(1.0 - progress);
       final hw = headHalfWidth * taper;
 
+      // Color fades along the length.
+      final color = Color.lerp(startColor, endColor, progress) ?? endColor;
+
+      // Add two vertices (left and right) for each point in the trail.
       final lx = p.x + normal.x * hw - position.x;
       final ly = p.y + normal.y * hw - position.y;
       final rx = p.x - normal.x * hw - position.x;
       final ry = p.y - normal.y * hw - position.y;
-      left.add(Offset(lx, ly));
-      right.add(Offset(rx, ry));
+
+      vertices.add(Offset(lx, ly));
+      vertices.add(Offset(rx, ry));
+      colors.add(color);
+      colors.add(color);
     }
 
-    if (left.length < 2) return;
+    if (vertices.length < 4) return;
 
-    final path = Path()..moveTo(left.first.dx, left.first.dy);
-    for (var i = 1; i < left.length; i++) {
-      path.lineTo(left[i].dx, left[i].dy);
-    }
-    for (var i = right.length - 1; i >= 0; i--) {
-      path.lineTo(right[i].dx, right[i].dy);
-    }
-    path.close();
+    // Use drawVertices with a Triangle Strip for smooth gradients.
+    final ribbonVertices = ui.Vertices(
+      ui.VertexMode.triangleStrip,
+      vertices,
+      colors: colors,
+    );
 
-    _trailPaint.color = const Color(0xFF00B0FF).withValues(alpha: 0.32);
-    canvas.drawPath(path, _trailPaint);
+    canvas.drawVertices(ribbonVertices, BlendMode.srcOver, Paint());
   }
 
   @override
@@ -617,7 +648,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     super.render(canvas);
 
     // Motion ribbon (only present during strike phases).
-    _renderRibbon(canvas, 3.2);
+    _renderRibbon(canvas, 4.5);
 
     canvas.save();
 
