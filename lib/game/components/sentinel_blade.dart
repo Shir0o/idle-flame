@@ -20,7 +20,6 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   Enemy? _target;
   double _attackTimer = 0;
   double _totalTime = 0;
-  double _hitStopTimer = 0;
   double _pulseTimer = 0;
   double _pulseDuration = 0.18;
 
@@ -40,31 +39,20 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   Vector2 _returnControl = Vector2.zero();
 
   final Set<Enemy> _hitThisDash = {};
-  static const double _sliceOvershoot = 56.0;
+  static const double _sliceOvershoot = 84.0;
 
   static const double _siblingStaggerGap = 0.10;
 
   final List<Vector2> _trail = [];
-  static const int _maxTrailPoints = 12;
+  static const int _maxTrailPoints = 24;
 
   static const double _attackRange = double.infinity;
   static const double _dashSpeedRef = 600;
   static const double _windupDuration = 0.14;
-  static const double _returnDuration = 0.55;
 
   final Paint _bladePaint = Paint()
     ..color = const Color(0xFFE1F5FE)
     ..style = PaintingStyle.fill;
-
-  final Paint _glowPaint = Paint()
-    ..color = const Color(0xFF00B0FF).withValues(alpha: 0.4)
-    ..style = PaintingStyle.fill;
-
-  final Paint _bladeRidgePaint = Paint()
-    ..color = Colors.white.withValues(alpha: 0.72)
-    ..strokeWidth = 1.1
-    ..strokeCap = StrokeCap.round
-    ..style = PaintingStyle.stroke;
 
   final Paint _trailPaint = Paint()..style = PaintingStyle.fill;
 
@@ -81,11 +69,6 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
       return;
     }
     if (game.state.hasPendingLevelUp) return;
-
-    if (_hitStopTimer > 0) {
-      _hitStopTimer -= dt;
-      return;
-    }
 
     if (_pulseTimer > 0) {
       _pulseTimer -= dt;
@@ -173,11 +156,11 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     if (enemies.isEmpty) return;
 
     Enemy? best;
-    double minDist = double.infinity;
+    double maxDist2 = -1;
     for (final e in enemies) {
       final d2 = (e.position - heroPos).length2;
-      if (d2 < _attackRange * _attackRange && d2 < minDist) {
-        minDist = d2;
+      if (d2 < _attackRange * _attackRange && d2 > maxDist2) {
+        maxDist2 = d2;
         best = e;
       }
     }
@@ -187,18 +170,18 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   // --- Formation -----------------------------------------------------------
 
   void _orbit(Vector2 heroPos, double dt) {
-    const xBase = 48.0;
-    const spacing = 14.0;
+    const xBase = 52.0;
+    const spacing = 16.0;
 
     // Row of upward-pointing blades arrayed to the hero's right.
     final xOffset = xBase + orbitIndex * spacing;
 
-    // Subtle per-blade hover bob so the line breathes.
-    final bob =
-        2.0 * math.sin(_totalTime * 1.8 + orbitIndex * 0.7) +
-        1.0 * math.sin(_totalTime * 1.1 + orbitIndex * 0.4);
+    // Lemniscate of Gerono (figure-eight) hover pattern for a "living" feel.
+    final t = _totalTime * 1.2 + orbitIndex * 0.8;
+    final hoverX = 4.0 * math.sin(t);
+    final hoverY = 4.0 * math.sin(t) * math.cos(t);
 
-    final targetPos = heroPos + Vector2(xOffset, bob);
+    final targetPos = heroPos + Vector2(xOffset + hoverX, hoverY);
 
     // Frame-rate-stable easing toward the slot.
     final k = 1 - math.exp(-9 * dt);
@@ -210,7 +193,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     }
 
     // Tip points north (up) with a faint hovering wobble.
-    final wobble = 0.06 * math.sin(_totalTime * 1.4 + orbitIndex);
+    final wobble = 0.08 * math.sin(_totalTime * 1.6 + orbitIndex);
     angle = -math.pi / 2 + wobble;
   }
 
@@ -231,12 +214,20 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
       return;
     }
     _phaseTimer += dt;
+    final p = (_phaseTimer / _phaseDuration).clamp(0.0, 1.0);
 
-    // Hold position; just face the target while the glow charges.
-    position = _windupAnchor;
     final toTarget = t.position - _windupAnchor;
+    final dir = toTarget.normalized();
+
+    // Pull back slightly like a coiled spring, then face the target.
+    final pullBack = 6.0 * Curves.easeInOutCubic.transform(p);
+    position = _windupAnchor - dir * pullBack;
+
     if (toTarget.length2 > 0) {
-      angle = math.atan2(toTarget.y, toTarget.x);
+      final baseAngle = math.atan2(toTarget.y, toTarget.x);
+      // Subtle "readying" tilt.
+      final tilt = 0.25 * math.sin(p * math.pi);
+      angle = baseAngle + tilt;
     }
 
     if (_phaseTimer >= _phaseDuration) {
@@ -267,33 +258,60 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     // The blade enters the target along approachDir and exits past it.
     _dashEnd = t.position + approachDir * _sliceOvershoot;
 
-    // Cubic Bézier control points create a swooping flight path:
-    //  - P2 pulls the curve to enter the target along approachDir.
-    //  - P1 swings the path wide off the chord on the side opposite the
-    //    approach, so the blade arcs around the target before slicing through.
-    final entryAnchor = t.position - approachDir * 36;
+    // Aggressive waypoint logic: find the closest enemy that is NOT the target.
+    Enemy? waypoint;
+    double minWayDist2 = double.infinity;
+    for (final e in game.aliveEnemies) {
+      if (e == t) continue;
+      final d2 = (e.position - _dashStart).length2;
+      if (d2 < minWayDist2) {
+        minWayDist2 = d2;
+        waypoint = e;
+      }
+    }
 
+    final entryAnchor = t.position - approachDir * 36;
     final chord = entryAnchor - _dashStart;
     final chordLen = chord.length;
-    final chordDir = chordLen > 0 ? chord / chordLen : Vector2(1, 0);
-    final chordNormal = Vector2(-chordDir.y, chordDir.x);
 
-    final dot = approachDir.dot(chordNormal);
-    final swingSide = dot > 0 ? -1.0 : 1.0;
-    final swingDist = math.max(28.0, chordLen * 0.45);
+    if (waypoint != null) {
+      // Pull P1 aggressively through/past the waypoint.
+      final toWaypoint = waypoint.position - _dashStart;
+      final dist = toWaypoint.length;
+      if (dist > 0) {
+        final dir = toWaypoint / dist;
+        // Pushing P1 ~80% past the waypoint (capped at 100px) pulls the curve
+        // belly much closer to the enemy.
+        final pullDist = dist + math.min(dist * 0.8, 100.0);
+        _dashControl1 = _dashStart + dir * pullDist;
+      } else {
+        _dashControl1 = _dashStart;
+      }
+      _dashControl2 = entryAnchor;
+    } else {
+      // Fallback to original swooping logic if no secondary targets exist.
+      final chordDir = chordLen > 0 ? chord / chordLen : Vector2(1, 0);
+      final chordNormal = Vector2(-chordDir.y, chordDir.x);
+      final dot = approachDir.dot(chordNormal);
+      final swingSide = dot > 0 ? -1.0 : 1.0;
+      final swingDist = math.max(28.0, chordLen * 0.45);
 
-    _dashControl1 =
-        _dashStart +
-        chord * 0.35 +
-        chordNormal * (swingDist * swingSide);
-    _dashControl2 = entryAnchor;
+      _dashControl1 =
+          _dashStart +
+          chord * 0.35 +
+          chordNormal * (swingDist * swingSide);
+      _dashControl2 = entryAnchor;
+    }
 
     _phase = _StrikePhase.dashing;
     _phaseTimer = 0;
-    final approxArcLen = chordLen + swingDist * 0.7 + _sliceOvershoot;
+    // Recalculate duration based on the actual control point distance.
+    final approxArcLen = (_dashControl1 - _dashStart).length +
+        (_dashControl2 - _dashControl1).length +
+        (_dashEnd - _dashControl2).length;
     _phaseDuration = math.max(
       0.26,
-      math.min(0.55, approxArcLen / _dashSpeedRef),
+      math.min(0.65, approxArcLen / _dashSpeedRef),
     );
     _dashProgress = 0;
     _hitThisDash.clear();
@@ -302,8 +320,9 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   void _tickDash(double dt) {
     _phaseTimer += dt;
     final p = (_phaseTimer / _phaseDuration).clamp(0.0, 1.0);
-    // Smooth, near-constant pace through the slice (no slowdown near target).
-    final eased = Curves.easeInOutSine.transform(p);
+    // Smooth acceleration into the slice. No slowing down at the end;
+    // the dash momentum carries straight into the return arc.
+    final eased = Curves.easeInSine.transform(p);
     _dashProgress = eased;
 
     final prev = position.clone();
@@ -422,7 +441,6 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   void _enterReturn(Vector2 motionDir) {
     _phase = _StrikePhase.returning;
     _phaseTimer = 0;
-    _phaseDuration = _returnDuration;
     _returnStart = position.clone();
 
     // Continue forward briefly so the slice exit eases into the return arc,
@@ -430,12 +448,12 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     final heroPos = game.hero.position;
     final slot = _formationSlot(heroPos);
     final toSlot = slot - _returnStart;
-    final straight = toSlot.length2 > 0
-        ? toSlot.normalized()
-        : Vector2(-1, 0);
+    final toSlotLen = toSlot.length;
+
+    final straight = toSlotLen > 0 ? toSlot / toSlotLen : Vector2(-1, 0);
     final normal = Vector2(-straight.y, straight.x);
     final side = (orbitIndex.isEven) ? -1.0 : 1.0;
-    final swing = math.max(40.0, toSlot.length * 0.45);
+    final swing = math.max(40.0, toSlotLen * 0.45);
 
     final continueDir = motionDir.length2 > 0
         ? motionDir.normalized()
@@ -444,12 +462,17 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
         _returnStart +
         continueDir * 28 +
         normal * (swing * side);
+
+    // Dynamic duration ensures the return flight feels consistent with the dash speed.
+    final approxReturnLen = toSlotLen + swing * 0.6;
+    _phaseDuration = math.max(0.35, approxReturnLen / (_dashSpeedRef * 0.8));
   }
 
   void _tickReturn(Vector2 heroPos, double dt) {
     _phaseTimer += dt;
     final p = (_phaseTimer / _phaseDuration).clamp(0.0, 1.0);
-    final eased = Curves.easeInOutCubic.transform(p);
+    // Start at high velocity (continuation of dash) and ease back into the slot.
+    final eased = Curves.easeOutSine.transform(p);
 
     // End point follows the live formation slot so a moving hero is tracked.
     final slot = _formationSlot(heroPos);
@@ -488,17 +511,19 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   // --- Rendering -----------------------------------------------------------
 
   Path _swordBladePath(double length, double width) {
-    final tip = length * 0.5;
-    final taperStart = length * 0.32;
-    final base = -length * 0.2;
+    final tip = length * 0.55;
+    final shoulder = length * 0.35;
+    final base = -length * 0.25;
     final half = width * 0.5;
 
+    // Extremely slender "Needle" shape: sharp taper, very narrow waist.
     return Path()
       ..moveTo(tip, 0)
-      ..lineTo(taperStart, -half)
-      ..lineTo(base, -half)
-      ..lineTo(base, half)
-      ..lineTo(taperStart, half)
+      ..lineTo(shoulder, -half)
+      ..lineTo(base, -half * 0.4)
+      ..lineTo(base - 2, 0) // Tiny pointed base
+      ..lineTo(base, half * 0.4)
+      ..lineTo(shoulder, half)
       ..close();
   }
 
@@ -506,33 +531,34 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     Canvas canvas,
     double size,
     Paint bladePaint,
-    Paint glowPaint,
   ) {
-    // Lean, jian-style flying sword: long and slender.
-    final bladeLength = size * 2.0;
-    final bladeWidth = size * 0.24;
+    // Needle-thin style: extremely slender and focused.
+    final bladeLength = size * 2.5;
+    final bladeWidth = size * 0.12; // Almost line-width thinness
     final bladePath = _swordBladePath(bladeLength, bladeWidth);
 
-    canvas.save();
-    canvas.scale(1.26);
-    canvas.drawPath(bladePath, glowPaint);
-    canvas.restore();
-
+    // Main blade body
     canvas.drawPath(bladePath, bladePaint);
-    canvas.drawLine(
-      Offset(-bladeLength * 0.12, 0),
-      Offset(bladeLength * 0.36, 0),
-      _bladeRidgePaint,
-    );
 
-    // Subtle handle extending past the base.
-    final handleStart = -bladeLength * 0.2;
-    final handleEnd = handleStart - bladeLength * 0.22;
-    _handlePaint.strokeWidth = bladeWidth * 0.85;
+    // Spirit Thread Core (concentrated central light)
+    final corePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.92)
+      ..style = PaintingStyle.fill;
+    // Core is slightly shorter to ensure the main tip remains sharp
+    final corePath = _swordBladePath(bladeLength * 0.85, bladeWidth * 0.45);
+    canvas.drawPath(corePath, corePaint);
+
+    // Sharp spirit edge spine
+    final spinePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.6)
+      ..strokeWidth = 0.7
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
     canvas.drawLine(
-      Offset(handleStart, 0),
-      Offset(handleEnd, 0),
-      _handlePaint,
+      Offset(-bladeLength * 0.22, 0),
+      Offset(bladeLength * 0.48, 0),
+      spinePaint,
     );
   }
 
@@ -591,23 +617,9 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     super.render(canvas);
 
     // Motion ribbon (only present during strike phases).
-    _renderRibbon(canvas, 2.6);
+    _renderRibbon(canvas, 3.2);
 
     canvas.save();
-
-    // Idle-ready glow pulse (replaces the old constant scale shimmer).
-    if (_phase == _StrikePhase.idle && _attackTimer <= 0 && _target == null) {
-      final pulse = 0.4 + 0.18 * (0.5 + 0.5 * math.sin(_totalTime * 4));
-      _glowPaint.color = const Color(0xFF00B0FF).withValues(alpha: pulse);
-    } else if (_phase == _StrikePhase.windup) {
-      // Charging glow ramps up during windup.
-      final p = (_phaseTimer / _phaseDuration).clamp(0.0, 1.0);
-      _glowPaint.color = const Color(
-        0xFF00B0FF,
-      ).withValues(alpha: 0.4 + 0.45 * p);
-    } else {
-      _glowPaint.color = const Color(0xFF00B0FF).withValues(alpha: 0.4);
-    }
 
     // Slight scale stretch during dash to sell the speed.
     if (_phase == _StrikePhase.dashing) {
@@ -626,15 +638,12 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
       if (isShadow) {
         canvas.translate(-5, 5);
         canvas.scale(0.8);
-        final shadowGlow = Paint()
-          ..color = const Color(0xFF00B0FF).withValues(alpha: 0.2)
-          ..style = PaintingStyle.fill;
         final shadowBlade = Paint()
           ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.4)
           ..style = PaintingStyle.fill;
-        _drawSword(canvas, sizeBase, shadowBlade, shadowGlow);
+        _drawSword(canvas, sizeBase, shadowBlade);
       } else {
-        _drawSword(canvas, sizeBase, _bladePaint, _glowPaint);
+        _drawSword(canvas, sizeBase, _bladePaint);
       }
       canvas.restore();
     }
