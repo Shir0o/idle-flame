@@ -45,3 +45,19 @@
 - [ ] Create App Record in Google Play Console with ID `com.twang.zenithzero`.
 - [ ] Verify Splash Screen on physical device/emulator.
 - [ ] Run `flutter analyze` and `flutter test` before final archival.
+
+## Changelog
+
+### v1.1.0
+- **Combat Evolution:** Overhauled Sentinel Blades into "Celestial Jian" (yujian-style flying swords) with aggressive sweep pathing and "Endless Seek" logic.
+- **Visual Fidelity:** Added ethereal gradient trails and improved alignment for high-speed projectiles.
+- **Performance:** Optimized render paths with Paint caching and capped spark effects for stable frame rates.
+- **Build System:** Migrated iOS/macOS to Swift Package Manager (SPM), removing CocoaPods dependency.
+- **Developer Tools:** Added in-game upgrade toggles for rapid testing of late-game combat states.
+
+### v1.0.0
+- **Rebrand:** Officially launched as "Zenith Zero".
+- **Meta-Progression:** Introduced Embers, boons, and archetype keystones for deep long-term progression.
+- **Stability:** Resolved memory issues (OOM) by implementing static TextPaint caching and efficient enemy tracking.
+- **Visual Progression:** Implemented Skill Evolution system where effects gain visual flourishes and complexity as they level up.
+- **Minimalist Aesthetic:** Refactored all game entities to use a refined, shape-rendered minimal art style.
