@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../idle_game.dart';
@@ -45,7 +46,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   static const double _siblingStaggerGap = 0.10;
 
   final List<Vector2> _trail = [];
-  static const int _maxTrailPoints = 24;
+  static const int _maxTrailPoints = 32;
 
   static const double _attackRange = double.infinity;
   static const double _dashSpeedRef = 1000;
@@ -116,16 +117,24 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     }
 
     // Trail during the active flight (slice and return arc both).
-    if (_phase == _StrikePhase.dashing ||
-        _phase == _StrikePhase.returning) {
-      if (_trail.isEmpty || (_trail.first - position).length2 > 4) {
-        _trail.insert(0, position.clone());
+    if (_phase == _StrikePhase.dashing || _phase == _StrikePhase.returning) {
+      final tailPos = _getTailWorldPos();
+      if (_trail.isEmpty || (_trail.first - tailPos).length2 > 4) {
+        _trail.insert(0, tailPos);
         if (_trail.length > _maxTrailPoints) _trail.removeLast();
       }
     } else if (_trail.isNotEmpty) {
       // Fade out by dropping a point per frame so the ribbon trails off.
       _trail.removeLast();
     }
+  }
+
+  Vector2 _getTailWorldPos() {
+    final sizeBase = 12.0 * (level >= 3 ? 1.3 : 1.0);
+    final bladeLength = sizeBase * 2.2;
+    // Tail is at the back end of the blade path: base - 3
+    final tailLocalX = -bladeLength * 0.22 - 3;
+    return position + Vector2(math.cos(angle), math.sin(angle)) * tailLocalX;
   }
 
   void pulse(double duration) {
@@ -205,6 +214,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     _phaseTimer = 0;
     _phaseDuration = _windupDuration;
     _windupAnchor = position.clone();
+    _trail.clear();
     game.audio.playSkillCast();
   }
 
@@ -591,8 +601,8 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     final vertices = <Offset>[];
     final colors = <Color>[];
 
-    // Base colors for the gradient: Cyan/Celestial Blue to Transparent.
-    final startColor = const Color(0xFF00E5FF).withValues(alpha: 0.5);
+    // Base colors for the gradient: Vibrant Cyan to Transparent.
+    final startColor = const Color(0xFF00E5FF).withValues(alpha: 0.65);
     final endColor = const Color(0xFFB2EBF2).withValues(alpha: 0.0);
 
     for (var i = 0; i < n; i++) {
@@ -620,10 +630,11 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
       final color = Color.lerp(startColor, endColor, progress) ?? endColor;
 
       // Add two vertices (left and right) for each point in the trail.
-      final lx = p.x + normal.x * hw - position.x;
-      final ly = p.y + normal.y * hw - position.y;
-      final rx = p.x - normal.x * hw - position.x;
-      final ry = p.y - normal.y * hw - position.y;
+      // We are rendering in world space, so we use the coordinates directly.
+      final lx = p.x + normal.x * hw;
+      final ly = p.y + normal.y * hw;
+      final rx = p.x - normal.x * hw;
+      final ry = p.y - normal.y * hw;
 
       vertices.add(Offset(lx, ly));
       vertices.add(Offset(rx, ry));
@@ -648,7 +659,14 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     super.render(canvas);
 
     // Motion ribbon (only present during strike phases).
-    _renderRibbon(canvas, 4.5);
+    // The trail points are in world space, so we temporarily undo the component's 
+    // internal translation/rotation/scale to draw it correctly.
+    canvas.save();
+    final m = transform.transformMatrix.clone();
+    m.invert();
+    canvas.transform(Float64List.fromList(m.storage));
+    _renderRibbon(canvas, 5.0);
+    canvas.restore();
 
     canvas.save();
 
