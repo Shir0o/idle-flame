@@ -66,6 +66,22 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     final bob = math.sin(_idlePhase * 2.4) * 1.2;
 
     _drawHeroShape(canvas, visual, cx, cy, w, h, bob, attacking);
+
+    // Sentinel Aura (Sync Aura)
+    if (_sentinelBlades.length >= 4) {
+      final pulse = 0.5 + 0.5 * math.sin(_idlePhase * 4);
+      final radius = w * 0.15;
+      final auraPaint = Paint()
+        ..color = const Color(0xFF00B0FF).withValues(alpha: 0.1 + 0.1 * pulse)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0 + 1.0 * pulse;
+      
+      canvas.drawCircle(Offset(cx, cy + bob), radius * (2.0 + 0.2 * pulse), auraPaint);
+      
+      // Outer faint ring
+      auraPaint.color = const Color(0xFF00B0FF).withValues(alpha: 0.05 * (1 - pulse));
+      canvas.drawCircle(Offset(cx, cy + bob), radius * 3.0, auraPaint);
+    }
   }
 
   void _drawHeroShape(
@@ -230,51 +246,36 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     for (var i = 0; i < targets.take(game.state.emberTargets).length; i++) {
       final enemy = targets[i];
       final focusLevel = game.state.focusLevel;
+      final chainLevel = game.state.chainLevel;
       final barrageLevel = game.state.barrageLevel;
       final slashColor = critRoll
           ? const Color(0xFFFF6B35)
           : (focusLevel > 0
                 ? const Color(0xFFFFF176)
                 : const Color(0xFF00E5FF));
-      parent?.add(
-        SlashArcEffect(
-          from: position.clone(),
-          to: enemy.position.clone(),
-          color: slashColor,
-          widthMultiplier: 1 + focusLevel * 0.04,
-          level: game.state.chainLevel,
-        ),
-      );
-      if (focusLevel > 0) {
+      
+      // Calculate jump delay
+      // Level 4 Special: snap faster
+      final jumpInterval = chainLevel >= 4 ? 0.04 : 0.08;
+      final delay = i * jumpInterval;
+
+      final prevTargetPos = i == 0 ? position.clone() : targets[i - 1].position.clone();
+
+      if (delay == 0) {
+        _applyChainHit(enemy, prevTargetPos, slashColor, focusLevel, chainLevel, critMul, twinShot, i == 0);
+      } else {
         parent?.add(
-          FocusStrikeEffect(
-            from: position.clone(),
-            to: enemy.position.clone(),
-            level: focusLevel,
+          TimerComponent(
+            period: delay,
+            removeOnFinish: true,
+            onTick: () {
+              if (game.state.isRunOver || !enemy.isAlive) return;
+              _applyChainHit(enemy, prevTargetPos, slashColor, focusLevel, chainLevel, critMul, false, false);
+            },
           ),
         );
       }
-      enemy.takeDamage(
-        game.state.heroDamage * critMul,
-        source: position.clone(),
-        type: DamageType.basic,
-      );
-      // Whiplash: primary target hit twice
-      if (i == 0 && meta.hasKeystone('whiplash')) {
-        enemy.takeDamage(
-          game.state.heroDamage * critMul * 0.6,
-          source: position.clone(),
-          type: DamageType.basic,
-        );
-      }
-      // Twin Shot: every 4th attack hits each target twice
-      if (twinShot) {
-        enemy.takeDamage(
-          game.state.heroDamage * critMul,
-          source: position.clone(),
-          type: DamageType.basic,
-        );
-      }
+
       if (barrageLevel > 0) {
         parent?.add(
           BarrageStreakEffect(
@@ -287,22 +288,85 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     if (targets.isNotEmpty) _pulse(0.14);
   }
 
+  void _applyChainHit(
+    Enemy enemy,
+    Vector2 fromPos,
+    Color slashColor,
+    int focusLevel,
+    int chainLevel,
+    double critMul,
+    bool twinShot,
+    bool isPrimary,
+  ) {
+    parent?.add(
+      SlashArcEffect(
+        from: fromPos,
+        to: enemy.position.clone(),
+        color: slashColor,
+        widthMultiplier: 1 + focusLevel * 0.04,
+        level: chainLevel,
+      ),
+    );
+    if (focusLevel > 0) {
+      parent?.add(
+        FocusStrikeEffect(
+          from: fromPos,
+          to: enemy.position.clone(),
+          level: focusLevel,
+        ),
+      );
+    }
+    enemy.takeDamage(
+      game.state.heroDamage * critMul,
+      source: fromPos,
+      type: DamageType.basic,
+    );
+    // Whiplash: primary target hit twice
+    if (isPrimary && game.state.meta.hasKeystone('whiplash')) {
+      enemy.takeDamage(
+        game.state.heroDamage * critMul * 0.6,
+        source: fromPos,
+        type: DamageType.basic,
+      );
+    }
+    // Twin Shot: every 4th attack hits each target twice
+    if (twinShot) {
+      enemy.takeDamage(
+        game.state.heroDamage * critMul,
+        source: fromPos,
+        type: DamageType.basic,
+      );
+    }
+  }
+
   void _castFlameNova({double damageScale = 1.0, bool isAftershock = false}) {
-    if (!isAftershock) _pulse(0.2);
-    game.audio.playSkillCast();
-    game.shakeCamera(intensity: isAftershock ? 2 : 3.5, duration: 0.16);
+    final novaLevel = game.state.flameNovaLevel;
     final radius = game.state.flameNovaRadius;
+    final targets = _enemiesInRange(radius);
+    
+    // Level 4 Special: Reactor Surge (under pressure)
+    // "Pressure" is defined as having enemies within 150 units of the nexus
+    final enemiesNearNexus = _enemiesInRange(150);
+    final isUnderPressure = novaLevel >= 4 && enemiesNearNexus.isNotEmpty;
+    
+    final finalDamageScale = damageScale * (isUnderPressure ? 1.5 : 1.0);
+    final finalShake = (isAftershock ? 2.0 : 3.5) * (isUnderPressure ? 1.4 : 1.0);
+
+    if (!isAftershock) _pulse(isUnderPressure ? 0.28 : 0.2);
+    game.audio.playSkillCast();
+    game.shakeCamera(intensity: finalShake, duration: 0.16);
+    
     final effectRadius = radius.isFinite ? radius : game.size.length;
     parent?.add(
       NovaPulseEffect(
         effectCenter: position.clone(),
         radius: effectRadius * (isAftershock ? 0.7 : 1.0),
-        level: game.state.flameNovaLevel,
+        level: novaLevel,
       ),
     );
-    for (final enemy in _enemiesInRange(radius)) {
+    for (final enemy in targets) {
       enemy.takeDamage(
-        game.state.flameNovaDamage * damageScale,
+        game.state.flameNovaDamage * finalDamageScale,
         source: position.clone(),
         type: DamageType.nova,
       );
@@ -331,7 +395,8 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
       final insideWidth = (enemy.position.x - position.x).abs() <= halfWidth;
       final nearWall = (enemy.position.y - wallY).abs() <= 28;
       return insideWidth && nearWall;
-    });
+    }).toList();
+    
     for (final enemy in enemies) {
       enemy.takeDamage(
         game.state.firewallDamage,
@@ -339,6 +404,13 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
         type: DamageType.firewall,
       );
     }
+
+    // Level 4 Special: Ward Refresh
+    if (game.state.firewallLevel >= 4 && enemies.length >= 4) {
+      // Refresh the timer significantly
+      _firewallTimer = GameState.firewallCooldown * 0.4;
+    }
+    
     if (!isBackdraft && game.state.meta.hasKeystone('backdraft')) {
       _backdraftTimer = 0.4;
     }
@@ -347,35 +419,64 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
   void _castMeteorMark() {
     final enemies = _aliveEnemies();
     if (enemies.isEmpty) return;
-    game.audio.playSkillCast();
     enemies.sort((a, b) => b.position.y.compareTo(a.position.y));
     final target = enemies.first;
+    
+    final meteorLevel = game.state.meteorMarkLevel;
     final radius = game.state.meteorMarkRadius;
     final blastRadius = radius.isFinite ? radius : game.size.length;
-    final blastRadiusSquared = radius * radius;
+    final blastRadiusSquared = blastRadius * blastRadius;
+
+    // Level 4 Special: Faster lock-on
+    final lockDuration = meteorLevel >= 4 ? 0.35 : 0.7;
+
+    // Add targeting sigil
+    parent?.add(MeteorTargetingEffect(
+      target: target.position.clone(),
+      radius: blastRadius,
+      duration: lockDuration,
+    ));
+
+    // Staggered Impact
     parent?.add(
-      MeteorImpactEffect(
-        target: target.position.clone(),
-        radius: blastRadius,
-        level: game.state.meteorMarkLevel,
+      TimerComponent(
+        period: lockDuration,
+        removeOnFinish: true,
+        onTick: () {
+          if (game.state.isRunOver) return;
+          _applyMeteorImpact(target.position.clone(), blastRadius, blastRadiusSquared);
+
+          // Level 5 Mastery: Rain of Chrome Comets
+          if (meteorLevel >= 5) {
+            final others = _aliveEnemies().where((e) => e != target).toList();
+            others.shuffle(_critRng);
+            final extraCount = 3;
+            for (var i = 0; i < extraCount && i < others.length; i++) {
+              final extraTarget = others[i];
+              final delay = (i + 1) * 0.15;
+              parent?.add(
+                TimerComponent(
+                  period: delay,
+                  removeOnFinish: true,
+                  onTick: () {
+                    if (game.state.isRunOver) return;
+                    _applyMeteorImpact(
+                      extraTarget.position.clone(),
+                      blastRadius * 0.7,
+                      blastRadiusSquared * 0.49,
+                    );
+                  },
+                ),
+              );
+            }
+          }
+        },
       ),
     );
-    _pulse(0.24);
-    game.shakeCamera(intensity: 7, duration: 0.22);
-    for (final enemy in enemies) {
-      final inBlast =
-          (enemy.position - target.position).length2 <= blastRadiusSquared;
-      if (inBlast) {
-        enemy.takeDamage(
-          game.state.meteorMarkDamage,
-          source: target.position.clone(),
-          type: DamageType.meteor,
-        );
-      }
-    }
+
     if (game.state.meta.hasKeystone('cluster')) {
       for (var i = 1; i <= 2; i++) {
-        final delay = 0.18 * i;
+        final delay = lockDuration + 0.18 * i;
         final offset = Vector2(
           (_critRng.nextDouble() - 0.5) * 80,
           (_critRng.nextDouble() - 0.5) * 80,
@@ -387,25 +488,32 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
             removeOnFinish: true,
             onTick: () {
               if (game.state.isRunOver) return;
-              parent?.add(
-                MeteorImpactEffect(
-                  target: clusterPos,
-                  radius: blastRadius * 0.6,
-                  level: game.state.meteorMarkLevel,
-                ),
-              );
-              for (final enemy in _aliveEnemies()) {
-                if ((enemy.position - clusterPos).length2 <=
-                    blastRadiusSquared * 0.36) {
-                  enemy.takeDamage(
-                    game.state.meteorMarkDamage * 0.5,
-                    source: clusterPos,
-                    type: DamageType.meteor,
-                  );
-                }
-              }
+              _applyMeteorImpact(clusterPos, blastRadius * 0.6, blastRadiusSquared * 0.36, damageScale: 0.5);
             },
           ),
+        );
+      }
+    }
+  }
+
+  void _applyMeteorImpact(Vector2 impactPos, double radius, double radiusSq, {double damageScale = 1.0}) {
+    parent?.add(
+      MeteorImpactEffect(
+        target: impactPos,
+        radius: radius,
+        level: game.state.meteorMarkLevel,
+      ),
+    );
+    _pulse(0.24);
+    game.shakeCamera(intensity: 7, duration: 0.22);
+    game.audio.playSkillCast(); // Using cast sound for impact 'thud'
+
+    for (final enemy in _aliveEnemies()) {
+      if ((enemy.position - impactPos).length2 <= radiusSq) {
+        enemy.takeDamage(
+          game.state.meteorMarkDamage * damageScale,
+          source: impactPos,
+          type: DamageType.meteor,
         );
       }
     }
@@ -430,5 +538,8 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
   void _pulse(double duration) {
     _pulseTimer = duration;
     _pulseDuration = duration;
+    for (final blade in _sentinelBlades) {
+      blade.pulse(duration);
+    }
   }
 }

@@ -96,9 +96,10 @@ class GameState extends ChangeNotifier {
   int get frostLevel => _archetypeLevel(SkillArchetype.frost);
   int get ruptureLevel => _archetypeLevel(SkillArchetype.rupture);
   int get sentinelLevel => _archetypeLevel(SkillArchetype.sentinel);
-  int get sentinelCount =>
-      sentinelLevel == 0 ? 0 : (1 + (sentinelLevel / 3).floor()).clamp(0, 8);
+  int get sentinelCount => sentinelLevel.clamp(0, 8);
   double get sentinelDamage => heroDamage * (0.35 + sentinelLevel * 0.08);
+  double get sentinelAttackCooldown => 0.8 * pow(0.92, sentinelLevel);
+  double get sentinelOrbitSpeed => 2.4 * (1 + sentinelLevel * 0.1);
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
   double get flameNovaRadius => double.infinity;
   double get flameNovaDamage => heroDamage * (1 + flameNovaLevel * 0.18);

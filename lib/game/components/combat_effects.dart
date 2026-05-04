@@ -316,19 +316,46 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
     final curveStrength = 48 * (level >= 3 ? 1.3 : 1.0);
     final control = mid + Offset(normal.x * curveStrength, normal.y * curveStrength);
     
-    final path = Path()
-      ..moveTo(start.dx, start.dy)
-      ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy);
-    
     _wideGlow.color = color.withValues(alpha: alpha * 0.12);
     _glow.color = color.withValues(alpha: alpha * 0.28);
     _core.color = color.withValues(alpha: alpha);
     _edge.color = Colors.white.withValues(alpha: alpha * 0.7);
 
-    canvas.drawPath(path, _wideGlow);
-    canvas.drawPath(path, _glow);
-    canvas.drawPath(path, _core);
-    canvas.drawPath(path, _edge);
+    if (level >= 2) {
+      // Electric Jitter Path
+      final path = Path()..moveTo(start.dx, start.dy);
+      const segments = 8;
+      final rng = math.Random(from.x.hashCode ^ to.x.hashCode);
+      
+      for (var i = 1; i <= segments; i++) {
+        final st = i / segments;
+        // Quadratic bezier interpolation
+        final mt = 1 - st;
+        final px = mt * mt * start.dx + 2 * mt * st * control.dx + st * st * end.dx;
+        final py = mt * mt * start.dy + 2 * mt * st * control.dy + st * st * end.dy;
+        
+        if (i < segments) {
+          final jitter = (level >= 5 ? 12.0 : 6.0) * (rng.nextDouble() - 0.5);
+          path.lineTo(px + normal.x * jitter, py + normal.y * jitter);
+        } else {
+          path.lineTo(end.dx, end.dy);
+        }
+      }
+      
+      canvas.drawPath(path, _wideGlow);
+      canvas.drawPath(path, _glow);
+      canvas.drawPath(path, _core);
+      canvas.drawPath(path, _edge);
+    } else {
+      final path = Path()
+        ..moveTo(start.dx, start.dy)
+        ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy);
+      
+      canvas.drawPath(path, _wideGlow);
+      canvas.drawPath(path, _glow);
+      canvas.drawPath(path, _core);
+      canvas.drawPath(path, _edge);
+    }
 
     // Evolution: Level 5 Mastery - Secondary Arcs (After-images)
     if (level >= 5) {
@@ -754,42 +781,54 @@ class NovaPulseEffect extends PositionComponent
     
     _warmPaint.color =
         const Color(0xFFFFD166).withValues(alpha: alpha * 0.15);
-    _fillPaint.color = color.withValues(alpha: alpha * 0.08);
-    _glowPaint.color = color.withValues(alpha: alpha * 0.36);
-    _corePaint.color = Colors.white.withValues(alpha: alpha * 0.75);
+    _fillPaint.color = color.withValues(alpha: alpha * 0.12);
+    _glowPaint.color = color.withValues(alpha: alpha * 0.45);
+    _corePaint.color = Colors.white.withValues(alpha: alpha * 0.85);
 
-    final petalCount = level >= 5 ? 24 : (level >= 3 ? 18 : 14);
-    final rotationSpeed = level >= 5 ? 3.2 : (level >= 3 ? 2.4 : 1.8);
-
-    for (var i = 0; i < petalCount; i++) {
-      final angle = i / petalCount * math.pi * 2 + t * rotationSpeed;
-      final petalLength = radius * eased * (0.72 + (i.isEven ? 0.18 : 0));
-      final petal = Path()
-        ..moveTo(offset.dx, offset.dy)
-        ..quadraticBezierTo(
-          offset.dx + math.cos(angle + 0.18) * petalLength * 0.55,
-          offset.dy + math.sin(angle + 0.18) * petalLength * 0.55,
-          offset.dx + math.cos(angle) * petalLength,
-          offset.dy + math.sin(angle) * petalLength,
-        );
-      canvas.drawPath(petal, _warmPaint);
-    }
-
-    canvas.drawCircle(offset, radius * eased, _fillPaint);
+    // Inner Bloom Ring
+    canvas.drawCircle(offset, radius * eased * 0.5, _fillPaint);
+    
+    // Main Expanding Ring
     canvas.drawCircle(offset, radius * eased, _glowPaint);
     canvas.drawCircle(offset, radius * eased, _corePaint);
 
+    // Evolution: Level 3+ - Concentric filaments and petals
+    final petalCount = level >= 5 ? 28 : (level >= 3 ? 18 : 0);
+    if (petalCount > 0) {
+      final rotationSpeed = level >= 5 ? 3.8 : 2.4;
+      for (var i = 0; i < petalCount; i++) {
+        final angle = i / petalCount * math.pi * 2 + t * rotationSpeed;
+        final petalLength = radius * eased * (0.8 + (i.isEven ? 0.25 : 0));
+        final petal = Path()
+          ..moveTo(offset.dx, offset.dy)
+          ..quadraticBezierTo(
+            offset.dx + math.cos(angle + 0.2) * petalLength * 0.6,
+            offset.dy + math.sin(angle + 0.2) * petalLength * 0.6,
+            offset.dx + math.cos(angle) * petalLength,
+            offset.dy + math.sin(angle) * petalLength,
+          );
+        canvas.drawPath(petal, _warmPaint);
+      }
+    }
+
+    // Evolution: Level 5 Mastery - City-Block Shockwave
     if (level >= 5) {
-      _lightningPaint.color = Colors.white.withValues(alpha: alpha * 0.6);
-      _shockwavePaint.color = color.withValues(alpha: alpha * 0.2);
+      _lightningPaint.color = Colors.white.withValues(alpha: alpha * 0.7);
+      _shockwavePaint.color = color.withValues(alpha: alpha * 0.25);
 
-      final fastEased = Curves.easeOutExpo.transform(t);
-      canvas.drawCircle(offset, radius * 1.3 * fastEased, _shockwavePaint);
+      // Huge slow-expanding outer ring
+      final shockT = Curves.easeOutQuart.transform(t);
+      _shockwavePaint.strokeWidth = 6.0 * (1 - t);
+      canvas.drawCircle(offset, radius * 2.5 * shockT, _shockwavePaint);
+      
+      // Secondary core flash
+      canvas.drawCircle(offset, radius * 0.3 * (1 - t), _corePaint);
 
-      for (var i = 0; i < 8; i++) {
-        final angle = i / 8 * math.pi * 2 + _age * 5;
-        final startDist = radius * 0.4 * eased;
-        final endDist = radius * 1.2 * eased;
+      // Lightning Filaments
+      for (var i = 0; i < 12; i++) {
+        final angle = i / 12 * math.pi * 2 + _age * 6;
+        final startDist = radius * 0.3 * eased;
+        final endDist = radius * 1.8 * eased;
 
         var currentPoint = offset.translate(
           math.cos(angle) * startDist,
@@ -797,9 +836,9 @@ class NovaPulseEffect extends PositionComponent
         );
 
         final path = Path()..moveTo(currentPoint.dx, currentPoint.dy);
-        for (var j = 1; j <= 3; j++) {
-          final stepDist = startDist + (endDist - startDist) * (j / 3);
-          final jitter = (math.Random(i * 10 + j).nextDouble() - 0.5) * 40 * t;
+        for (var j = 1; j <= 4; j++) {
+          final stepDist = startDist + (endDist - startDist) * (j / 4);
+          final jitter = (math.Random(i * 13 + j).nextDouble() - 0.5) * 60 * t;
           final nextPoint = offset.translate(
             math.cos(angle) * stepDist + jitter,
             math.sin(angle) * stepDist + jitter,
@@ -856,92 +895,82 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
     final alpha = math.sin(t * math.pi).clamp(0.0, 1.0);
     
     final wallHeight = 42 * (level >= 3 ? 1.4 : 1.0);
-    final rect = Rect.fromCenter(
-      center: Offset(effectCenter.x, effectCenter.y),
-      width: effectWidth,
-      height: wallHeight,
-    );
-    _glowPaint.color = color.withValues(alpha: alpha * 0.28);
+    final rect = Rect.fromCenter(center: Offset(effectCenter.x, effectCenter.y), width: effectWidth, height: wallHeight);
+    
+    _glowPaint.color = color.withValues(alpha: alpha * 0.32);
     _heatPaint.shader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
       colors: [
         color.withValues(alpha: 0),
-        color.withValues(alpha: alpha * 0.38),
-        const Color(0xFFFF4D00).withValues(alpha: alpha * 0.22),
+        color.withValues(alpha: alpha * 0.45),
+        const Color(0xFFFF4D00).withValues(alpha: alpha * 0.28),
         color.withValues(alpha: 0),
       ],
     ).createShader(rect);
-    _corePaint.color = color.withValues(alpha: alpha * 0.85);
-    _runePaint.color = Colors.white.withValues(alpha: alpha * 0.72);
+    _corePaint.color = color.withValues(alpha: alpha * 0.95);
+    _runePaint.color = Colors.white.withValues(alpha: alpha * 0.85);
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(6)),
-      _glowPaint,
-    );
-    canvas.drawRect(rect.inflate(level >= 5 ? 20 : 10), _heatPaint);
+    // Heat Haze
+    canvas.drawRect(rect.inflate(level >= 5 ? 28 : 12), _heatPaint);
+    
+    // Core Ward Line
+    canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(8)), _glowPaint);
     canvas.drawLine(rect.centerLeft, rect.centerRight, _corePaint);
 
-    _flamePaint.color =
-        const Color(0xFFFF8A00).withValues(alpha: alpha * 0.78);
-    _whiteHotPaint.color = Colors.white.withValues(alpha: alpha * 0.54);
+    _flamePaint.color = const Color(0xFFFF8A00).withValues(alpha: alpha * 0.82);
+    _whiteHotPaint.color = Colors.white.withValues(alpha: alpha * 0.6);
 
-    // Evolution: More frequent and taller flames
-    final flameSpacing = level >= 3 ? 12 : 16;
-    final flameHeightBase = level >= 4 ? 28 : 20;
-
-    for (var x = rect.left + 10; x < rect.right; x += flameSpacing) {
-      final phase = math.sin(x * 0.05 + _age * 18);
-      final height = flameHeightBase + phase * 8;
+    // Evolution: Pyre Columns (Vertical Flames)
+    final columnCount = (effectWidth / (level >= 3 ? 14 : 20)).floor();
+    for (var i = 0; i < columnCount; i++) {
+      final x = rect.left + (i * (effectWidth / columnCount)) + 6;
+      final phase = math.sin(x * 0.08 + _age * 22);
+      final height = (level >= 4 ? 34.0 : 22.0) + phase * 10;
+      
       final flamePath = Path()
-        ..moveTo(x - 7, rect.center.dy + 12)
-        ..quadraticBezierTo(
-          x - 10,
-          rect.center.dy - height * 0.2,
-          x,
-          rect.center.dy - height,
-        )
-        ..quadraticBezierTo(
-          x + 11,
-          rect.center.dy - height * 0.15,
-          x + 7,
-          rect.center.dy + 12,
-        )
+        ..moveTo(x - 6, rect.center.dy + 15)
+        ..quadraticBezierTo(x - 9, rect.center.dy - height * 0.3, x, rect.center.dy - height)
+        ..quadraticBezierTo(x + 10, rect.center.dy - height * 0.2, x + 6, rect.center.dy + 15)
         ..close();
       canvas.drawPath(flamePath, _flamePaint);
-      if ((x / flameSpacing).round().isEven) {
-        canvas.drawCircle(
-          Offset(x, rect.center.dy - height * 0.45),
-          2.2,
-          _whiteHotPaint,
-        );
+      
+      if (i % 3 == 0) {
+        canvas.drawCircle(Offset(x, rect.center.dy - height * 0.5), 2.5, _whiteHotPaint);
       }
     }
 
+    // Evolution: Level 5 Mastery - Ward Gate Beams
     if (level >= 5) {
-      _beamPaint.color = Colors.white.withValues(alpha: alpha * 0.4);
+      _beamPaint.color = Colors.white.withValues(alpha: alpha * 0.5);
+      _beamPaint.strokeWidth = 2.5;
 
-      final beamY1 = rect.center.dy - 15;
-      final beamY2 = rect.center.dy + 15;
-      final beamProgress = (_age * 3).clamp(0.0, 1.0);
-
-      canvas.drawLine(
-        Offset(rect.left, beamY1),
-        Offset(rect.left + rect.width * beamProgress, beamY1),
-        _beamPaint,
-      );
-      canvas.drawLine(
-        Offset(rect.right, beamY2),
-        Offset(rect.right - rect.width * beamProgress, beamY2),
-        _beamPaint,
-      );
+      final beamCount = 6;
+      final beamProgress = (_age * 4).clamp(0.0, 1.0);
+      for (var i = 0; i < beamCount; i++) {
+        final bx = rect.left + (i + 0.5) * (effectWidth / beamCount);
+        final by1 = rect.center.dy - 20;
+        final by2 = by1 - 60 * beamProgress;
+        canvas.drawLine(Offset(bx, by1), Offset(bx, by2), _beamPaint);
+        
+        // Beam head glow
+        canvas.drawCircle(Offset(bx, by2), 4 * (1 - t), _beamPaint);
+      }
     }
 
-    for (var x = rect.left + 18; x < rect.right; x += 34) {
-      canvas.drawCircle(Offset(x, rect.center.dy), 7, _runePaint);
-      canvas.drawLine(
-        Offset(x - 9, rect.center.dy - 12),
-        Offset(x + 9, rect.center.dy + 12),
-        _runePaint,
-      );
+    // Floating Ancient Runes
+    final runeSpacing = level >= 5 ? 28.0 : 42.0;
+    for (var x = rect.left + 20; x < rect.right; x += runeSpacing) {
+      final drift = math.sin(_age * 5 + x) * 4;
+      final rx = x;
+      final ry = rect.center.dy + drift;
+      
+      canvas.drawCircle(Offset(rx, ry), 6, _runePaint);
+      canvas.drawLine(Offset(rx - 8, ry - 10), Offset(rx + 8, ry + 10), _runePaint);
+      
+      if (level >= 3) {
+        canvas.drawLine(Offset(rx + 8, ry - 10), Offset(rx - 8, ry + 10), _runePaint);
+      }
     }
   }
 }
@@ -981,8 +1010,6 @@ class MeteorImpactEffect extends PositionComponent
   final Paint _shockwavePaint = Paint()
     ..style = PaintingStyle.stroke
     ..strokeWidth = 6;
-  final Paint _glowPaint = Paint()
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
 
   @override
   void update(double dt) {
@@ -998,43 +1025,115 @@ class MeteorImpactEffect extends PositionComponent
     final t = (_age / _duration).clamp(0.0, 1.0);
     final alpha = 1 - t;
     final impact = Offset(target.x, target.y);
-    final start = Offset(target.x - 34, target.y - 190 + 120 * t);
     
-    _skyGlowPaint.color = color.withValues(alpha: alpha * 0.18);
+    // Blade entry phase (top to bottom)
+    final bladeT = Curves.easeIn.transform(t);
+    final start = Offset(target.x - 40, target.y - 450);
+    final currentPos = Offset.lerp(start, impact, bladeT)!;
+    
+    _skyGlowPaint.color = color.withValues(alpha: alpha * 0.22);
     _bladePaint.color = Colors.white.withValues(alpha: alpha);
-    _trailPaint.color = color.withValues(alpha: alpha * 0.4);
+    _trailPaint.color = color.withValues(alpha: alpha * 0.45);
 
-    canvas.drawLine(start.translate(-10, -12), impact, _skyGlowPaint);
-    canvas.drawLine(start, impact, _trailPaint);
-    canvas.drawLine(start, impact, _bladePaint);
+    // Entry Trail
+    canvas.drawLine(start, currentPos, _skyGlowPaint);
+    canvas.drawLine(start, currentPos, _trailPaint);
 
-    _blastPaint.color = color.withValues(alpha: alpha * 0.32);
-    _firePaint.color = const Color(0xFFFFD166).withValues(alpha: alpha * 0.34);
-    _craterPaint.color = Colors.white.withValues(alpha: alpha * 0.35);
+    // Falling Blade
+    final bladeVec = (impact - start);
+    final bladeAngle = math.atan2(bladeVec.dy, bladeVec.dx);
+    canvas.save();
+    canvas.translate(currentPos.dx, currentPos.dy);
+    canvas.rotate(bladeAngle + math.pi / 2);
+    final bladeRect = Rect.fromCenter(center: Offset.zero, width: 8 * (level >= 4 ? 1.5 : 1.0), height: 80);
+    canvas.drawRect(bladeRect.inflate(4), _trailPaint);
+    canvas.drawRect(bladeRect, _bladePaint);
+    canvas.restore();
 
-    final blastRadius = radius * Curves.easeOut.transform(t);
-    canvas.drawCircle(impact, blastRadius * 0.45, _firePaint);
+    // Impact Ground Effects
+    _blastPaint.color = color.withValues(alpha: alpha * 0.35);
+    _firePaint.color = const Color(0xFFFFD166).withValues(alpha: alpha * 0.4);
+    _craterPaint.color = Colors.white.withValues(alpha: alpha * 0.5);
+
+    final blastRadius = radius * Curves.easeOutQuart.transform(t);
+    canvas.drawCircle(impact, blastRadius * 0.5, _firePaint);
     canvas.drawCircle(impact, blastRadius, _blastPaint);
-    canvas.drawCircle(impact, blastRadius * 0.65, _craterPaint);
+    
+    // Impact Flash
+    if (t < 0.2) {
+      canvas.drawCircle(impact, blastRadius * 1.5, _bladePaint);
+    }
 
-    final lineCount = level >= 5 ? 20 : (level >= 3 ? 16 : 12);
+    // Ground Cracks
+    final lineCount = level >= 5 ? 24 : (level >= 3 ? 16 : 10);
     for (var i = 0; i < lineCount; i++) {
-      final angle = i / lineCount * math.pi * 2;
-      final length = blastRadius * (0.45 + (i % 3) * 0.12);
-      final end = impact.translate(
-        math.cos(angle) * length,
-        math.sin(angle) * length,
-      );
+      final angle = i / lineCount * math.pi * 2 + (i % 2 == 0 ? t : -t) * 0.2;
+      final length = blastRadius * (0.6 + (i % 3) * 0.2);
+      final end = impact.translate(math.cos(angle) * length, math.sin(angle) * length);
       canvas.drawLine(impact, end, _craterPaint);
     }
 
     if (level >= 5) {
-      _shockwavePaint.color = color.withValues(alpha: alpha * 0.15);
-      final shockRadius = blastRadius * 1.5 * Curves.easeOutQuart.transform(t);
+      _shockwavePaint.color = color.withValues(alpha: alpha * 0.2);
+      final shockRadius = blastRadius * 1.8 * Curves.easeOutExpo.transform(t);
+      _shockwavePaint.strokeWidth = 4.0 * (1 - t);
       canvas.drawCircle(impact, shockRadius, _shockwavePaint);
+    }
+  }
+}
 
-      _glowPaint.color = Colors.white.withValues(alpha: alpha * 0.2);
-      canvas.drawCircle(impact, blastRadius * 0.3, _glowPaint);
+class MeteorTargetingEffect extends PositionComponent with HasGameReference<IdleGame> {
+  MeteorTargetingEffect({
+    required Vector2 target,
+    required this.radius,
+    required this.duration,
+    this.color = const Color(0xFF7C4DFF),
+  }) : super(position: target, priority: 64);
+
+  final double radius;
+  final double duration;
+  final Color color;
+  double _age = 0;
+
+  final Paint _paint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.0;
+  
+  final Paint _fill = Paint()..style = PaintingStyle.fill;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
+    _age += dt;
+    if (_age >= duration) removeFromParent();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    final t = (_age / duration).clamp(0.0, 1.0);
+    final alpha = (1 - t) * 0.8;
+    final eased = Curves.easeIn.transform(t);
+    
+    _paint.color = color.withValues(alpha: alpha);
+    _fill.color = color.withValues(alpha: alpha * 0.15);
+    
+    final currentRadius = radius * (1.5 - 0.5 * eased);
+    canvas.drawCircle(Offset.zero, currentRadius, _fill);
+    canvas.drawCircle(Offset.zero, currentRadius, _paint);
+    
+    // Crosshair
+    final inner = currentRadius * 0.3;
+    canvas.drawLine(Offset(-currentRadius, 0), Offset(-inner, 0), _paint);
+    canvas.drawLine(Offset(currentRadius, 0), Offset(inner, 0), _paint);
+    canvas.drawLine(Offset(0, -currentRadius), Offset(0, -inner), _paint);
+    canvas.drawLine(Offset(0, currentRadius), Offset(0, inner), _paint);
+    
+    // Ancient Sigil Dots
+    for (var i = 0; i < 4; i++) {
+      final angle = i * math.pi / 2 + t * 4;
+      canvas.drawCircle(Offset(math.cos(angle) * currentRadius, math.sin(angle) * currentRadius), 3, _paint);
     }
   }
 }

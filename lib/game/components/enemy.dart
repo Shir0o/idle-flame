@@ -4,11 +4,12 @@ import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 
+import '../audio/game_audio.dart';
 import '../idle_game.dart';
 import 'combat_effects.dart';
 import 'damage_text.dart';
 
-enum DamageType { basic, nova, firewall, meteor }
+enum DamageType { basic, nova, firewall, meteor, sentinel }
 
 class Enemy extends PositionComponent with HasGameReference<IdleGame> {
   Enemy({required Vector2 position, required this.maxHp})
@@ -162,6 +163,8 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
     }
     if (type == DamageType.basic) {
       game.audio.playHit();
+    } else if (type == DamageType.sentinel) {
+      game.audio.playSkillDamage(SkillSound.arcane);
     } else {
       game.audio.playRandomSkillDamage();
     }
@@ -271,6 +274,18 @@ class Enemy extends PositionComponent with HasGameReference<IdleGame> {
         sparkCount: 7,
         sparkSpread: 0.95,
         sparkSpeed: 160,
+      ),
+      DamageType.sentinel => _DamageVisual(
+        textColor: const Color(0xFFE1F5FE),
+        sparkColor: const Color(0xFF00B0FF),
+        flashColor: Colors.white,
+        textScale: 1.05,
+        flashDuration: 0.1,
+        // Level 4 Special: Increased impact force
+        knockback: game.state.sentinelLevel >= 4 ? 240.0 : 150.0,
+        sparkCount: 10,
+        sparkSpread: 1.2,
+        sparkSpeed: 180,
       ),
       DamageType.nova => const _DamageVisual(
         textColor: Color(0xFFFF77C8),
