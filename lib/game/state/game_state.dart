@@ -50,6 +50,7 @@ class GameState extends ChangeNotifier {
   int resetGeneration = 0;
   double nexusHp = maxNexusHp;
   MechType selectedMech = MechType.standard;
+  bool devMode = false;
 
   final Map<String, int> _skillLevels = {};
   List<String> _pendingUpgradeIds = [];
@@ -183,6 +184,19 @@ class GameState extends ChangeNotifier {
     _saveSoon();
   }
 
+  void devGrantSkill(String id) {
+    if (_skillById(id) == null || _isMaxed(id)) return;
+    _skillLevels[id] = skillLevel(id) + 1;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void toggleDevMode() {
+    devMode = !devMode;
+    notifyListeners();
+    _saveSoon();
+  }
+
   void rerollChoices() {
     if (isRunOver || !hasPendingLevelUp) return;
     if (rerollsRemaining <= 0) return;
@@ -308,6 +322,7 @@ class GameState extends ChangeNotifier {
     killsOnFloor = prefs.getInt(_kKills) ?? 0;
     totalKills = prefs.getInt(_kTotalKills) ?? 0;
     selectedMech = mechTypeFromId(prefs.getString(_kSelectedMech));
+    devMode = prefs.getBool(_kDevMode) ?? false;
     nexusHp = (prefs.getDouble(_kNexusHp) ?? nexusMaxHp).clamp(0, nexusMaxHp);
     _resetPerRunMeta();
     _skillLevels
@@ -347,6 +362,7 @@ class GameState extends ChangeNotifier {
     await prefs.setInt(_kTotalKills, totalKills);
     await prefs.setDouble(_kNexusHp, nexusHp);
     await prefs.setString(_kSelectedMech, selectedMech.name);
+    await prefs.setBool(_kDevMode, devMode);
     await prefs.setStringList(_kSkillLevels, _encodeSkillLevels());
     await prefs.setStringList(_kPendingUpgrades, _pendingUpgradeIds);
     await _writeLastSeen(prefs);
@@ -538,6 +554,7 @@ class GameState extends ChangeNotifier {
   static const _kTotalKills = 'totalKills';
   static const _kNexusHp = 'nexusHp';
   static const _kSelectedMech = 'selectedMech';
+  static const _kDevMode = 'devMode';
   static const _kSkillLevels = 'skillLevels';
   static const _kPendingUpgrades = 'pendingUpgrades';
   static const _kOldEmberChainLevel = 'emberChainLevel';

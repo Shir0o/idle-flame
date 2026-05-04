@@ -17,7 +17,7 @@ class Hud extends StatelessWidget {
           Positioned(top: 12, right: 16, child: _GoldBadge()),
           Positioned(top: 92, left: 16, child: _BalanceDebugPanel()),
           Positioned(left: 16, right: 16, bottom: 16, child: _NexusHealthBar()),
-          Positioned(right: 16, bottom: 16, child: _DevResetButton()),
+          Positioned(right: 16, bottom: 16, child: _DevTools()),
           Positioned(left: 0, right: 0, top: 80, child: _IdleRewardToast()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _RunOverPanel()),
@@ -106,6 +106,37 @@ class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
                       final def = skillCatalog.firstWhere((d) => d.id == entry.key);
                       return _SkillChip(def.title, entry.value);
                     }).toList(),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: state.toggleDevMode,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            state.devMode
+                                ? Icons.toggle_on
+                                : Icons.toggle_off,
+                            color: state.devMode
+                                ? const Color(0xFF64FFDA)
+                                : Colors.white.withValues(alpha: 0.5),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Dev mode',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ],
@@ -264,18 +295,38 @@ class _GoldBadge extends StatelessWidget {
   }
 }
 
-class _DevResetButton extends StatelessWidget {
-  const _DevResetButton();
+class _DevTools extends StatelessWidget {
+  const _DevTools();
 
   @override
   Widget build(BuildContext context) {
-    return _Panel(
-      child: IconButton(
-        tooltip: 'Reset progress',
-        visualDensity: VisualDensity.compact,
-        icon: const Icon(Icons.restart_alt, color: Color(0xFFFF5252)),
-        onPressed: () => _confirmReset(context),
-      ),
+    return Selector<GameState, bool>(
+      selector: (_, state) => state.devMode,
+      builder: (_, devMode, _) {
+        if (!devMode) return const SizedBox.shrink();
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _Panel(
+              child: IconButton(
+                tooltip: 'Add skill',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.add_circle, color: Color(0xFF64FFDA)),
+                onPressed: () => _pickSkill(context),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Reset progress',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.restart_alt, color: Color(0xFFFF5252)),
+                onPressed: () => _confirmReset(context),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -313,6 +364,101 @@ class _DevResetButton extends StatelessWidget {
     if (reset == true) {
       await state.resetProgress();
     }
+  }
+
+  Future<void> _pickSkill(BuildContext context) async {
+    final state = context.read<GameState>();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF111827),
+        title: const Text(
+          'Add skill',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: SizedBox(
+          width: 360,
+          height: 460,
+          child: AnimatedBuilder(
+            animation: state,
+            builder: (_, _) {
+              final byArchetype = <SkillArchetype, List<SkillDefinition>>{};
+              for (final def in skillCatalog) {
+                byArchetype.putIfAbsent(def.archetype, () => []).add(def);
+              }
+              return ListView(
+                children: [
+                  for (final archetype in SkillArchetype.values) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 4),
+                      child: Text(
+                        archetype.name.toUpperCase(),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.56),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final def in byArchetype[archetype] ?? const [])
+                          _AddSkillChip(def: def, state: state),
+                      ],
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddSkillChip extends StatelessWidget {
+  const _AddSkillChip({required this.def, required this.state});
+
+  final SkillDefinition def;
+  final GameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = state.skillLevel(def.id);
+    final maxed = level >= SkillDefinition.maxLevel;
+    final color = maxed
+        ? Colors.white.withValues(alpha: 0.32)
+        : const Color(0xFF64FFDA);
+    return InkWell(
+      onTap: maxed ? null : () => state.devGrantSkill(def.id),
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withValues(alpha: 0.32)),
+        ),
+        child: Text(
+          '${def.title}  $level/${SkillDefinition.maxLevel}',
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
   }
 }
 
