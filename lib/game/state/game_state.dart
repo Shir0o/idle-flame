@@ -51,6 +51,7 @@ class GameState extends ChangeNotifier {
   double nexusHp = maxNexusHp;
   MechType selectedMech = MechType.standard;
   bool devMode = false;
+  bool devDisableUpgrades = false;
 
   final Map<String, int> _skillLevels = {};
   List<String> _pendingUpgradeIds = [];
@@ -168,7 +169,9 @@ class GameState extends ChangeNotifier {
     if (killsOnFloor >= killsPerFloor) {
       killsOnFloor = 0;
       floor += 1;
-      _rollUpgradeChoices();
+      if (!devDisableUpgrades) {
+        _rollUpgradeChoices();
+      }
     }
     notifyListeners();
     _saveSoon();
@@ -193,6 +196,12 @@ class GameState extends ChangeNotifier {
 
   void toggleDevMode() {
     devMode = !devMode;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void toggleDevDisableUpgrades() {
+    devDisableUpgrades = !devDisableUpgrades;
     notifyListeners();
     _saveSoon();
   }

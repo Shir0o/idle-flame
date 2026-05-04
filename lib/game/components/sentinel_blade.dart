@@ -99,7 +99,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
 
     switch (_phase) {
       case _StrikePhase.idle:
-        if (_target != null && _attackTimer <= 0 && _siblingsClear()) {
+        if (_target != null && _attackTimer <= 0) {
           _enterWindup();
         } else {
           _orbit(heroPos, dt);
@@ -161,17 +161,28 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     return true;
   }
 
-  void _findTarget(Vector2 heroPos) {
+  void _findTarget(Vector2 refPos, {bool useNearest = false}) {
     final enemies = game.aliveEnemies;
     if (enemies.isEmpty) return;
 
     Enemy? best;
-    double maxDist2 = -1;
-    for (final e in enemies) {
-      final d2 = (e.position - heroPos).length2;
-      if (d2 < _attackRange * _attackRange && d2 > maxDist2) {
-        maxDist2 = d2;
-        best = e;
+    if (useNearest) {
+      double minDist2 = double.infinity;
+      for (final e in enemies) {
+        final d2 = (e.position - refPos).length2;
+        if (d2 < minDist2) {
+          minDist2 = d2;
+          best = e;
+        }
+      }
+    } else {
+      double maxDist2 = -1;
+      for (final e in enemies) {
+        final d2 = (e.position - refPos).length2;
+        if (d2 < _attackRange * _attackRange && d2 > maxDist2) {
+          maxDist2 = d2;
+          best = e;
+        }
       }
     }
     _target = best;
@@ -209,10 +220,11 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
 
   // --- Strike phases -------------------------------------------------------
 
-  void _enterWindup() {
+  void _enterWindup({bool isChain = false}) {
     _phase = _StrikePhase.windup;
     _phaseTimer = 0;
-    _phaseDuration = _windupDuration;
+    // Chain strikes are faster since the blade is already in 'attack mode'.
+    _phaseDuration = isChain ? _windupDuration * 0.6 : _windupDuration;
     _windupAnchor = position.clone();
     _trail.clear();
     game.audio.playSkillCast();
@@ -372,7 +384,16 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     }
     if (p >= 1.0) {
       final dir = motion.length2 > 0 ? motion.normalized() : Vector2(1, 0);
-      _enterReturn(dir);
+      
+      // Look for a new target from current position to continue the chain.
+      // We use nearest targeting here to minimize travel time (auto-seeking).
+      _findTarget(position, useNearest: true);
+      if (_target != null) {
+        // Continue the sweep with a shorter windup.
+        _enterWindup(isChain: true);
+      } else {
+        _enterReturn(dir);
+      }
     }
   }
 

@@ -138,6 +138,37 @@ class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  InkWell(
+                    onTap: state.toggleDevDisableUpgrades,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            state.devDisableUpgrades
+                                ? Icons.toggle_on
+                                : Icons.toggle_off,
+                            color: state.devDisableUpgrades
+                                ? const Color(0xFFFF5252)
+                                : Colors.white.withValues(alpha: 0.5),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Disable Upgrades',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),
