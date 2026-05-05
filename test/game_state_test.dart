@@ -288,4 +288,26 @@ void main() {
 
     expect(loaded.muted, isFalse);
   });
+
+  test('developer grant methods work correctly', () {
+    final state = GameState();
+    final meta = state.meta;
+    addTearDown(state.dispose);
+
+    expect(state.gold, 0);
+    state.devGrantGold(1000);
+    expect(state.gold, 1000);
+
+    expect(meta.embers, 0);
+    meta.devGrantEmbers(500);
+    expect(meta.embers, 500);
+
+    expect(state.floor, 1);
+    state.devJumpFloor(10);
+    expect(state.floor, 11);
+    state.devJumpFloor(-5);
+    expect(state.floor, 6);
+    state.devJumpFloor(-100);
+    expect(state.floor, 1);
+  });
 }
