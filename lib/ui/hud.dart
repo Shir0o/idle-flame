@@ -1469,11 +1469,35 @@ class _ActionChip extends StatelessWidget {
   }
 }
 
-class _NexusHealthBar extends StatelessWidget {
+class _NexusHealthBar extends StatefulWidget {
   const _NexusHealthBar();
 
   @override
+  State<_NexusHealthBar> createState() => _NexusHealthBarState();
+}
+
+class _NexusHealthBarState extends State<_NexusHealthBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final godMode = context.select<GameState, bool>((s) => s.godMode);
     return Selector<GameState, ({double hp, double maxHp})>(
       selector: (_, state) => (hp: state.nexusHp, maxHp: state.nexusMaxHp),
       builder: (_, data, _) => Align(
@@ -1487,17 +1511,21 @@ class _NexusHealthBar extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.favorite,
-                      color: Color(0xFFFF5252),
+                    Icon(
+                      godMode ? Icons.shield : Icons.favorite,
+                      color: godMode
+                          ? const Color(0xFF64FFDA)
+                          : const Color(0xFFFF5252),
                       size: 16,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Nexus',
+                        godMode ? 'Nexus (GOD MODE)' : 'Nexus',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.86),
+                          color: godMode
+                              ? const Color(0xFF64FFDA)
+                              : Colors.white.withValues(alpha: 0.86),
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
@@ -1514,14 +1542,48 @@ class _NexusHealthBar extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 7),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: data.hp / data.maxHp,
-                    minHeight: 7,
-                    backgroundColor: Colors.white.withValues(alpha: 0.12),
-                    valueColor: const AlwaysStoppedAnimation(Color(0xFFFF5252)),
-                  ),
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: data.hp / data.maxHp,
+                        minHeight: 7,
+                        backgroundColor: Colors.white.withValues(alpha: 0.12),
+                        valueColor: AlwaysStoppedAnimation(
+                          godMode
+                              ? const Color(0xFF64FFDA)
+                              : const Color(0xFFFF5252),
+                        ),
+                      ),
+                    ),
+                    if (godMode)
+                      Positioned.fill(
+                        child: AnimatedBuilder(
+                          animation: _controller,
+                          builder: (context, child) {
+                            return FractionallySizedBox(
+                              widthFactor: 0.4,
+                              alignment: Alignment(
+                                -1.5 + (_controller.value * 3),
+                                0,
+                              ),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.white.withValues(alpha: 0),
+                                      Colors.white.withValues(alpha: 0.4),
+                                      Colors.white.withValues(alpha: 0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
