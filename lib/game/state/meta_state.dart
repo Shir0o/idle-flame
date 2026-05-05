@@ -6,6 +6,7 @@ import 'skill_catalog.dart';
 
 class MetaState extends ChangeNotifier {
   int embers = 0;
+  int lifetimeEmbers = 0;
   int lastEmbersEarned = 0;
   final Map<String, int> _upgradeTiers = {};
   final Set<String> _keystones = {};
@@ -62,6 +63,7 @@ class MetaState extends ChangeNotifier {
   void awardEmbers(int amount) {
     if (amount <= 0) return;
     embers += amount;
+    lifetimeEmbers += amount;
     lastEmbersEarned = amount;
     notifyListeners();
     _save();
@@ -69,6 +71,7 @@ class MetaState extends ChangeNotifier {
 
   void devGrantEmbers(int amount) {
     embers += amount;
+    lifetimeEmbers += amount;
     notifyListeners();
     _save();
   }
@@ -93,6 +96,7 @@ class MetaState extends ChangeNotifier {
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     embers = prefs.getInt(_kEmbers) ?? 0;
+    lifetimeEmbers = prefs.getInt(_kLifetimeEmbers) ?? embers;
     _upgradeTiers
       ..clear()
       ..addAll(_decode(prefs.getStringList(_kUpgrades)));
@@ -105,6 +109,7 @@ class MetaState extends ChangeNotifier {
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kEmbers, embers);
+    await prefs.setInt(_kLifetimeEmbers, lifetimeEmbers);
     await prefs.setStringList(
       _kUpgrades,
       _upgradeTiers.entries
@@ -141,6 +146,7 @@ class MetaState extends ChangeNotifier {
   }
 
   static const _kEmbers = 'meta_embers';
+  static const _kLifetimeEmbers = 'meta_lifetime_embers';
   static const _kUpgrades = 'meta_upgrades';
   static const _kKeystones = 'meta_keystones';
 }

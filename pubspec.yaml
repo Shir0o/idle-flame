@@ -1,7 +1,7 @@
 name: flame_game
 description: "Zenith Zero — auto-RPG dungeon descender."
 publish_to: 'none'
-version: 1.2.0+3
+version: 1.2.0+4
 
 environment:
   sdk: ^3.11.5

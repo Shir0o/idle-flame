@@ -199,6 +199,13 @@ class _ArsenalPanel extends StatelessWidget {
                             onTap: () {},
                           ),
                           _MenuItem(
+                            icon: Icons.local_fire_department_rounded,
+                            color: const Color(0xFFFF8A00),
+                            label: 'Lifetime Embers: ${meta.lifetimeEmbers}',
+                            description: 'Total Embers harvested from the Void.',
+                            onTap: () {},
+                          ),
+                          _MenuItem(
                             icon: Icons.dangerous_rounded,
 
                             color: const Color(0xFFFF5252),
