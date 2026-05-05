@@ -422,203 +422,190 @@ class _MuteButton extends StatelessWidget {
   }
 }
 
-class _DevTools extends StatelessWidget {
+class _DevTools extends StatefulWidget {
   const _DevTools();
+
+  @override
+  State<_DevTools> createState() => _DevToolsState();
+}
+
+class _DevToolsState extends State<_DevTools> {
+  void _showMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF111827),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (menuContext) {
+        return Consumer2<GameState, MetaState>(
+          builder: (context, state, meta, _) {
+            return Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.8,
+                ),
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    _MenuHeader('CURRENCY & PROGRESS'),
+                    _MenuItem(
+                      icon: Icons.add_circle,
+                      color: const Color(0xFF64FFDA),
+                      label: 'Add Skill',
+                      description: 'Choose and instantly level up any skill.',
+                      onTap: () {
+                        Navigator.pop(menuContext);
+                        _pickSkill(context);
+                      },
+                    ),
+                    _MenuItem(
+                      icon: Icons.local_fire_department,
+                      color: const Color(0xFFFF8A00),
+                      label: 'Add Embers',
+                      description: 'Grant 100 meta-currency embers.',
+                      onTap: () => meta.devGrantEmbers(100),
+                    ),
+                    _MenuItem(
+                      icon: Icons.attach_money,
+                      color: const Color(0xFFFFC107),
+                      label: 'Add Gold',
+                      description: 'Grant 1000 in-run gold.',
+                      onTap: () => state.devGrantGold(1000),
+                    ),
+                    _MenuItem(
+                      icon: Icons.star,
+                      color: const Color(0xFFFFD166),
+                      label: 'Max Meta',
+                      description: 'Instantly unlock and max all meta-upgrades.',
+                      onTap: () => meta.devMaxAll(),
+                    ),
+                    _MenuHeader('FLOOR & COMBAT'),
+                    _MenuItem(
+                      icon: Icons.keyboard_double_arrow_up,
+                      color: const Color(0xFF64FFDA),
+                      label: 'Jump Floor Forward',
+                      description: 'Advance to the next floor.',
+                      onTap: () => state.devJumpFloor(1),
+                    ),
+                    _MenuItem(
+                      icon: Icons.keyboard_double_arrow_down,
+                      color: const Color(0xFFFFC107),
+                      label: 'Jump Floor Backward',
+                      description: 'Go back one floor.',
+                      onTap: () => state.devJumpFloor(-1),
+                    ),
+                    _MenuItem(
+                      icon: Icons.keyboard_double_arrow_right,
+                      color: const Color(0xFF64FFDA),
+                      label: 'Force Level Up',
+                      description: 'Trigger the upgrade selection screen.',
+                      onTap: () => state.devForceLevelUp(),
+                    ),
+                    _MenuItem(
+                      icon: Icons.delete_sweep,
+                      color: const Color(0xFFFF5252),
+                      label: 'Kill All',
+                      description: 'Wipe all enemies and collect rewards.',
+                      onTap: () => state.requestDevKillAll(),
+                    ),
+                    _MenuHeader('ENGINE & UTILITIES'),
+                    _MenuItem(
+                      icon: state.devPauseSpawning ? Icons.play_arrow : Icons.pause,
+                      color: const Color(0xFF64FFDA),
+                      label: state.devPauseSpawning ? 'Resume Spawning' : 'Pause Spawning',
+                      description: 'Toggle enemy generation.',
+                      onTap: () => state.toggleDevPauseSpawning(),
+                    ),
+                    _MenuItem(
+                      icon: Icons.healing,
+                      color: const Color(0xFFFF5252),
+                      label: 'Heal Nexus',
+                      description: 'Instantly restore health to 100%.',
+                      onTap: () => state.devHealNexus(),
+                    ),
+                    _MenuItem(
+                      icon: state.devTimeScale > 1.0 ? Icons.speed : Icons.shutter_speed,
+                      color: const Color(0xFF64FFDA),
+                      label: 'Game Speed (${state.devTimeScale.round()}x)',
+                      description: 'Cycle between 1x, 2x, and 5x simulation speed.',
+                      onTap: () => state.cycleGameSpeed(),
+                    ),
+                    _MenuItem(
+                      icon: state.showPerfOverlay ? Icons.bar_chart : Icons.bar_chart_outlined,
+                      color: const Color(0xFF64FFDA),
+                      label: 'Performance Overlay',
+                      description: 'Toggle FPS and component stats display.',
+                      onTap: () => state.togglePerfOverlay(),
+                    ),
+                    _MenuItem(
+                      icon: state.godMode ? Icons.shield : Icons.shield_outlined,
+                      color: const Color(0xFF64FFDA),
+                      label: 'God Mode',
+                      description: 'Prevent all damage to the Nexus.',
+                      onTap: () => state.toggleGodMode(),
+                    ),
+                    _MenuItem(
+                      icon: state.devDisableUpgrades ? Icons.upgrade : Icons.upgrade_outlined,
+                      color: state.devDisableUpgrades ? const Color(0xFFFF5252) : const Color(0xFF64FFDA),
+                      label: 'Disable Upgrades',
+                      description: 'Stop level-up prompts from interrupting.',
+                      onTap: () => state.toggleDevDisableUpgrades(),
+                    ),
+                    _MenuHeader('DANGER ZONE'),
+                    _MenuItem(
+                      icon: Icons.restart_alt,
+                      color: const Color(0xFFFF5252),
+                      label: 'Reset Progress',
+                      description: 'Clear current run (Gold, Floor, Upgrades).',
+                      onTap: () {
+                        Navigator.pop(menuContext);
+                        _confirmReset(context);
+                      },
+                    ),
+                    _MenuItem(
+                      icon: Icons.delete_forever,
+                      color: const Color(0xFFFF5252),
+                      label: 'Wipe All Progress',
+                      description: 'Total factory reset of ALL progress.',
+                      onTap: () {
+                        Navigator.pop(menuContext);
+                        _confirmFullWipe(context);
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Selector<GameState, bool>(
       selector: (_, state) => state.devMode,
-      builder: (_, devMode, _) {
+      builder: (context, devMode, _) {
         if (!devMode) return const SizedBox.shrink();
-        final state = context.watch<GameState>();
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _Panel(
-              child: IconButton(
-                tooltip: 'Add skill',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.add_circle, color: Color(0xFF64FFDA)),
-                onPressed: () => _pickSkill(context),
-              ),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8, right: 8),
+          child: FloatingActionButton(
+            mini: true,
+            backgroundColor: const Color(0xFF111827),
+            foregroundColor: const Color(0xFF64FFDA),
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFF64FFDA), width: 1.5),
             ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Add embers',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(
-                  Icons.local_fire_department,
-                  color: Color(0xFFFF8A00),
-                ),
-                onPressed: () => context.read<MetaState>().devGrantEmbers(100),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Add gold',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.attach_money, color: Color(0xFFFFC107)),
-                onPressed: () => context.read<GameState>().devGrantGold(1000),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Jump floor forward',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(
-                  Icons.keyboard_double_arrow_up,
-                  color: Color(0xFF64FFDA),
-                ),
-                onPressed: () => context.read<GameState>().devJumpFloor(1),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Jump floor backward',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(
-                  Icons.keyboard_double_arrow_down,
-                  color: Color(0xFFFFC107),
-                ),
-                onPressed: () => context.read<GameState>().devJumpFloor(-1),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Force Level Up',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(
-                  Icons.keyboard_double_arrow_right,
-                  color: Color(0xFF64FFDA),
-                ),
-                onPressed: () => context.read<GameState>().devForceLevelUp(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Kill all',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.delete_sweep, color: Color(0xFFFF5252)),
-                onPressed: () => context.read<GameState>().requestDevKillAll(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Max all meta',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.star, color: Color(0xFFFFD166)),
-                onPressed: () => context.read<MetaState>().devMaxAll(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Wipe all progress',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(
-                  Icons.delete_forever,
-                  color: Color(0xFFFF5252),
-                ),
-                onPressed: () => _confirmFullWipe(context),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: state.devPauseSpawning
-                    ? 'Resume spawning'
-                    : 'Pause spawning',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(
-                  state.devPauseSpawning ? Icons.play_arrow : Icons.pause,
-                  color: const Color(0xFF64FFDA),
-                ),
-                onPressed: () =>
-                    context.read<GameState>().toggleDevPauseSpawning(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Heal Nexus',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.healing, color: Color(0xFFFF5252)),
-                onPressed: () => context.read<GameState>().devHealNexus(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Game Speed (${state.devTimeScale.round()}x)',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(
-                  state.devTimeScale > 1.0 ? Icons.speed : Icons.shutter_speed,
-                  color: const Color(0xFF64FFDA),
-                ),
-                onPressed: () => context.read<GameState>().cycleGameSpeed(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Toggle Stats',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(
-                  state.showPerfOverlay
-                      ? Icons.bar_chart
-                      : Icons.bar_chart_outlined,
-                  color: const Color(0xFF64FFDA),
-                ),
-                onPressed: () => context.read<GameState>().togglePerfOverlay(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'God mode',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(
-                  state.godMode ? Icons.shield : Icons.shield_outlined,
-                  color: const Color(0xFF64FFDA),
-                ),
-                onPressed: () => context.read<GameState>().toggleGodMode(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Disable Upgrades',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(
-                  state.devDisableUpgrades
-                      ? Icons.upgrade
-                      : Icons.upgrade_outlined,
-                  color: state.devDisableUpgrades
-                      ? const Color(0xFFFF5252)
-                      : const Color(0xFF64FFDA),
-                ),
-                onPressed: () =>
-                    context.read<GameState>().toggleDevDisableUpgrades(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _Panel(
-              child: IconButton(
-                tooltip: 'Reset progress',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.restart_alt, color: Color(0xFFFF5252)),
-                onPressed: () => _confirmReset(context),
-              ),
-            ),
-          ],
+            onPressed: () => _showMenu(context),
+            child: const Icon(Icons.settings),
+          ),
         );
       },
     );
@@ -753,6 +740,91 @@ class _DevTools extends StatelessWidget {
             child: const Text('Done'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MenuHeader extends StatelessWidget {
+  const _MenuHeader(this.title);
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.4),
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuItem extends StatelessWidget {
+  const _MenuItem({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.description,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String description;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
