@@ -1,6 +1,6 @@
-# Idle Flame
+# Zenith Zero
 
-**Idle Flame** is a high-octane auto-RPG dungeon descender built with Flutter and the Flame engine. Command the Zenith Zero mech as it descends through infinite floors of neon-lit dungeons, evolving its arsenal and mastering elemental synergies.
+**Zenith Zero** is a high-octane auto-RPG dungeon descender built with Flutter and the Flame engine. Command the Zenith Zero mech as it descends through infinite floors of neon-lit dungeons, evolving its arsenal and mastering elemental synergies.
 
 ## 🚀 Key Features
 
