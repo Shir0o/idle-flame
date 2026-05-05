@@ -291,6 +291,65 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
                       }).toList(),
                     ),
                   ],
+                  if (metaUpgradeCatalog.any(
+                    (def) => meta.upgradeTier(def.id) > 0,
+                  )) ...[
+                    const SizedBox(height: 10),
+                    const _HeaderLabel('PERMANENT BOONS'),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: metaUpgradeCatalog
+                          .where((def) => meta.upgradeTier(def.id) > 0)
+                          .map((def) {
+                            final tier = meta.upgradeTier(def.id);
+                            return Tooltip(
+                              message: def.description,
+                              triggerMode: TooltipTriggerMode.tap,
+                              preferBelow: false,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _boonIcon(def.id),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                      size: 10,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      def.maxTier > 1
+                                          ? '${def.title} (Lv $tier)'
+                                          : def.title,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          })
+                          .toList(),
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   const _HeaderLabel('SKILLS'),
                   if (byArchetype.isEmpty)
@@ -406,6 +465,18 @@ class _MetricRow extends StatelessWidget {
       ),
     );
   }
+}
+
+IconData _boonIcon(String id) {
+  return switch (id) {
+    'wider_pick' => Icons.view_column_rounded,
+    'reroll' => Icons.refresh_rounded,
+    'banish' => Icons.block_rounded,
+    'lock' => Icons.lock_rounded,
+    'rare_cadence' => Icons.auto_awesome_rounded,
+    'pre_pick' => Icons.ads_click_rounded,
+    _ => Icons.stars_rounded,
+  };
 }
 
 class _SkillChip extends StatelessWidget {
