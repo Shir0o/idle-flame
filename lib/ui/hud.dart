@@ -81,14 +81,14 @@ class Hud extends StatelessWidget {
     return SafeArea(
       child: Stack(
         children: const [
-          Positioned(top: 12, left: 16, child: _FloorBadge()),
-          Positioned(top: 12, right: 16, child: _GoldBadge()),
-          Positioned(top: 92, left: 16, child: _ArsenalPanel()),
           Positioned(left: 16, right: 16, bottom: 16, child: _NexusHealthBar()),
           Positioned(left: 0, right: 0, top: 80, child: _IdleRewardToast()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _RunOverPanel()),
+          Positioned(top: 12, left: 16, child: _FloorBadge()),
+          Positioned(top: 12, right: 16, child: _GoldBadge()),
           Positioned(top: 64, right: 16, child: _MuteButton()),
+          Positioned(top: 92, left: 16, child: _ArsenalPanel()),
           Positioned(right: 16, bottom: 16, child: _DevTools()),
         ],
       ),
