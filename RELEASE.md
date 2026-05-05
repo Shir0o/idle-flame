@@ -4,7 +4,7 @@
 - **App Name:** Zenith Zero
 - **Bundle ID (iOS/macOS):** `com.twang.zenithzero`
 - **Package Name (Android):** `com.twang.zenithzero`
-- **Version:** `1.0.0+1`
+- **Version:** `1.2.0+3`
 
 ## Build Instructions
 
@@ -47,6 +47,14 @@
 - [ ] Run `flutter analyze` and `flutter test` before final archival.
 
 ## Changelog
+
+### v1.2.0
+- **Master Developer Suite:** Implemented a professional, hidden debugging command center unlocked by the `TWANGPRO` toggle switch. Includes God Mode, Game Speed control (1x-5x), Max Meta, Kill All, and more.
+- **Audio Overhaul:** Set sound to mute by default on launch for a cleaner user experience. Added a persistent HUD volume toggle with improved vertical spacing.
+- **Arsenal Panel:** Reworked the metrics panel into a public-facing 'Arsenal' that summarizes active skills with icons and archetypes. Advanced metrics remain accessible in developer mode.
+- **Visual Restoration:** Fully restored high-end "Endless Seek" sword logic and Celestial Jian visuals with world-space energy trails.
+- **Persistence:** All developer preferences, audio toggles, and game speed settings now persist across app restarts.
+- **QA:** Expanded test suite to 16 unit tests and achieved 100% clean static analysis.
 
 ### v1.1.0
 - **Combat Evolution:** Overhauled Sentinel Blades into "Celestial Jian" (yujian-style flying swords) with aggressive sweep pathing and "Endless Seek" logic.
