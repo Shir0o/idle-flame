@@ -88,7 +88,7 @@ class Hud extends StatelessWidget {
           Positioned.fill(child: _RunOverPanel()),
           Positioned(top: 12, left: 16, child: _FloorBadge()),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
-          Positioned(top: 72, right: 16, child: _MuteButton()),
+          Positioned(top: 80, right: 16, child: _MuteButton()),
           Positioned(top: 92, left: 16, child: _ArsenalPanel()),
           Positioned(right: 16, bottom: 16, child: _DevTools()),
         ],
@@ -190,6 +190,24 @@ class _ArsenalPanel extends StatelessWidget {
                               onTap: () {},
                             ),
                           ],
+                          const _MenuHeader('DUNGEON STATISTICS'),
+                          _MenuItem(
+                            icon: Icons.dangerous_rounded,
+                            color: const Color(0xFFFF5252),
+                            label: 'Total Kills: ${state.totalKills}',
+                            description:
+                                'Lifetime enemies breached across all runs.',
+                            onTap: () {},
+                          ),
+                          _MenuItem(
+                            icon: Icons.trending_up,
+                            color: const Color(0xFF64FFDA),
+                            label:
+                                'Difficulty: ${(1 + (state.floor - 1) * 0.15).toStringAsFixed(2)}x',
+                            description:
+                                'Current floor health and damage multiplier.',
+                            onTap: () {},
+                          ),
                           const _MenuHeader('MECH FRAME'),
                           _MenuItem(
                             icon: Icons.smart_toy_rounded,
@@ -574,11 +592,25 @@ class _MuteButton extends StatelessWidget {
           onTap: () => context.read<GameState>().toggleMuted(),
           borderRadius: BorderRadius.circular(6),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Icon(
-              muted ? Icons.volume_off : Icons.volume_up,
-              color: muted ? Colors.white54 : const Color(0xFF64FFDA),
-              size: 20,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  muted ? Icons.volume_off : Icons.volume_up,
+                  color: muted ? Colors.white54 : const Color(0xFF64FFDA),
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  muted ? 'MUTED' : 'SOUND ON',
+                  style: TextStyle(
+                    color: muted ? Colors.white54 : const Color(0xFF64FFDA),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
