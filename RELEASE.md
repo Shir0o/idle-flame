@@ -15,7 +15,7 @@
     ```
 2.  **Upload:**
     - Open **Transporter** app.
-    - Drag `build/ios/ipa/flame_game.ipa` into Transporter.
+    - Drag `build/ios/ipa/zenith_zero.ipa` into Transporter.
     - Click **Deliver**.
 3.  **Distribute:**
     - Go to [App Store Connect](https://appstoreconnect.apple.com/).

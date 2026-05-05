@@ -1,7 +1,7 @@
-import 'package:flame_game/game/state/game_state.dart';
-import 'package:flame_game/game/state/meta_state.dart';
-import 'package:flame_game/game/state/mech_catalog.dart';
-import 'package:flame_game/game/state/skill_catalog.dart';
+import 'package:zenith_zero/game/state/game_state.dart';
+import 'package:zenith_zero/game/state/meta_state.dart';
+import 'package:zenith_zero/game/state/mech_catalog.dart';
+import 'package:zenith_zero/game/state/skill_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
