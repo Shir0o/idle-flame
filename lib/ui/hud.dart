@@ -754,9 +754,9 @@ class _DevToolsState extends State<_DevTools> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8, bottom: 4),
                       child: Text(
-                        archetype.name.toUpperCase(),
+                        archetype.label.toUpperCase(),
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.56),
+                          color: archetype.color.withValues(alpha: 0.56),
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.6,
@@ -885,7 +885,7 @@ class _AddSkillChip extends StatelessWidget {
     final maxed = level >= SkillDefinition.maxLevel;
     final color = maxed
         ? Colors.white.withValues(alpha: 0.32)
-        : const Color(0xFF64FFDA);
+        : def.archetype.color;
     return InkWell(
       onTap: maxed ? null : () => state.devGrantSkill(def.id),
       borderRadius: BorderRadius.circular(6),
