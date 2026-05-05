@@ -2,8 +2,51 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../game/state/game_state.dart';
+import '../game/state/meta_state.dart';
 import '../game/state/skill_catalog.dart';
 import 'meta_screen.dart';
+
+Future<void> showDevKeyDialog(BuildContext context, GameState state) async {
+  final controller = TextEditingController();
+  await showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF111827),
+      title: const Text(
+        'Enter Access Key',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        style: const TextStyle(color: Colors.white),
+        decoration: const InputDecoration(
+          hintText: 'Key',
+          hintStyle: TextStyle(color: Colors.white38),
+        ),
+        onSubmitted: (val) {
+          if (state.unlockDevMode(val)) {
+            Navigator.of(context).pop();
+          }
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            if (state.unlockDevMode(controller.text)) {
+              Navigator.of(context).pop();
+            }
+          },
+          child: const Text('Unlock'),
+        ),
+      ],
+    ),
+  );
+}
 
 class Hud extends StatelessWidget {
   const Hud({super.key});
@@ -15,6 +58,7 @@ class Hud extends StatelessWidget {
         children: const [
           Positioned(top: 12, left: 16, child: _FloorBadge()),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
+          Positioned(top: 52, right: 16, child: _MuteButton()),
           Positioned(top: 92, left: 16, child: _BalanceDebugPanel()),
           Positioned(left: 16, right: 16, bottom: 16, child: _NexusHealthBar()),
           Positioned(right: 16, bottom: 16, child: _DevTools()),
@@ -41,6 +85,7 @@ class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
   Widget build(BuildContext context) {
     return Consumer<GameState>(
       builder: (_, state, _) {
+        if (!state.devMode) return const SizedBox.shrink();
         final timeToKill = state.estimatedTimeToKill;
         return _Panel(
           child: ConstrainedBox(
@@ -103,13 +148,15 @@ class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
                     spacing: 5,
                     runSpacing: 5,
                     children: state.skillLevels.entries.map((entry) {
-                      final def = skillCatalog.firstWhere((d) => d.id == entry.key);
+                      final def = skillCatalog.firstWhere(
+                        (d) => d.id == entry.key,
+                      );
                       return _SkillChip(def.title, entry.value);
                     }).toList(),
                   ),
                   const SizedBox(height: 8),
                   InkWell(
-                    onTap: state.toggleDevMode,
+                    onTap: () => showDevKeyDialog(context, state),
                     borderRadius: BorderRadius.circular(6),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -117,9 +164,7 @@ class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            state.devMode
-                                ? Icons.toggle_on
-                                : Icons.toggle_off,
+                            state.devMode ? Icons.toggle_on : Icons.toggle_off,
                             color: state.devMode
                                 ? const Color(0xFF64FFDA)
                                 : Colors.white.withValues(alpha: 0.5),
@@ -251,48 +296,74 @@ class _SkillChip extends StatelessWidget {
   }
 }
 
-class _FloorBadge extends StatelessWidget {
+class _FloorBadge extends StatefulWidget {
   const _FloorBadge();
 
   @override
+  State<_FloorBadge> createState() => _FloorBadgeState();
+}
+
+class _FloorBadgeState extends State<_FloorBadge> {
+  int _tapCount = 0;
+  DateTime? _lastTap;
+
+  void _handleTap(GameState state) {
+    final now = DateTime.now();
+    if (_lastTap != null && now.difference(_lastTap!).inMilliseconds > 1000) {
+      _tapCount = 0;
+    }
+    _tapCount++;
+    _lastTap = now;
+
+    if (_tapCount >= 5) {
+      _tapCount = 0;
+      showDevKeyDialog(context, state);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = context.read<GameState>();
     return Selector<GameState, ({int floor, int kills})>(
       selector: (_, state) => (floor: state.floor, kills: state.killsOnFloor),
-      builder: (_, data, _) => _Panel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Floor ${data.floor}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 6),
-            SizedBox(
-              width: 140,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: data.kills / GameState.killsPerFloor,
-                  minHeight: 6,
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFFFFC107)),
+      builder: (_, data, _) => InkWell(
+        onTap: () => _handleTap(state),
+        child: _Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Floor ${data.floor}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${data.kills}/${GameState.killsPerFloor} kills',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 11,
+              const SizedBox(height: 6),
+              SizedBox(
+                width: 140,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: data.kills / GameState.killsPerFloor,
+                    minHeight: 6,
+                    backgroundColor: Colors.white.withValues(alpha: 0.15),
+                    valueColor: const AlwaysStoppedAnimation(Color(0xFFFFC107)),
+                  ),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                '${data.kills}/${GameState.killsPerFloor} kills',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -326,6 +397,31 @@ class _GoldBadge extends StatelessWidget {
   }
 }
 
+class _MuteButton extends StatelessWidget {
+  const _MuteButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<GameState, bool>(
+      selector: (_, state) => state.muted,
+      builder: (_, muted, _) => _Panel(
+        child: InkWell(
+          onTap: () => context.read<GameState>().toggleMuted(),
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Icon(
+              muted ? Icons.volume_off : Icons.volume_up,
+              color: muted ? Colors.white54 : const Color(0xFF64FFDA),
+              size: 20,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DevTools extends StatelessWidget {
   const _DevTools();
 
@@ -335,6 +431,7 @@ class _DevTools extends StatelessWidget {
       selector: (_, state) => state.devMode,
       builder: (_, devMode, _) {
         if (!devMode) return const SizedBox.shrink();
+        final state = context.watch<GameState>();
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -344,6 +441,172 @@ class _DevTools extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.add_circle, color: Color(0xFF64FFDA)),
                 onPressed: () => _pickSkill(context),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Add embers',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(
+                  Icons.local_fire_department,
+                  color: Color(0xFFFF8A00),
+                ),
+                onPressed: () => context.read<MetaState>().devGrantEmbers(100),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Add gold',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.attach_money, color: Color(0xFFFFC107)),
+                onPressed: () => context.read<GameState>().devGrantGold(1000),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Jump floor forward',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(
+                  Icons.keyboard_double_arrow_up,
+                  color: Color(0xFF64FFDA),
+                ),
+                onPressed: () => context.read<GameState>().devJumpFloor(1),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Jump floor backward',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(
+                  Icons.keyboard_double_arrow_down,
+                  color: Color(0xFFFFC107),
+                ),
+                onPressed: () => context.read<GameState>().devJumpFloor(-1),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Force Level Up',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(
+                  Icons.keyboard_double_arrow_right,
+                  color: Color(0xFF64FFDA),
+                ),
+                onPressed: () => context.read<GameState>().devForceLevelUp(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Kill all',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.delete_sweep, color: Color(0xFFFF5252)),
+                onPressed: () => context.read<GameState>().requestDevKillAll(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Max all meta',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.star, color: Color(0xFFFFD166)),
+                onPressed: () => context.read<MetaState>().devMaxAll(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Wipe all progress',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(
+                  Icons.delete_forever,
+                  color: Color(0xFFFF5252),
+                ),
+                onPressed: () => _confirmFullWipe(context),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: state.devPauseSpawning
+                    ? 'Resume spawning'
+                    : 'Pause spawning',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  state.devPauseSpawning ? Icons.play_arrow : Icons.pause,
+                  color: const Color(0xFF64FFDA),
+                ),
+                onPressed: () =>
+                    context.read<GameState>().toggleDevPauseSpawning(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Heal Nexus',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.healing, color: Color(0xFFFF5252)),
+                onPressed: () => context.read<GameState>().devHealNexus(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Game Speed (${state.devTimeScale.round()}x)',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  state.devTimeScale > 1.0 ? Icons.speed : Icons.shutter_speed,
+                  color: const Color(0xFF64FFDA),
+                ),
+                onPressed: () => context.read<GameState>().cycleGameSpeed(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Toggle Stats',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  state.showPerfOverlay
+                      ? Icons.bar_chart
+                      : Icons.bar_chart_outlined,
+                  color: const Color(0xFF64FFDA),
+                ),
+                onPressed: () => context.read<GameState>().togglePerfOverlay(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'God mode',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  state.godMode ? Icons.shield : Icons.shield_outlined,
+                  color: const Color(0xFF64FFDA),
+                ),
+                onPressed: () => context.read<GameState>().toggleGodMode(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Panel(
+              child: IconButton(
+                tooltip: 'Disable Upgrades',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  state.devDisableUpgrades
+                      ? Icons.upgrade
+                      : Icons.upgrade_outlined,
+                  color: state.devDisableUpgrades
+                      ? const Color(0xFFFF5252)
+                      : const Color(0xFF64FFDA),
+                ),
+                onPressed: () =>
+                    context.read<GameState>().toggleDevDisableUpgrades(),
               ),
             ),
             const SizedBox(width: 8),
@@ -394,6 +657,44 @@ class _DevTools extends StatelessWidget {
     );
     if (reset == true) {
       await state.resetProgress();
+    }
+  }
+
+  Future<void> _confirmFullWipe(BuildContext context) async {
+    final state = context.read<GameState>();
+    final meta = context.read<MetaState>();
+    final wipe = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF111827),
+        title: const Text(
+          'Wipe ALL Progress?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'This clears EVERYTHING: gold, floors, upgrades, AND Meta Embers/Keystones. This cannot be undone.',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.72)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5252),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.delete_forever),
+            label: const Text('Wipe All'),
+          ),
+        ],
+      ),
+    );
+    if (wipe == true) {
+      await state.resetProgress();
+      await meta.wipe();
     }
   }
 

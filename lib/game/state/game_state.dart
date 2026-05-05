@@ -39,6 +39,8 @@ class GameState extends ChangeNotifier {
     nexusHp = nexusMaxHp;
   }
 
+  static const String devAccessKey = 'TWANGPRO';
+
   final Random _rng = Random();
   final MetaState meta;
 
@@ -52,6 +54,12 @@ class GameState extends ChangeNotifier {
   MechType selectedMech = MechType.standard;
   bool devMode = false;
   bool devDisableUpgrades = false;
+  bool godMode = false;
+  bool devPauseSpawning = false;
+  bool showPerfOverlay = kDebugMode;
+  bool muted = true;
+  double devTimeScale = 1.0;
+  int devKillAllRequest = 0;
 
   final Map<String, int> _skillLevels = {};
   List<String> _pendingUpgradeIds = [];
@@ -194,16 +202,90 @@ class GameState extends ChangeNotifier {
     _saveSoon();
   }
 
+  void devGrantGold(int amount) {
+    gold += amount;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void devJumpFloor(int floors) {
+    floor = max(1, floor + floors);
+    killsOnFloor = 0;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void devForceLevelUp() {
+    _rollUpgradeChoices();
+    notifyListeners();
+  }
+
   void toggleDevMode() {
     devMode = !devMode;
     notifyListeners();
     _saveSoon();
   }
 
+  bool unlockDevMode(String key) {
+    if (key.trim().toUpperCase() == devAccessKey) {
+      devMode = !devMode;
+      notifyListeners();
+      _saveSoon();
+      return true;
+    }
+    return false;
+  }
+
   void toggleDevDisableUpgrades() {
     devDisableUpgrades = !devDisableUpgrades;
     notifyListeners();
     _saveSoon();
+  }
+
+  void toggleGodMode() {
+    godMode = !godMode;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void toggleDevPauseSpawning() {
+    devPauseSpawning = !devPauseSpawning;
+    notifyListeners();
+  }
+
+  void toggleMuted() {
+    muted = !muted;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void togglePerfOverlay() {
+    showPerfOverlay = !showPerfOverlay;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void cycleGameSpeed() {
+    if (devTimeScale == 1.0) {
+      devTimeScale = 2.0;
+    } else if (devTimeScale == 2.0) {
+      devTimeScale = 5.0;
+    } else {
+      devTimeScale = 1.0;
+    }
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void devHealNexus() {
+    nexusHp = nexusMaxHp;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void requestDevKillAll() {
+    devKillAllRequest += 1;
+    notifyListeners();
   }
 
   void rerollChoices() {
@@ -243,7 +325,7 @@ class GameState extends ChangeNotifier {
   }
 
   void selectMech(MechType mechType) {
-    selectedMech = MechType.standard;
+    selectedMech = mechType;
   }
 
   void _clearPending() {
@@ -258,7 +340,7 @@ class GameState extends ChangeNotifier {
   int skillLevel(String id) => _skillLevels[id] ?? 0;
 
   void damageNexus(double amount) {
-    if (isRunOver || amount <= 0) return;
+    if (isRunOver || amount <= 0 || godMode) return;
     nexusHp = max(0, min(nexusMaxHp, nexusHp) - amount);
     if (isRunOver) {
       _clearPending();
@@ -332,6 +414,11 @@ class GameState extends ChangeNotifier {
     totalKills = prefs.getInt(_kTotalKills) ?? 0;
     selectedMech = mechTypeFromId(prefs.getString(_kSelectedMech));
     devMode = prefs.getBool(_kDevMode) ?? false;
+    devDisableUpgrades = prefs.getBool(_kDevDisableUpgrades) ?? false;
+    godMode = prefs.getBool(_kGodMode) ?? false;
+    showPerfOverlay = prefs.getBool(_kShowPerfOverlay) ?? kDebugMode;
+    muted = prefs.getBool(_kMuted) ?? true;
+    devTimeScale = prefs.getDouble(_kDevTimeScale) ?? 1.0;
     nexusHp = (prefs.getDouble(_kNexusHp) ?? nexusMaxHp).clamp(0, nexusMaxHp);
     _resetPerRunMeta();
     _skillLevels
@@ -372,6 +459,11 @@ class GameState extends ChangeNotifier {
     await prefs.setDouble(_kNexusHp, nexusHp);
     await prefs.setString(_kSelectedMech, selectedMech.name);
     await prefs.setBool(_kDevMode, devMode);
+    await prefs.setBool(_kDevDisableUpgrades, devDisableUpgrades);
+    await prefs.setBool(_kGodMode, godMode);
+    await prefs.setBool(_kShowPerfOverlay, showPerfOverlay);
+    await prefs.setBool(_kMuted, muted);
+    await prefs.setDouble(_kDevTimeScale, devTimeScale);
     await prefs.setStringList(_kSkillLevels, _encodeSkillLevels());
     await prefs.setStringList(_kPendingUpgrades, _pendingUpgradeIds);
     await _writeLastSeen(prefs);
@@ -564,6 +656,11 @@ class GameState extends ChangeNotifier {
   static const _kNexusHp = 'nexusHp';
   static const _kSelectedMech = 'selectedMech';
   static const _kDevMode = 'devMode';
+  static const _kDevDisableUpgrades = 'devDisableUpgrades';
+  static const _kGodMode = 'godMode';
+  static const _kShowPerfOverlay = 'showPerfOverlay';
+  static const _kMuted = 'muted';
+  static const _kDevTimeScale = 'devTimeScale';
   static const _kSkillLevels = 'skillLevels';
   static const _kPendingUpgrades = 'pendingUpgrades';
   static const _kOldEmberChainLevel = 'emberChainLevel';

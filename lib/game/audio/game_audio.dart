@@ -24,6 +24,7 @@ class GameAudio {
   final Map<SkillSound, AudioPool> _skillPools = {};
   final Map<AudioPool, int> _activePlayers = {};
   bool _enabled = true;
+  bool muted = false;
   double _hitCooldown = 0;
   double _deathCooldown = 0;
   double _skillDamageCooldown = 0;
@@ -142,7 +143,7 @@ class GameAudio {
   }
 
   void _playPool(AudioPool? pool, {required double volume}) {
-    if (!_enabled) return;
+    if (!_enabled || muted) return;
     if (pool == null || (_activePlayers[pool] ?? 0) >= pool.maxPlayers) return;
     _activePlayers[pool] = (_activePlayers[pool] ?? 0) + 1;
     unawaited(_startPooledSound(pool, volume: volume));

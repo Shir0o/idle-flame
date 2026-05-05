@@ -15,7 +15,11 @@ class EnemySpawner extends Component with HasGameReference<IdleGame> {
   @override
   void update(double dt) {
     super.update(dt);
-    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
+    if (game.state.hasPendingLevelUp ||
+        game.state.isRunOver ||
+        game.state.devPauseSpawning) {
+      return;
+    }
     _timer += dt;
     if (_timer >= _spawnInterval) {
       _timer = 0;

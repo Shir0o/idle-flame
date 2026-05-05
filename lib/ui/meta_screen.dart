@@ -88,8 +88,11 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Icon(Icons.local_fire_department,
-            color: Color(0xFFFF8A00), size: 32),
+        const Icon(
+          Icons.local_fire_department,
+          color: Color(0xFFFF8A00),
+          size: 32,
+        ),
         const SizedBox(height: 6),
         const Text(
           'Nexus Breached',
@@ -120,8 +123,11 @@ class _Header extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.local_fire_department,
-                  color: Color(0xFFFF8A00), size: 18),
+              const Icon(
+                Icons.local_fire_department,
+                color: Color(0xFFFF8A00),
+                size: 18,
+              ),
               const SizedBox(width: 6),
               Text(
                 meta.lastEmbersEarned > 0
@@ -316,7 +322,9 @@ class _KeystoneRow extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF64FFDA).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(4),
@@ -441,8 +449,11 @@ class _BuyButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (enabled)
-                const Icon(Icons.local_fire_department,
-                    color: Color(0xFFFF8A00), size: 13),
+                const Icon(
+                  Icons.local_fire_department,
+                  color: Color(0xFFFF8A00),
+                  size: 13,
+                ),
               const SizedBox(width: 3),
               Flexible(
                 child: Text(

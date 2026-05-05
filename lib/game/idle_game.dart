@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'audio/game_audio.dart';
@@ -11,8 +10,6 @@ import 'components/enemy.dart';
 import 'components/enemy_spawner.dart';
 import 'components/hero.dart';
 import 'state/game_state.dart';
-
-const bool _showPerfOverlay = kDebugMode;
 
 class IdleGame extends FlameGame {
   IdleGame({required this.state});
@@ -28,6 +25,10 @@ class IdleGame extends FlameGame {
   double _shakeDuration = 0;
   double _shakeIntensity = 0;
   int _seenResetGeneration = 0;
+  int _seenDevKillAllRequest = 0;
+  bool _lastShowPerfOverlay = false;
+  late final FpsTextComponent _fpsText;
+  late final _PerfStatsComponent _perfStats;
 
   @override
   Color backgroundColor() => Colors.black;
@@ -44,20 +45,21 @@ class IdleGame extends FlameGame {
     world.add(hero);
     world.add(spawner);
 
-    if (_showPerfOverlay) {
-      camera.viewport.add(
-        FpsTextComponent(
-          position: Vector2(8, 8),
-          textRenderer: TextPaint(
-            style: const TextStyle(
-              color: Color(0xFF80FF80),
-              fontSize: 12,
-              fontFamily: 'monospace',
-            ),
-          ),
+    _fpsText = FpsTextComponent(
+      position: Vector2(8, 8),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Color(0xFF80FF80),
+          fontSize: 12,
+          fontFamily: 'monospace',
         ),
-      );
-      camera.viewport.add(_PerfStatsComponent(this));
+      ),
+    );
+    _perfStats = _PerfStatsComponent(this);
+    _lastShowPerfOverlay = state.showPerfOverlay;
+    if (_lastShowPerfOverlay) {
+      camera.viewport.add(_fpsText);
+      camera.viewport.add(_perfStats);
     }
   }
 
@@ -69,20 +71,40 @@ class IdleGame extends FlameGame {
 
   @override
   void update(double dt) {
+    final scaledDt = dt * state.devTimeScale;
     aliveEnemies = activeEnemies.where((e) => e.isAlive).toList();
-    super.update(dt);
+
+    if (_lastShowPerfOverlay != state.showPerfOverlay) {
+      _lastShowPerfOverlay = state.showPerfOverlay;
+      if (_lastShowPerfOverlay) {
+        camera.viewport.add(_fpsText);
+        camera.viewport.add(_perfStats);
+      } else {
+        _fpsText.removeFromParent();
+        _perfStats.removeFromParent();
+      }
+    }
+
+    super.update(scaledDt);
     if (state.hasPendingLevelUp || state.isRunOver) return;
 
-    audio.update(dt);
+    audio.update(scaledDt);
     if (_seenResetGeneration != state.resetGeneration) {
       _seenResetGeneration = state.resetGeneration;
       _resetWorldForNewRun();
     }
+    if (_seenDevKillAllRequest != state.devKillAllRequest) {
+      _seenDevKillAllRequest = state.devKillAllRequest;
+      _devKillAllEnemies();
+    }
     if (hero.mechType != state.selectedMech) {
       hero.setMechType(state.selectedMech);
     }
+    if (audio.muted != state.muted) {
+      audio.muted = state.muted;
+    }
     if (_shakeTime > 0) {
-      _shakeTime -= dt;
+      _shakeTime -= scaledDt;
       final t = (_shakeTime / _shakeDuration).clamp(0.0, 1.0);
       final intensity = _shakeIntensity * Curves.easeOut.transform(t);
       camera.viewfinder.position = Vector2(
@@ -101,6 +123,14 @@ class IdleGame extends FlameGame {
     _shakeTime = duration;
     _shakeDuration = duration;
     _shakeIntensity = intensity;
+  }
+
+  void _devKillAllEnemies() {
+    for (final enemy in activeEnemies.toList()) {
+      if (enemy.isAlive) {
+        enemy.takeDamage(enemy.hp + 1);
+      }
+    }
   }
 
   void _resetWorldForNewRun() {

@@ -311,11 +311,12 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
     final direction = to - from;
     if (direction.length2 == 0) return;
     final normal = Vector2(-direction.y, direction.x)..normalize();
-    
+
     // Evolution: Arcs curve more at higher levels
     final curveStrength = 48 * (level >= 3 ? 1.3 : 1.0);
-    final control = mid + Offset(normal.x * curveStrength, normal.y * curveStrength);
-    
+    final control =
+        mid + Offset(normal.x * curveStrength, normal.y * curveStrength);
+
     _wideGlow.color = color.withValues(alpha: alpha * 0.12);
     _glow.color = color.withValues(alpha: alpha * 0.28);
     _core.color = color.withValues(alpha: alpha);
@@ -326,14 +327,16 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
       final path = Path()..moveTo(start.dx, start.dy);
       const segments = 8;
       final rng = math.Random(from.x.hashCode ^ to.x.hashCode);
-      
+
       for (var i = 1; i <= segments; i++) {
         final st = i / segments;
         // Quadratic bezier interpolation
         final mt = 1 - st;
-        final px = mt * mt * start.dx + 2 * mt * st * control.dx + st * st * end.dx;
-        final py = mt * mt * start.dy + 2 * mt * st * control.dy + st * st * end.dy;
-        
+        final px =
+            mt * mt * start.dx + 2 * mt * st * control.dx + st * st * end.dx;
+        final py =
+            mt * mt * start.dy + 2 * mt * st * control.dy + st * st * end.dy;
+
         if (i < segments) {
           final jitter = (level >= 5 ? 12.0 : 6.0) * (rng.nextDouble() - 0.5);
           path.lineTo(px + normal.x * jitter, py + normal.y * jitter);
@@ -341,7 +344,7 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
           path.lineTo(end.dx, end.dy);
         }
       }
-      
+
       canvas.drawPath(path, _wideGlow);
       canvas.drawPath(path, _glow);
       canvas.drawPath(path, _core);
@@ -350,7 +353,7 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
       final path = Path()
         ..moveTo(start.dx, start.dy)
         ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy);
-      
+
       canvas.drawPath(path, _wideGlow);
       canvas.drawPath(path, _glow);
       canvas.drawPath(path, _core);
@@ -497,10 +500,10 @@ class FocusStrikeEffect extends PositionComponent
     final unit = direction.normalized();
     final normal = Vector2(-unit.y, unit.x);
     final center = from + direction * Curves.easeOutCubic.transform(t);
-    
+
     // Evolution: Wider beam at higher levels
     final half = 18 * (1 - t * 0.45) * (level >= 3 ? 1.4 : 1.0);
-    
+
     _corePaint.color = color.withValues(alpha: alpha);
     _glowPaint.color = color.withValues(alpha: alpha * 0.2);
     _targetingPaint.color = color.withValues(alpha: alpha * 0.24);
@@ -570,8 +573,9 @@ class FrostFieldEffect extends PositionComponent
       width: fieldSize.x,
       height: fieldSize.y,
     );
-    _washPaint.color =
-        color.withValues(alpha: alpha * (level >= 3 ? 0.12 : 0.07));
+    _washPaint.color = color.withValues(
+      alpha: alpha * (level >= 3 ? 0.12 : 0.07),
+    );
     _linePaint.color = color.withValues(alpha: alpha * 0.36);
     _crackPaint.color = Colors.white.withValues(alpha: alpha * 0.5);
 
@@ -621,10 +625,8 @@ class FrostFieldEffect extends PositionComponent
 
 class RuptureMarkEffect extends PositionComponent
     with HasGameReference<IdleGame> {
-  RuptureMarkEffect({
-    required this.effectCenter,
-    this.level = 1,
-  }) : super(priority: 92);
+  RuptureMarkEffect({required this.effectCenter, this.level = 1})
+    : super(priority: 92);
 
   final Vector2 effectCenter;
   final int level;
@@ -778,16 +780,15 @@ class NovaPulseEffect extends PositionComponent
     final eased = Curves.easeOutCubic.transform(t);
     final alpha = 1 - t;
     final offset = Offset(effectCenter.x, effectCenter.y);
-    
-    _warmPaint.color =
-        const Color(0xFFFFD166).withValues(alpha: alpha * 0.15);
+
+    _warmPaint.color = const Color(0xFFFFD166).withValues(alpha: alpha * 0.15);
     _fillPaint.color = color.withValues(alpha: alpha * 0.12);
     _glowPaint.color = color.withValues(alpha: alpha * 0.45);
     _corePaint.color = Colors.white.withValues(alpha: alpha * 0.85);
 
     // Inner Bloom Ring
     canvas.drawCircle(offset, radius * eased * 0.5, _fillPaint);
-    
+
     // Main Expanding Ring
     canvas.drawCircle(offset, radius * eased, _glowPaint);
     canvas.drawCircle(offset, radius * eased, _corePaint);
@@ -820,7 +821,7 @@ class NovaPulseEffect extends PositionComponent
       final shockT = Curves.easeOutQuart.transform(t);
       _shockwavePaint.strokeWidth = 6.0 * (1 - t);
       canvas.drawCircle(offset, radius * 2.5 * shockT, _shockwavePaint);
-      
+
       // Secondary core flash
       canvas.drawCircle(offset, radius * 0.3 * (1 - t), _corePaint);
 
@@ -893,10 +894,14 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
     super.render(canvas);
     final t = (_age / _duration).clamp(0.0, 1.0);
     final alpha = math.sin(t * math.pi).clamp(0.0, 1.0);
-    
+
     final wallHeight = 42 * (level >= 3 ? 1.4 : 1.0);
-    final rect = Rect.fromCenter(center: Offset(effectCenter.x, effectCenter.y), width: effectWidth, height: wallHeight);
-    
+    final rect = Rect.fromCenter(
+      center: Offset(effectCenter.x, effectCenter.y),
+      width: effectWidth,
+      height: wallHeight,
+    );
+
     _glowPaint.color = color.withValues(alpha: alpha * 0.32);
     _heatPaint.shader = LinearGradient(
       begin: Alignment.topCenter,
@@ -913,9 +918,12 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
 
     // Heat Haze
     canvas.drawRect(rect.inflate(level >= 5 ? 28 : 12), _heatPaint);
-    
+
     // Core Ward Line
-    canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(8)), _glowPaint);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+      _glowPaint,
+    );
     canvas.drawLine(rect.centerLeft, rect.centerRight, _corePaint);
 
     _flamePaint.color = const Color(0xFFFF8A00).withValues(alpha: alpha * 0.82);
@@ -927,16 +935,30 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
       final x = rect.left + (i * (effectWidth / columnCount)) + 6;
       final phase = math.sin(x * 0.08 + _age * 22);
       final height = (level >= 4 ? 34.0 : 22.0) + phase * 10;
-      
+
       final flamePath = Path()
         ..moveTo(x - 6, rect.center.dy + 15)
-        ..quadraticBezierTo(x - 9, rect.center.dy - height * 0.3, x, rect.center.dy - height)
-        ..quadraticBezierTo(x + 10, rect.center.dy - height * 0.2, x + 6, rect.center.dy + 15)
+        ..quadraticBezierTo(
+          x - 9,
+          rect.center.dy - height * 0.3,
+          x,
+          rect.center.dy - height,
+        )
+        ..quadraticBezierTo(
+          x + 10,
+          rect.center.dy - height * 0.2,
+          x + 6,
+          rect.center.dy + 15,
+        )
         ..close();
       canvas.drawPath(flamePath, _flamePaint);
-      
+
       if (i % 3 == 0) {
-        canvas.drawCircle(Offset(x, rect.center.dy - height * 0.5), 2.5, _whiteHotPaint);
+        canvas.drawCircle(
+          Offset(x, rect.center.dy - height * 0.5),
+          2.5,
+          _whiteHotPaint,
+        );
       }
     }
 
@@ -952,7 +974,7 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
         final by1 = rect.center.dy - 20;
         final by2 = by1 - 60 * beamProgress;
         canvas.drawLine(Offset(bx, by1), Offset(bx, by2), _beamPaint);
-        
+
         // Beam head glow
         canvas.drawCircle(Offset(bx, by2), 4 * (1 - t), _beamPaint);
       }
@@ -964,12 +986,20 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
       final drift = math.sin(_age * 5 + x) * 4;
       final rx = x;
       final ry = rect.center.dy + drift;
-      
+
       canvas.drawCircle(Offset(rx, ry), 6, _runePaint);
-      canvas.drawLine(Offset(rx - 8, ry - 10), Offset(rx + 8, ry + 10), _runePaint);
-      
+      canvas.drawLine(
+        Offset(rx - 8, ry - 10),
+        Offset(rx + 8, ry + 10),
+        _runePaint,
+      );
+
       if (level >= 3) {
-        canvas.drawLine(Offset(rx + 8, ry - 10), Offset(rx - 8, ry + 10), _runePaint);
+        canvas.drawLine(
+          Offset(rx + 8, ry - 10),
+          Offset(rx - 8, ry + 10),
+          _runePaint,
+        );
       }
     }
   }
@@ -1025,12 +1055,12 @@ class MeteorImpactEffect extends PositionComponent
     final t = (_age / _duration).clamp(0.0, 1.0);
     final alpha = 1 - t;
     final impact = Offset(target.x, target.y);
-    
+
     // Blade entry phase (top to bottom)
     final bladeT = Curves.easeIn.transform(t);
     final start = Offset(target.x - 40, target.y - 450);
     final currentPos = Offset.lerp(start, impact, bladeT)!;
-    
+
     _skyGlowPaint.color = color.withValues(alpha: alpha * 0.22);
     _bladePaint.color = Colors.white.withValues(alpha: alpha);
     _trailPaint.color = color.withValues(alpha: alpha * 0.45);
@@ -1045,7 +1075,11 @@ class MeteorImpactEffect extends PositionComponent
     canvas.save();
     canvas.translate(currentPos.dx, currentPos.dy);
     canvas.rotate(bladeAngle + math.pi / 2);
-    final bladeRect = Rect.fromCenter(center: Offset.zero, width: 8 * (level >= 4 ? 1.5 : 1.0), height: 80);
+    final bladeRect = Rect.fromCenter(
+      center: Offset.zero,
+      width: 8 * (level >= 4 ? 1.5 : 1.0),
+      height: 80,
+    );
     canvas.drawRect(bladeRect.inflate(4), _trailPaint);
     canvas.drawRect(bladeRect, _bladePaint);
     canvas.restore();
@@ -1058,7 +1092,7 @@ class MeteorImpactEffect extends PositionComponent
     final blastRadius = radius * Curves.easeOutQuart.transform(t);
     canvas.drawCircle(impact, blastRadius * 0.5, _firePaint);
     canvas.drawCircle(impact, blastRadius, _blastPaint);
-    
+
     // Impact Flash
     if (t < 0.2) {
       canvas.drawCircle(impact, blastRadius * 1.5, _bladePaint);
@@ -1069,7 +1103,10 @@ class MeteorImpactEffect extends PositionComponent
     for (var i = 0; i < lineCount; i++) {
       final angle = i / lineCount * math.pi * 2 + (i % 2 == 0 ? t : -t) * 0.2;
       final length = blastRadius * (0.6 + (i % 3) * 0.2);
-      final end = impact.translate(math.cos(angle) * length, math.sin(angle) * length);
+      final end = impact.translate(
+        math.cos(angle) * length,
+        math.sin(angle) * length,
+      );
       canvas.drawLine(impact, end, _craterPaint);
     }
 
@@ -1082,7 +1119,8 @@ class MeteorImpactEffect extends PositionComponent
   }
 }
 
-class MeteorTargetingEffect extends PositionComponent with HasGameReference<IdleGame> {
+class MeteorTargetingEffect extends PositionComponent
+    with HasGameReference<IdleGame> {
   MeteorTargetingEffect({
     required Vector2 target,
     required this.radius,
@@ -1098,7 +1136,7 @@ class MeteorTargetingEffect extends PositionComponent with HasGameReference<Idle
   final Paint _paint = Paint()
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2.0;
-  
+
   final Paint _fill = Paint()..style = PaintingStyle.fill;
 
   @override
@@ -1115,25 +1153,32 @@ class MeteorTargetingEffect extends PositionComponent with HasGameReference<Idle
     final t = (_age / duration).clamp(0.0, 1.0);
     final alpha = (1 - t) * 0.8;
     final eased = Curves.easeIn.transform(t);
-    
+
     _paint.color = color.withValues(alpha: alpha);
     _fill.color = color.withValues(alpha: alpha * 0.15);
-    
+
     final currentRadius = radius * (1.5 - 0.5 * eased);
     canvas.drawCircle(Offset.zero, currentRadius, _fill);
     canvas.drawCircle(Offset.zero, currentRadius, _paint);
-    
+
     // Crosshair
     final inner = currentRadius * 0.3;
     canvas.drawLine(Offset(-currentRadius, 0), Offset(-inner, 0), _paint);
     canvas.drawLine(Offset(currentRadius, 0), Offset(inner, 0), _paint);
     canvas.drawLine(Offset(0, -currentRadius), Offset(0, -inner), _paint);
     canvas.drawLine(Offset(0, currentRadius), Offset(0, inner), _paint);
-    
+
     // Ancient Sigil Dots
     for (var i = 0; i < 4; i++) {
       final angle = i * math.pi / 2 + t * 4;
-      canvas.drawCircle(Offset(math.cos(angle) * currentRadius, math.sin(angle) * currentRadius), 3, _paint);
+      canvas.drawCircle(
+        Offset(
+          math.cos(angle) * currentRadius,
+          math.sin(angle) * currentRadius,
+        ),
+        3,
+        _paint,
+      );
     }
   }
 }
@@ -1156,11 +1201,19 @@ class HeroAuraEffect extends PositionComponent with HasGameReference<IdleGame> {
     _age += dt;
 
     if (_particles.length < 20 && _rng.nextDouble() < 0.3) {
-      _particles.add(_AuraParticle(
-        offset: Vector2((_rng.nextDouble() - 0.5) * 20, (_rng.nextDouble() - 0.5) * 20),
-        velocity: Vector2((_rng.nextDouble() - 0.5) * 15, -20 - _rng.nextDouble() * 30),
-        life: 0.6 + _rng.nextDouble() * 0.4,
-      ));
+      _particles.add(
+        _AuraParticle(
+          offset: Vector2(
+            (_rng.nextDouble() - 0.5) * 20,
+            (_rng.nextDouble() - 0.5) * 20,
+          ),
+          velocity: Vector2(
+            (_rng.nextDouble() - 0.5) * 15,
+            -20 - _rng.nextDouble() * 30,
+          ),
+          life: 0.6 + _rng.nextDouble() * 0.4,
+        ),
+      );
     }
 
     for (var i = _particles.length - 1; i >= 0; i--) {
@@ -1178,7 +1231,7 @@ class HeroAuraEffect extends PositionComponent with HasGameReference<IdleGame> {
     super.render(canvas);
     final color = _getAuraColor();
     final pulse = 0.5 + 0.5 * math.sin(_age * 4);
-    
+
     _aurPaint.color = color.withValues(alpha: 0.15 + 0.1 * pulse);
     canvas.drawCircle(
       Offset(effectCenter.x, effectCenter.y),
@@ -1239,7 +1292,11 @@ class HeroAuraEffect extends PositionComponent with HasGameReference<IdleGame> {
 }
 
 class _AuraParticle {
-  _AuraParticle({required this.offset, required this.velocity, required this.life});
+  _AuraParticle({
+    required this.offset,
+    required this.velocity,
+    required this.life,
+  });
   Vector2 offset;
   Vector2 velocity;
   double life;

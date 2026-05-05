@@ -1,4 +1,5 @@
 import 'package:flame_game/game/state/game_state.dart';
+import 'package:flame_game/game/state/meta_state.dart';
 import 'package:flame_game/game/state/mech_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,22 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+  });
+
+  test('devMaxAll unlocks everything in MetaState', () {
+    final meta = MetaState();
+    addTearDown(meta.dispose);
+
+    expect(meta.embers, 0);
+    expect(meta.widerPick, isFalse);
+    expect(meta.hasKeystone('whiplash'), isFalse);
+
+    meta.devMaxAll();
+
+    expect(meta.widerPick, isTrue);
+    expect(meta.rerollsPerRun, 3);
+    expect(meta.hasKeystone('whiplash'), isTrue);
+    expect(meta.hasKeystone('twinblade'), isTrue);
   });
 
   test('base balance metrics are internally consistent', () {
@@ -143,5 +160,116 @@ void main() {
 
     expect(loaded.selectedMech, MechType.standard);
     expect(loaded.nexusMaxHp, GameState.maxNexusHp);
+  });
+
+  test('unlockDevMode only works with the correct key', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.devMode, isFalse);
+
+    // Wrong key
+    final wrong = state.unlockDevMode('WRONG');
+    expect(wrong, isFalse);
+    expect(state.devMode, isFalse);
+
+    // Correct key
+    final correct = state.unlockDevMode('TWANGPRO');
+    expect(correct, isTrue);
+    expect(state.devMode, isTrue);
+
+    // Case insensitive/trimmed
+    state.devMode = false;
+    final trimmed = state.unlockDevMode('  twangpro  ');
+    expect(trimmed, isTrue);
+    expect(state.devMode, isTrue);
+
+    // Toggles OFF
+    final off = state.unlockDevMode('TWANGPRO');
+    expect(off, isTrue);
+    expect(state.devMode, isFalse);
+  });
+
+  test('godMode prevents nexus damage', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.godMode, isFalse);
+    state.damageNexus(10);
+    expect(state.nexusHp, state.nexusMaxHp - 10);
+
+    state.toggleGodMode();
+    expect(state.godMode, isTrue);
+    state.damageNexus(10);
+    expect(state.nexusHp, state.nexusMaxHp - 10);
+  });
+
+  test('requestDevKillAll increments request counter', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.devKillAllRequest, 0);
+    state.requestDevKillAll();
+    expect(state.devKillAllRequest, 1);
+    state.requestDevKillAll();
+    expect(state.devKillAllRequest, 2);
+  });
+
+  test('devPauseSpawning and devHealNexus work correctly', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.devPauseSpawning, isFalse);
+    state.toggleDevPauseSpawning();
+    expect(state.devPauseSpawning, isTrue);
+
+    state.damageNexus(50);
+    expect(state.nexusHp, state.nexusMaxHp - 50);
+    state.devHealNexus();
+    expect(state.nexusHp, state.nexusMaxHp);
+  });
+
+  test('cycleGameSpeed and togglePerfOverlay work correctly', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.devTimeScale, 1.0);
+    state.cycleGameSpeed();
+    expect(state.devTimeScale, 2.0);
+    state.cycleGameSpeed();
+    expect(state.devTimeScale, 5.0);
+    state.cycleGameSpeed();
+    expect(state.devTimeScale, 1.0);
+
+    final initialPerf = state.showPerfOverlay;
+    state.togglePerfOverlay();
+    expect(state.showPerfOverlay, !initialPerf);
+  });
+
+  test('devForceLevelUp triggers upgrade choices', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.hasPendingLevelUp, isFalse);
+    state.devForceLevelUp();
+    expect(state.hasPendingLevelUp, isTrue);
+    expect(state.pendingChoices, isNotEmpty);
+  });
+
+  test('muted flag defaults to true and persists', () async {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.muted, isTrue);
+    state.toggleMuted();
+    expect(state.muted, isFalse);
+
+    await state.save();
+
+    final loaded = GameState();
+    addTearDown(loaded.dispose);
+    await loaded.load();
+
+    expect(loaded.muted, isFalse);
   });
 }

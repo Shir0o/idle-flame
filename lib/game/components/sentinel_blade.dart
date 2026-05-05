@@ -1,67 +1,41 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-import 'dart:typed_data';
+
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
+import '../audio/game_audio.dart';
 import '../idle_game.dart';
 import 'enemy.dart';
-import 'combat_effects.dart';
 
 enum _StrikePhase { idle, windup, dashing, returning }
 
 class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
-  SentinelBlade({required this.orbitIndex, this.level = 1})
-    : super(priority: 62) {
-    // Stagger initial readiness so blades don't all strike simultaneously
-    // when a target appears.
-    _attackTimer = orbitIndex * 0.18;
-  }
+  SentinelBlade({required this.orbitIndex, required this.level})
+    : super(size: Vector2.all(40), anchor: Anchor.center);
 
   final int orbitIndex;
   final int level;
+
+  _StrikePhase _phase = _StrikePhase.idle;
+  double _phaseTimer = 0;
   Enemy? _target;
   double _attackTimer = 0;
   double _totalTime = 0;
   double _pulseTimer = 0;
-  double _pulseDuration = 0.18;
-
-  _StrikePhase _phase = _StrikePhase.idle;
-  double _phaseTimer = 0;
-  double _phaseDuration = 0;
-
-  Vector2 _dashStart = Vector2.zero();
-  Vector2 _dashControl1 = Vector2.zero();
-  Vector2 _dashControl2 = Vector2.zero();
-  Vector2 _dashEnd = Vector2.zero();
-  double _dashProgress = 0;
-
-  Vector2 _windupAnchor = Vector2.zero();
-
-  Vector2 _returnStart = Vector2.zero();
-  Vector2 _returnControl = Vector2.zero();
-
-  final Set<Enemy> _hitThisDash = {};
-  static const double _sliceOvershoot = 84.0;
-
-  static const double _siblingStaggerGap = 0.10;
+  double _pulseDuration = 0;
+  bool _chainStrikePending = false;
 
   final List<Vector2> _trail = [];
-  static const int _maxTrailPoints = 32;
+  static const int _maxTrailPoints = 14;
 
-  static const double _attackRange = double.infinity;
+  static const double _attackCooldown = 2.4;
   static const double _dashSpeedRef = 1000;
   static const double _windupDuration = 0.10;
 
   final Paint _bladePaint = Paint()
     ..color = const Color(0xFFE1F5FE)
     ..style = PaintingStyle.fill;
-
-  final Paint _trailPaint = Paint()..style = PaintingStyle.fill;
-
-  final Paint _handlePaint = Paint()
-    ..color = const Color(0xFF6A4C93).withValues(alpha: 0.7)
-    ..strokeCap = StrokeCap.round
-    ..style = PaintingStyle.stroke;
 
   @override
   void update(double dt) {
@@ -142,47 +116,17 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     _pulseDuration = duration;
   }
 
-  bool _siblingsClear() {
-    final p = parent;
-    if (p == null) return true;
-    for (final c in p.children) {
-      if (c is SentinelBlade && !identical(c, this)) {
-        if (c._phase == _StrikePhase.windup ||
-            c._phase == _StrikePhase.dashing) {
-          return false;
-        }
-        // Brief gap after a sibling slices so strikes sequence visibly.
-        if (c._phase == _StrikePhase.returning &&
-            c._phaseTimer < _siblingStaggerGap) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  void _findTarget(Vector2 refPos, {bool useNearest = false}) {
+  void _findTarget(Vector2 heroPos) {
     final enemies = game.aliveEnemies;
     if (enemies.isEmpty) return;
 
     Enemy? best;
-    if (useNearest) {
-      double minDist2 = double.infinity;
-      for (final e in enemies) {
-        final d2 = (e.position - refPos).length2;
-        if (d2 < minDist2) {
-          minDist2 = d2;
-          best = e;
-        }
-      }
-    } else {
-      double maxDist2 = -1;
-      for (final e in enemies) {
-        final d2 = (e.position - refPos).length2;
-        if (d2 < _attackRange * _attackRange && d2 > maxDist2) {
-          maxDist2 = d2;
-          best = e;
-        }
+    double minDist2 = double.infinity;
+    for (final e in enemies) {
+      final d2 = (e.position - heroPos).length2;
+      if (d2 < minDist2) {
+        minDist2 = d2;
+        best = e;
       }
     }
     _target = best;
@@ -223,449 +167,176 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   void _enterWindup({bool isChain = false}) {
     _phase = _StrikePhase.windup;
     _phaseTimer = 0;
-    // Chain strikes are faster since the blade is already in 'attack mode'.
-    _phaseDuration = isChain ? _windupDuration * 0.6 : _windupDuration;
-    _windupAnchor = position.clone();
-    _trail.clear();
-    game.audio.playSkillCast();
+    _chainStrikePending = false;
+
+    // Pulse effects during strike.
+    game.hero.pulse(0.12);
+    pulse(0.12);
+
+    if (isChain) {
+      // Chain strikes are faster since the blade is already in 'attack mode'.
+      _attackTimer = 0;
+    }
   }
 
   void _tickWindup(double dt) {
-    final t = _target;
-    if (t == null) {
-      _phase = _StrikePhase.idle;
-      return;
-    }
     _phaseTimer += dt;
-    final p = (_phaseTimer / _phaseDuration).clamp(0.0, 1.0);
-
-    final toTarget = t.position - _windupAnchor;
-    final dir = toTarget.normalized();
-
-    // Pull back slightly like a coiled spring, then face the target.
-    final pullBack = 6.0 * Curves.easeInOutCubic.transform(p);
-    position = _windupAnchor - dir * pullBack;
-
-    if (toTarget.length2 > 0) {
-      final baseAngle = math.atan2(toTarget.y, toTarget.x);
-      // Subtle "readying" tilt.
-      final tilt = 0.25 * math.sin(p * math.pi);
-      angle = baseAngle + tilt;
-    }
-
-    if (_phaseTimer >= _phaseDuration) {
-      _enterDash();
-    }
-  }
-
-  void _enterDash() {
-    final t = _target;
-    if (t == null) {
+    if (_target == null || !_target!.isAlive) {
       _phase = _StrikePhase.idle;
       return;
     }
-    _dashStart = position.clone();
 
-    // Each blade approaches the target from its own angle, fanning around it
-    // (yujian / sword-flight feel). The angle rotates over time so successive
-    // strikes from the same blade also vary.
-    final count = math.max(2, game.state.sentinelCount);
-    final spread = orbitIndex * (math.pi * 2 / count);
-    final phase = _totalTime * 0.6;
-    final approachAngle = spread + phase;
-    final approachDir = Vector2(
-      math.cos(approachAngle),
-      math.sin(approachAngle),
-    );
+    // Face the target during windup.
+    final toTarget = _target!.position - position;
+    angle = math.atan2(toTarget.y, toTarget.x);
 
-    // The blade enters the target along approachDir and exits past it.
-    _dashEnd = t.position + approachDir * _sliceOvershoot;
-
-    // Aggressive waypoint logic: find the closest enemy that is NOT the target.
-    Enemy? waypoint;
-    double minWayDist2 = double.infinity;
-    for (final e in game.aliveEnemies) {
-      if (e == t) continue;
-      final d2 = (e.position - _dashStart).length2;
-      if (d2 < minWayDist2) {
-        minWayDist2 = d2;
-        waypoint = e;
-      }
+    if (_phaseTimer >= _windupDuration) {
+      _phase = _StrikePhase.dashing;
+      _phaseTimer = 0;
+      game.audio.playSkillDamage(SkillSound.physical);
     }
-
-    final entryAnchor = t.position - approachDir * 36;
-    final chord = entryAnchor - _dashStart;
-    final chordLen = chord.length;
-
-    if (waypoint != null) {
-      // Pull P1 aggressively through/past the waypoint.
-      final toWaypoint = waypoint.position - _dashStart;
-      final dist = toWaypoint.length;
-      if (dist > 0) {
-        final dir = toWaypoint / dist;
-        // Pushing P1 ~80% past the waypoint (capped at 100px) pulls the curve
-        // belly much closer to the enemy.
-        final pullDist = dist + math.min(dist * 0.8, 100.0);
-        _dashControl1 = _dashStart + dir * pullDist;
-      } else {
-        _dashControl1 = _dashStart;
-      }
-      _dashControl2 = entryAnchor;
-    } else {
-      // Fallback to original swooping logic if no secondary targets exist.
-      final chordDir = chordLen > 0 ? chord / chordLen : Vector2(1, 0);
-      final chordNormal = Vector2(-chordDir.y, chordDir.x);
-      final dot = approachDir.dot(chordNormal);
-      final swingSide = dot > 0 ? -1.0 : 1.0;
-      final swingDist = math.max(28.0, chordLen * 0.45);
-
-      _dashControl1 =
-          _dashStart +
-          chord * 0.35 +
-          chordNormal * (swingDist * swingSide);
-      _dashControl2 = entryAnchor;
-    }
-
-    _phase = _StrikePhase.dashing;
-    _phaseTimer = 0;
-    // Recalculate duration based on the actual control point distance.
-    final approxArcLen = (_dashControl1 - _dashStart).length +
-        (_dashControl2 - _dashControl1).length +
-        (_dashEnd - _dashControl2).length;
-    _phaseDuration = math.max(
-      0.16,
-      math.min(0.65, approxArcLen / _dashSpeedRef),
-    );
-    _dashProgress = 0;
-    _hitThisDash.clear();
   }
 
   void _tickDash(double dt) {
     _phaseTimer += dt;
-    final p = (_phaseTimer / _phaseDuration).clamp(0.0, 1.0);
-    // Smooth acceleration into the slice. No slowing down at the end;
-    // the dash momentum carries straight into the return arc.
-    final eased = Curves.easeInSine.transform(p);
-    _dashProgress = eased;
-
-    final prev = position.clone();
-    final mt = 1 - eased;
-    final mt2 = mt * mt;
-    final mt3 = mt2 * mt;
-    final e2 = eased * eased;
-    final e3 = e2 * eased;
-    position = Vector2(
-      mt3 * _dashStart.x +
-          3 * mt2 * eased * _dashControl1.x +
-          3 * mt * e2 * _dashControl2.x +
-          e3 * _dashEnd.x,
-      mt3 * _dashStart.y +
-          3 * mt2 * eased * _dashControl1.y +
-          3 * mt * e2 * _dashControl2.y +
-          e3 * _dashEnd.y,
-    );
-
-    final motion = position - prev;
-    if (motion.length2 > 0) {
-      angle = math.atan2(motion.y, motion.x);
+    if (_target == null) {
+      _phase = _StrikePhase.returning;
+      _phaseTimer = 0;
+      return;
     }
 
-    // Multi-hit: damage every alive enemy whose body the curve sweeps
-    // through, once per strike. We do not re-target — just hit whatever
-    // happens to lie along the slice path.
-    const hitRadius = 16.0;
-    const hitRadius2 = hitRadius * hitRadius;
-    for (final e in game.aliveEnemies) {
-      if (_hitThisDash.contains(e)) continue;
-      if ((e.position - position).length2 < hitRadius2) {
-        _applySliceDamage(motion, e);
-        _hitThisDash.add(e);
-      }
-    }
-    if (p >= 1.0) {
-      final dir = motion.length2 > 0 ? motion.normalized() : Vector2(1, 0);
-      
-      // Look for a new target from current position to continue the chain.
-      // We use nearest targeting here to minimize travel time (auto-seeking).
-      _findTarget(position, useNearest: true);
-      if (_target != null) {
-        // Continue the sweep with a shorter windup.
-        _enterWindup(isChain: true);
-      } else {
-        _enterReturn(dir);
-      }
-    }
-  }
+    final toTarget = _target!.position - position;
+    final dist2 = toTarget.length2;
+    final dashSpeed = _dashSpeedRef * (1 + level * 0.05);
 
-  void _applySliceDamage(Vector2 motion, Enemy t) {
-    t.takeDamage(
-      game.state.sentinelDamage,
-      source: position,
-      type: DamageType.sentinel,
-    );
-
-    parent?.add(
-      HitSparkEffect(
-        effectCenter: t.position.clone(),
-        direction: (position - t.position).normalized(),
-        color: const Color(0xFF00B0FF),
-        count: 12,
-      ),
-    );
-
-    // Slice arc tangent to the blade's velocity through the target.
-    final dir = motion.length2 > 0
-        ? motion.normalized()
-        : (t.position - _dashStart).normalized();
-    final arcHalf = 22.0;
-    parent?.add(
-      SlashArcEffect(
-        from: t.position - dir * arcHalf,
-        to: t.position + dir * arcHalf,
-        color: const Color(0xFF00E5FF),
-        widthMultiplier: 0.55,
-        level: level,
-      ),
-    );
-
-    // Level 5 Mastery: Shard Seekers
-    if (level >= 5) {
-      final secondaryTargets =
-          game.aliveEnemies.where((e) => e != t).toList()..sort(
-            (a, b) => (a.position - position).length2.compareTo(
-              (b.position - position).length2,
-            ),
-          );
-
-      final shardTargets = secondaryTargets.take(3).toList();
-      for (final st in shardTargets) {
-        parent?.add(
-          SentinelShard(
-            startPos: position.clone(),
-            target: st,
-            damage: game.state.sentinelDamage * 0.4,
-          ),
-        );
-      }
-    }
-
-    if (game.state.meta.hasKeystone('twinblade') && t.isAlive) {
-      t.takeDamage(
-        game.state.sentinelDamage * 0.6,
+    if (dist2 < 40 * 40) {
+      // Impact!
+      _target!.takeDamage(
+        game.state.sentinelDamage,
         source: position,
         type: DamageType.sentinel,
       );
+      game.shakeCamera(intensity: 3, duration: 0.1);
+
+      // Level 5 Ascendant: Dash to a second target immediately if possible.
+      if (level >= 5 && !_chainStrikePending) {
+        final otherEnemies = game.aliveEnemies.where((e) => e != _target);
+        if (otherEnemies.isNotEmpty) {
+          _chainStrikePending = true;
+          // Find next nearest.
+          Enemy? next;
+          double nextDist2 = double.infinity;
+          for (final e in otherEnemies) {
+            final d2 = (e.position - position).length2;
+            if (d2 < nextDist2) {
+              nextDist2 = d2;
+              next = e;
+            }
+          }
+          _target = next;
+          _enterWindup(isChain: true);
+          return;
+        }
+      }
+
+      _phase = _StrikePhase.returning;
+      _phaseTimer = 0;
+      _attackTimer = _attackCooldown * math.pow(0.92, level);
+    } else {
+      position += toTarget.normalized() * dashSpeed * dt;
+      // Face movement direction.
+      angle = math.atan2(toTarget.y, toTarget.x);
     }
-
-    _attackTimer = game.state.sentinelAttackCooldown;
-  }
-
-  Vector2 _formationSlot(Vector2 heroPos) {
-    const xBase = 48.0;
-    const spacing = 14.0;
-    final xOffset = xBase + orbitIndex * spacing;
-    final bob =
-        2.0 * math.sin(_totalTime * 1.8 + orbitIndex * 0.7) +
-        1.0 * math.sin(_totalTime * 1.1 + orbitIndex * 0.4);
-    return heroPos + Vector2(xOffset, bob);
-  }
-
-  void _enterReturn(Vector2 motionDir) {
-    _phase = _StrikePhase.returning;
-    _phaseTimer = 0;
-    _returnStart = position.clone();
-
-    // Continue forward briefly so the slice exit eases into the return arc,
-    // then perpendicular swing curves the path back to the formation slot.
-    final heroPos = game.hero.position;
-    final slot = _formationSlot(heroPos);
-    final toSlot = slot - _returnStart;
-    final toSlotLen = toSlot.length;
-
-    final straight = toSlotLen > 0 ? toSlot / toSlotLen : Vector2(-1, 0);
-    final normal = Vector2(-straight.y, straight.x);
-    final side = (orbitIndex.isEven) ? -1.0 : 1.0;
-    final swing = math.max(40.0, toSlotLen * 0.45);
-
-    final continueDir = motionDir.length2 > 0
-        ? motionDir.normalized()
-        : straight;
-    _returnControl =
-        _returnStart +
-        continueDir * 28 +
-        normal * (swing * side);
-
-    // Dynamic duration ensures the return flight feels consistent with the dash speed.
-    final approxReturnLen = toSlotLen + swing * 0.6;
-    _phaseDuration = math.max(0.22, approxReturnLen / (_dashSpeedRef * 0.8));
   }
 
   void _tickReturn(Vector2 heroPos, double dt) {
     _phaseTimer += dt;
-    final p = (_phaseTimer / _phaseDuration).clamp(0.0, 1.0);
-    // Start at high velocity (continuation of dash) and ease back into the slot.
-    final eased = Curves.easeOutSine.transform(p);
+    // Arcing return path.
+    final toHero = heroPos - position;
+    final dist2 = toHero.length2;
+    final returnSpeed = 600.0;
 
-    // End point follows the live formation slot so a moving hero is tracked.
-    final slot = _formationSlot(heroPos);
-    final prev = position.clone();
-    final mt = 1 - eased;
-    position = Vector2(
-      mt * mt * _returnStart.x +
-          2 * mt * eased * _returnControl.x +
-          eased * eased * slot.x,
-      mt * mt * _returnStart.y +
-          2 * mt * eased * _returnControl.y +
-          eased * eased * slot.y,
-    );
-
-    final motion = position - prev;
-    if (motion.length2 > 0) {
-      // Blend toward the resting (north-facing) angle as we settle.
-      final flightAngle = math.atan2(motion.y, motion.x);
-      final restAngle = -math.pi / 2;
-      angle = _lerpAngle(flightAngle, restAngle, Curves.easeInCubic.transform(p));
-    }
-
-    if (_phaseTimer >= _phaseDuration) {
+    if (dist2 < 10 * 10) {
       _phase = _StrikePhase.idle;
-      _target = null;
+      _phaseTimer = 0;
+    } else {
+      position += toHero.normalized() * returnSpeed * dt;
+      angle = math.atan2(toHero.y, toHero.x);
     }
   }
 
-  double _lerpAngle(double a, double b, double t) {
-    var diff = (b - a) % (2 * math.pi);
-    if (diff > math.pi) diff -= 2 * math.pi;
-    if (diff < -math.pi) diff += 2 * math.pi;
-    return a + diff * t;
-  }
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
 
-  // --- Rendering -----------------------------------------------------------
+    // Draw the trailing ribbon.
+    if (_trail.length >= 2) {
+      _drawRibbon(canvas);
+    }
 
-  Path _swordBladePath(double length, double width) {
-    final tip = length * 0.52;
-    final shoulder = length * 0.28;
-    final base = -length * 0.22;
-    final half = width * 0.5;
+    final sizeBase = 12.0 * (level >= 3 ? 1.3 : 1.0);
+    final bladeLength = sizeBase * 2.2;
+    final bladeWidth = sizeBase * 0.45;
 
-    // Classic Jian shape: defined shoulders and a slender waist.
-    return Path()
-      ..moveTo(tip, 0)
-      ..lineTo(shoulder, -half) // Taper from tip to shoulder
-      ..lineTo(base, -half * 0.75) // Gentle waist taper to base
-      ..lineTo(base - 3, 0) // Elegant rounded base point
-      ..lineTo(base, half * 0.75)
-      ..lineTo(shoulder, half)
-      ..close();
-  }
-
-  void _drawSword(
-    Canvas canvas,
-    double size,
-    Paint bladePaint,
-  ) {
-    // Celestial Jian: balanced, slender, and noble.
-    final bladeLength = size * 2.2;
-    final bladeWidth = size * 0.20; // More defined than the needle
-    final bladePath = _swordBladePath(bladeLength, bladeWidth);
-
-    // Subtle outer shimmer (ethereal edge)
-    final shimmerPaint = Paint()
-      ..color = const Color(0xFFB2EBF2).withValues(alpha: 0.25)
-      ..style = PaintingStyle.fill;
     canvas.save();
-    canvas.scale(1.18, 1.28);
-    canvas.drawPath(bladePath, shimmerPaint);
+    // Pivot around the anchor point.
+    // Blade renders from the origin point outwards.
+    final path = Path()
+      ..moveTo(-bladeLength * 0.22, -bladeWidth / 2) // Guard back
+      ..lineTo(bladeLength * 0.78, 0) // Tip
+      ..lineTo(-bladeLength * 0.22, bladeWidth / 2) // Guard back
+      ..lineTo(-bladeLength * 0.35, 0) // Pommel
+      ..close();
+
+    canvas.drawPath(path, _bladePaint);
+
+    // Glowing edge effect.
+    final edgePaint = Paint()
+      ..color = const Color(0xFF64FFDA).withValues(alpha: 0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    canvas.drawPath(path, edgePaint);
+
     canvas.restore();
-
-    // Main blade body
-    canvas.drawPath(bladePath, bladePaint);
-
-    // Integrated Spirit Core (soft central light)
-    final corePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.8)
-      ..style = PaintingStyle.fill;
-    final corePath = _swordBladePath(bladeLength * 0.8, bladeWidth * 0.4);
-    canvas.drawPath(corePath, corePaint);
-
-    // Central Ridge / Spirit Spine
-    final spinePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.6)
-      ..strokeWidth = 1.0
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawLine(
-      Offset(-bladeLength * 0.15, 0),
-      Offset(bladeLength * 0.42, 0),
-      spinePaint,
-    );
-
-    // Ornament: Minimalist Guard (spirit line)
-    final guardPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.4)
-      ..strokeWidth = 0.8
-      ..style = PaintingStyle.stroke;
-
-    // A tiny horizontal line to suggest a guard without adding bulk
-    canvas.drawLine(
-      Offset(-bladeLength * 0.12, -bladeWidth * 0.58),
-      Offset(-bladeLength * 0.12, bladeWidth * 0.58),
-      guardPaint,
-    );
   }
 
-  void _renderRibbon(Canvas canvas, double headHalfWidth) {
-    if (_trail.length < 2) return;
-
-    final n = _trail.length;
+  void _drawRibbon(Canvas canvas) {
     final vertices = <Offset>[];
     final colors = <Color>[];
+    final baseColor = const Color(0xFF64FFDA);
 
-    // Base colors for the gradient: Vibrant Cyan to Transparent.
-    final startColor = const Color(0xFF00E5FF).withValues(alpha: 0.65);
-    final endColor = const Color(0xFFB2EBF2).withValues(alpha: 0.0);
+    for (var i = 0; i < _trail.length - 1; i++) {
+      final p1 = _trail[i];
+      final p2 = _trail[i + 1];
+      final t = i / _trail.length;
+      final opacity = (1.0 - t).clamp(0.0, 1.0);
+      final width = 6.0 * opacity;
 
-    for (var i = 0; i < n; i++) {
-      final p = _trail[i];
-      // Direction along the curve at point i.
-      final Vector2 tangent;
-      if (i == 0) {
-        tangent = (p - _trail[i + 1]);
-      } else if (i == n - 1) {
-        tangent = (_trail[i - 1] - p);
-      } else {
-        tangent = (_trail[i - 1] - _trail[i + 1]);
-      }
-      
-      if (tangent.length2 == 0) continue;
-      final t = tangent.normalized();
-      final normal = Vector2(-t.y, t.x);
+      final direction = (p2 - p1).normalized();
+      final normal = Vector2(-direction.y, direction.x);
 
-      // Graceful cubic taper for a more "silk ribbon" feel.
-      final progress = i / (n - 1);
-      final taper = Curves.easeInCubic.transform(1.0 - progress);
-      final hw = headHalfWidth * taper;
+      final localP1 = p1 - position;
 
-      // Color fades along the length.
-      final color = Color.lerp(startColor, endColor, progress) ?? endColor;
+      vertices.add(
+        Offset(localP1.x + normal.x * width, localP1.y + normal.y * width),
+      );
+      vertices.add(
+        Offset(localP1.x - normal.x * width, localP1.y - normal.y * width),
+      );
 
-      // Add two vertices (left and right) for each point in the trail.
-      // We are rendering in world space, so we use the coordinates directly.
-      final lx = p.x + normal.x * hw;
-      final ly = p.y + normal.y * hw;
-      final rx = p.x - normal.x * hw;
-      final ry = p.y - normal.y * hw;
-
-      vertices.add(Offset(lx, ly));
-      vertices.add(Offset(rx, ry));
+      final color = baseColor.withValues(alpha: 0.4 * opacity);
       colors.add(color);
       colors.add(color);
     }
 
-    if (vertices.length < 4) return;
+    if (vertices.length < 3) return;
 
-    // Use drawVertices with a Triangle Strip for smooth gradients.
+    final indices = <int>[];
+    for (var i = 0; i < vertices.length - 2; i += 2) {
+      indices.addAll([i, i + 1, i + 2]);
+      indices.addAll([i + 1, i + 2, i + 3]);
+    }
+
     final ribbonVertices = ui.Vertices(
       ui.VertexMode.triangleStrip,
       vertices,
@@ -673,122 +344,5 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     );
 
     canvas.drawVertices(ribbonVertices, BlendMode.srcOver, Paint());
-  }
-
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
-
-    // Motion ribbon (only present during strike phases).
-    // The trail points are in world space, so we temporarily undo the component's 
-    // internal translation/rotation/scale to draw it correctly.
-    canvas.save();
-    final m = transform.transformMatrix.clone();
-    m.invert();
-    canvas.transform(Float64List.fromList(m.storage));
-    _renderRibbon(canvas, 5.0);
-    canvas.restore();
-
-    canvas.save();
-
-    // Slight scale stretch during dash to sell the speed.
-    if (_phase == _StrikePhase.dashing) {
-      final s = 1.0 + 0.15 * Curves.easeInCubic.transform(_dashProgress);
-      canvas.scale(s, 1.0 / s.clamp(1.0, 2.0));
-    } else if (_phase == _StrikePhase.windup) {
-      final p = (_phaseTimer / _phaseDuration).clamp(0.0, 1.0);
-      final s = 1.0 + 0.15 * Curves.easeOutCubic.transform(p);
-      canvas.scale(s);
-    }
-
-    final sizeBase = 12.0 * (level >= 3 ? 1.3 : 1.0);
-
-    void drawBlade(bool isShadow) {
-      canvas.save();
-      if (isShadow) {
-        canvas.translate(-5, 5);
-        canvas.scale(0.8);
-        final shadowBlade = Paint()
-          ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.4)
-          ..style = PaintingStyle.fill;
-        _drawSword(canvas, sizeBase, shadowBlade);
-      } else {
-        _drawSword(canvas, sizeBase, _bladePaint);
-      }
-      canvas.restore();
-    }
-
-    if (game.state.meta.hasKeystone('twinblade')) {
-      drawBlade(true);
-    }
-    drawBlade(false);
-
-    canvas.restore();
-  }
-}
-
-class SentinelShard extends PositionComponent with HasGameReference<IdleGame> {
-  SentinelShard({
-    required Vector2 startPos,
-    required this.target,
-    required this.damage,
-  }) : super(position: startPos, size: Vector2.all(4), priority: 63);
-
-  final Enemy target;
-  final double damage;
-  double _age = 0;
-  static const double _speed = 850;
-  static const double _maxLife = 1.2;
-
-  final Paint _paint = Paint()
-    ..color = const Color(0xFFE1F5FE)
-    ..style = PaintingStyle.fill;
-
-  final Paint _glow = Paint()
-    ..color = const Color(0xFF00B0FF).withValues(alpha: 0.4)
-    ..style = PaintingStyle.fill;
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    _age += dt;
-    if (_age >= _maxLife || game.state.isRunOver) {
-      removeFromParent();
-      return;
-    }
-
-    if (!target.isAlive) {
-      removeFromParent();
-      return;
-    }
-
-    final toTarget = target.position - position;
-    if (toTarget.length < 10) {
-      target.takeDamage(damage, source: position, type: DamageType.sentinel);
-      removeFromParent();
-      return;
-    }
-
-    position += toTarget.normalized() * _speed * dt;
-    angle = math.atan2(toTarget.y, toTarget.x);
-  }
-
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
-    canvas.save();
-    final blade = Path()
-      ..moveTo(6, 0)
-      ..lineTo(-1, -1.6)
-      ..lineTo(-2.2, -2.5)
-      ..lineTo(-2.2, 2.5)
-      ..lineTo(-1, 1.6)
-      ..close();
-    canvas.scale(1.35);
-    canvas.drawPath(blade, _glow);
-    canvas.scale(1 / 1.35);
-    canvas.drawPath(blade, _paint);
-    canvas.drawLine(const Offset(-2.6, -2.4), const Offset(-2.6, 2.4), _glow);
-    canvas.restore();
   }
 }

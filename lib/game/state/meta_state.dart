@@ -67,6 +67,23 @@ class MetaState extends ChangeNotifier {
     _save();
   }
 
+  void devGrantEmbers(int amount) {
+    embers += amount;
+    notifyListeners();
+    _save();
+  }
+
+  void devMaxAll() {
+    for (final def in metaUpgradeCatalog) {
+      _upgradeTiers[def.id] = def.maxTier;
+    }
+    for (final def in keystoneCatalog) {
+      _keystones.add(def.id);
+    }
+    notifyListeners();
+    _save();
+  }
+
   void clearLastEmbersEarned() {
     if (lastEmbersEarned == 0) return;
     lastEmbersEarned = 0;
