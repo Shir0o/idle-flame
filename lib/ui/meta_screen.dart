@@ -23,7 +23,7 @@ class _MetaShopScreenState extends State<MetaShopScreen> {
           color: Colors.black.withValues(alpha: 0.82),
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 460),
                 child: DecoratedBox(
