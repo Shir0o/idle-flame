@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../game/state/game_state.dart';
+import '../game/state/mech_catalog.dart';
 import '../game/state/meta_catalog.dart';
 import '../game/state/meta_state.dart';
 import '../game/state/skill_catalog.dart';
@@ -249,6 +250,47 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
                               state.estimatedGoldPerSecond.toStringAsFixed(2),
                             ),
                           ],
+                          const SizedBox(height: 10),
+                          const _HeaderLabel('MECH'),
+                          Tooltip(
+                            message: mechDefinitionFor(
+                              state.selectedMech,
+                            ).description,
+                            triggerMode: TooltipTriggerMode.tap,
+                            preferBelow: false,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.smart_toy_rounded,
+                                    color: Color(0xFF64FFDA),
+                                    size: 10,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    mechDefinitionFor(state.selectedMech).title,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                           if (activeKeystones.isNotEmpty) ...[
                             const SizedBox(height: 10),
                             const _HeaderLabel('KEYSTONES'),
