@@ -215,6 +215,14 @@ class GameState extends ChangeNotifier {
     _saveSoon();
   }
 
+  void devMaxAllSkills() {
+    for (final def in skillCatalog) {
+      _skillLevels[def.id] = SkillDefinition.maxLevel;
+    }
+    notifyListeners();
+    _saveSoon();
+  }
+
   void devForceLevelUp() {
     _rollUpgradeChoices();
     notifyListeners();

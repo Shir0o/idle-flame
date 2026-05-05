@@ -75,11 +75,17 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
         ..color = const Color(0xFF00B0FF).withValues(alpha: 0.1 + 0.1 * pulse)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 + 1.0 * pulse;
-      
-      canvas.drawCircle(Offset(cx, cy + bob), radius * (2.0 + 0.2 * pulse), auraPaint);
-      
+
+      canvas.drawCircle(
+        Offset(cx, cy + bob),
+        radius * (2.0 + 0.2 * pulse),
+        auraPaint,
+      );
+
       // Outer faint ring
-      auraPaint.color = const Color(0xFF00B0FF).withValues(alpha: 0.05 * (1 - pulse));
+      auraPaint.color = const Color(
+        0xFF00B0FF,
+      ).withValues(alpha: 0.05 * (1 - pulse));
       canvas.drawCircle(Offset(cx, cy + bob), radius * 3.0, auraPaint);
     }
   }
@@ -109,6 +115,37 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
 
     canvas.drawCircle(center, radius, fillPaint);
     canvas.drawCircle(center, radius, outlinePaint);
+
+    if (game.state.godMode) {
+      _drawGodModeShield(canvas, center, radius);
+    }
+  }
+
+  void _drawGodModeShield(Canvas canvas, Offset center, double radius) {
+    final t = _idlePhase * 2.0;
+    final shieldRadius = radius * 2.5;
+    final shieldPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = const Color(
+        0xFF64FFDA,
+      ).withValues(alpha: 0.3 + 0.1 * math.sin(t));
+
+    // Draw a pulsating hexagonal/circular shield
+    canvas.drawCircle(center, shieldRadius, shieldPaint);
+
+    // Add some orbiting particles or segments
+    final segments = 6;
+    for (var i = 0; i < segments; i++) {
+      final angle = t + (i * 2 * math.pi / segments);
+      final x = center.dx + math.cos(angle) * (shieldRadius + 4);
+      final y = center.dy + math.sin(angle) * (shieldRadius + 4);
+      canvas.drawCircle(
+        Offset(x, y),
+        2,
+        Paint()..color = const Color(0xFF64FFDA).withValues(alpha: 0.6),
+      );
+    }
   }
 
   @override
@@ -253,16 +290,27 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
           : (focusLevel > 0
                 ? const Color(0xFFFFF176)
                 : const Color(0xFF00E5FF));
-      
+
       // Calculate jump delay
       // Level 4 Special: snap faster
       final jumpInterval = chainLevel >= 4 ? 0.04 : 0.08;
       final delay = i * jumpInterval;
 
-      final prevTargetPos = i == 0 ? position.clone() : targets[i - 1].position.clone();
+      final prevTargetPos = i == 0
+          ? position.clone()
+          : targets[i - 1].position.clone();
 
       if (delay == 0) {
-        _applyChainHit(enemy, prevTargetPos, slashColor, focusLevel, chainLevel, critMul, twinShot, i == 0);
+        _applyChainHit(
+          enemy,
+          prevTargetPos,
+          slashColor,
+          focusLevel,
+          chainLevel,
+          critMul,
+          twinShot,
+          i == 0,
+        );
       } else {
         parent?.add(
           TimerComponent(
@@ -270,7 +318,16 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
             removeOnFinish: true,
             onTick: () {
               if (game.state.isRunOver || !enemy.isAlive) return;
-              _applyChainHit(enemy, prevTargetPos, slashColor, focusLevel, chainLevel, critMul, false, false);
+              _applyChainHit(
+                enemy,
+                prevTargetPos,
+                slashColor,
+                focusLevel,
+                chainLevel,
+                critMul,
+                false,
+                false,
+              );
             },
           ),
         );
@@ -343,19 +400,20 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     final novaLevel = game.state.flameNovaLevel;
     final radius = game.state.flameNovaRadius;
     final targets = _enemiesInRange(radius);
-    
+
     // Level 4 Special: Reactor Surge (under pressure)
     // "Pressure" is defined as having enemies within 150 units of the nexus
     final enemiesNearNexus = _enemiesInRange(150);
     final isUnderPressure = novaLevel >= 4 && enemiesNearNexus.isNotEmpty;
-    
+
     final finalDamageScale = damageScale * (isUnderPressure ? 1.5 : 1.0);
-    final finalShake = (isAftershock ? 2.0 : 3.5) * (isUnderPressure ? 1.4 : 1.0);
+    final finalShake =
+        (isAftershock ? 2.0 : 3.5) * (isUnderPressure ? 1.4 : 1.0);
 
     if (!isAftershock) _pulse(isUnderPressure ? 0.28 : 0.2);
     game.audio.playSkillCast();
     game.shakeCamera(intensity: finalShake, duration: 0.16);
-    
+
     final effectRadius = radius.isFinite ? radius : game.size.length;
     parent?.add(
       NovaPulseEffect(
@@ -396,7 +454,7 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
       final nearWall = (enemy.position.y - wallY).abs() <= 28;
       return insideWidth && nearWall;
     }).toList();
-    
+
     for (final enemy in enemies) {
       enemy.takeDamage(
         game.state.firewallDamage,
@@ -410,7 +468,7 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
       // Refresh the timer significantly
       _firewallTimer = GameState.firewallCooldown * 0.4;
     }
-    
+
     if (!isBackdraft && game.state.meta.hasKeystone('backdraft')) {
       _backdraftTimer = 0.4;
     }
@@ -421,7 +479,7 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     if (enemies.isEmpty) return;
     enemies.sort((a, b) => b.position.y.compareTo(a.position.y));
     final target = enemies.first;
-    
+
     final meteorLevel = game.state.meteorMarkLevel;
     final radius = game.state.meteorMarkRadius;
     final blastRadius = radius.isFinite ? radius : game.size.length;
@@ -431,11 +489,13 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     final lockDuration = meteorLevel >= 4 ? 0.35 : 0.7;
 
     // Add targeting sigil
-    parent?.add(MeteorTargetingEffect(
-      target: target.position.clone(),
-      radius: blastRadius,
-      duration: lockDuration,
-    ));
+    parent?.add(
+      MeteorTargetingEffect(
+        target: target.position.clone(),
+        radius: blastRadius,
+        duration: lockDuration,
+      ),
+    );
 
     // Staggered Impact
     parent?.add(
@@ -444,7 +504,11 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
         removeOnFinish: true,
         onTick: () {
           if (game.state.isRunOver) return;
-          _applyMeteorImpact(target.position.clone(), blastRadius, blastRadiusSquared);
+          _applyMeteorImpact(
+            target.position.clone(),
+            blastRadius,
+            blastRadiusSquared,
+          );
 
           // Level 5 Mastery: Rain of Chrome Comets
           if (meteorLevel >= 5) {
@@ -488,7 +552,12 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
             removeOnFinish: true,
             onTick: () {
               if (game.state.isRunOver) return;
-              _applyMeteorImpact(clusterPos, blastRadius * 0.6, blastRadiusSquared * 0.36, damageScale: 0.5);
+              _applyMeteorImpact(
+                clusterPos,
+                blastRadius * 0.6,
+                blastRadiusSquared * 0.36,
+                damageScale: 0.5,
+              );
             },
           ),
         );
@@ -496,7 +565,12 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     }
   }
 
-  void _applyMeteorImpact(Vector2 impactPos, double radius, double radiusSq, {double damageScale = 1.0}) {
+  void _applyMeteorImpact(
+    Vector2 impactPos,
+    double radius,
+    double radiusSq, {
+    double damageScale = 1.0,
+  }) {
     parent?.add(
       MeteorImpactEffect(
         target: impactPos,

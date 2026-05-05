@@ -203,7 +203,11 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
                         spacing: 4,
                         runSpacing: 4,
                         children: entry.value.map((s) {
-                          return _SkillChip(s.def.title, s.level);
+                          return _SkillChip(
+                            s.def.title,
+                            s.level,
+                            entry.key.color,
+                          );
                         }).toList(),
                       ),
                     ],
@@ -279,17 +283,16 @@ class _MetricRow extends StatelessWidget {
 }
 
 class _SkillChip extends StatelessWidget {
-  const _SkillChip(this.label, this.level);
+  const _SkillChip(this.label, this.level, this.baseColor);
 
   final String label;
   final int level;
+  final Color baseColor;
 
   @override
   Widget build(BuildContext context) {
     final active = level > 0;
-    final color = active
-        ? const Color(0xFF64FFDA)
-        : Colors.white.withValues(alpha: 0.42);
+    final color = active ? baseColor : Colors.white.withValues(alpha: 0.42);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
@@ -492,7 +495,15 @@ class _DevToolsState extends State<_DevTools> {
                       onTap: () => state.devGrantGold(1000),
                     ),
                     _MenuItem(
+                      icon: Icons.auto_awesome,
+                      color: const Color(0xFF64FFDA),
+                      label: 'Max All Skills',
+                      description: 'Instantly max out every in-run skill.',
+                      onTap: () => state.devMaxAllSkills(),
+                    ),
+                    _MenuItem(
                       icon: Icons.star,
+
                       color: const Color(0xFFFFD166),
                       label: 'Max Meta',
                       description:
