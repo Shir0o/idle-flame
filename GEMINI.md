@@ -15,7 +15,9 @@ This project uses PixelLab for AI-powered pixel art generation.
   - **Trigger**: Tap the **Floor Badge** (top-left) **5 times** rapidly to prompt for the key.
   - **Behavior**: Entering the key **toggles** the developer mode on or off.
   - **Interface**: Once active, a **Settings FAB** appears in the bottom-right.
-  - **Tools**: Categorized suite including God Mode, Kill All, Game Speed (1x-5x), Max Meta, Floor Jumping, and Performance Stats.
-- **Player Arsenal**: A public **Arsenal Panel** (top-left) displays all possessed skills, active keystones, and permanent boons.
-  - **Tooltips**: Tap any item in the Arsenal for a detailed description.
+  - **Tools**: Categorized suite with 12+ master tools including God Mode, Kill All, Game Speed (1x-5x), Max Meta, Floor Jumping, and Performance Stats.
+- **Player Arsenal**: A public **Arsenal Menu** (top-left) displays all possessed powers and lifetime statistics.
+  - **Contents**: Tracks current Mech, Active Skills, Keystones, and Permanent Boons.
+  - **Descriptions**: Full effect descriptions are shown for all acquired abilities.
+  - **Dungeon Stats**: Displays Lifetime Kills and the current Floor Difficulty Multiplier.
   - **Indicators**: A **Speed Badge** (e.g., "2x") appears next to the Floor Badge whenever game speed is modified.

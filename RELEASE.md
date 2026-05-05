@@ -48,13 +48,15 @@
 
 ## Changelog
 
-### v1.2.0
+### v1.2.0 (Gold Master)
 - **Master Developer Suite:** Implemented a professional, hidden debugging command center unlocked by the `TWANGPRO` toggle switch. Includes God Mode, Game Speed control (1x-5x), Max Meta, Kill All, and more.
-- **Audio Overhaul:** Set sound to mute by default on launch for a cleaner user experience. Added a persistent HUD volume toggle with improved vertical spacing.
-- **Arsenal Panel:** Reworked the metrics panel into a public-facing 'Arsenal' that summarizes active skills with icons and archetypes. Advanced metrics remain accessible in developer mode.
+- **Audio Overhaul:** Set sound to mute by default on launch. Added a persistent, high-visibility HUD toggle with labeled feedback ("MUTED" / "SOUND ON").
+- **Dungeon Intelligence:** Added 'Dungeon Statistics' to the Arsenal menu, tracking lifetime kills and displaying real-time difficulty multipliers based on floor depth.
+- **Arsenal Panel:** Reworked the metrics panel into a public-facing 'Arsenal' modal menu that tracks Mech, Skills, Keystones, and Boons with full descriptions.
+- **UI Unification:** Standardized all modal menus with consistent headers, icons, and close buttons for a premium feel.
 - **Visual Restoration:** Fully restored high-end "Endless Seek" sword logic and Celestial Jian visuals with world-space energy trails.
-- **Persistence:** All developer preferences, audio toggles, and game speed settings now persist across app restarts.
-- **QA:** Expanded test suite to 16 unit tests and achieved 100% clean static analysis.
+- **Persistence:** All developer preferences, audio toggles, dungeon stats, and game speed settings now persist across app restarts.
+- **QA:** Expanded test suite to 18 unit tests and achieved 100% clean static analysis.
 
 ### v1.1.0
 - **Combat Evolution:** Overhauled Sentinel Blades into "Celestial Jian" (yujian-style flying swords) with aggressive sweep pathing and "Endless Seek" logic.
