@@ -57,6 +57,7 @@ app.*.map.json
 *.jpeg
 *.gif
 *.webp
+*.mp4
 *.aseprite
 *.mp3
 *.wav
