@@ -14,4 +14,5 @@ This project uses PixelLab for AI-powered pixel art generation.
   - **Access Key**: `TWANGPRO`
   - **Trigger**: Tap the **Floor Badge** (top-left) **5 times** rapidly to prompt for the key.
   - **Behavior**: Entering the key **toggles** the developer mode on or off.
-  - **Tools**: Includes God Mode, Kill All, Floor Jumping, Currency Grants, and Meta Maxing.
+  - **Interface**: Once active, a **Settings FAB** appears in the bottom-right.
+  - **Tools**: Categorized suite including God Mode, Kill All, Game Speed (1x-5x), Max Meta, Floor Jumping, and Performance Stats.
