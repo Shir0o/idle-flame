@@ -132,89 +132,133 @@ class _ArsenalPanel extends StatelessWidget {
                 constraints: BoxConstraints(
                   maxHeight: MediaQuery.of(context).size.height * 0.8,
                 ),
-                child: ListView(
-                  shrinkWrap: true,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (state.devMode) ...[
-                      const _MenuHeader('PERFORMANCE'),
-                      _MenuItem(
-                        icon: Icons.speed,
-                        color: const Color(0xFF64FFDA),
-                        label: 'DPS: ${state.estimatedDps.toStringAsFixed(1)}',
-                        description:
-                            'Enemy HP: ${state.enemyMaxHp.toStringAsFixed(1)} · TTK: ${state.estimatedTimeToKill.isFinite ? state.estimatedTimeToKill.toStringAsFixed(2) : 'n/a'}s',
-                        onTap: () {},
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.grid_view_rounded,
+                            color: Color(0xFF64FFDA),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Arsenal',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(menuContext),
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ],
                       ),
-                      _MenuItem(
-                        icon: Icons.monetization_on,
-                        color: const Color(0xFFFFC107),
-                        label: 'Gold/Kill: ${state.goldPerKill}',
-                        description:
-                            'Est. Gold/Sec: ${state.estimatedGoldPerSecond.toStringAsFixed(2)}',
-                        onTap: () {},
-                      ),
-                    ],
-                    const _MenuHeader('MECH FRAME'),
-                    _MenuItem(
-                      icon: Icons.smart_toy_rounded,
-                      color: const Color(0xFF64FFDA),
-                      label: mechDefinitionFor(state.selectedMech).title,
-                      description: mechDefinitionFor(
-                        state.selectedMech,
-                      ).description,
-                      onTap: () {},
                     ),
-                    if (activeKeystones.isNotEmpty) ...[
-                      const _MenuHeader('ACTIVE KEYSTONES'),
-                      for (final k in activeKeystones)
-                        _MenuItem(
-                          icon: k.archetype.icon,
-                          color: k.archetype.color,
-                          label: k.def.title,
-                          description: k.def.description,
-                          onTap: () {},
-                        ),
-                    ],
-                    if (metaUpgradeCatalog.any(
-                      (def) => meta.upgradeTier(def.id) > 0,
-                    )) ...[
-                      const _MenuHeader('PERMANENT BOONS'),
-                      for (final def in metaUpgradeCatalog.where(
-                        (def) => meta.upgradeTier(def.id) > 0,
-                      ))
-                        _MenuItem(
-                          icon: _boonIcon(def.id),
-                          color: Colors.white,
-                          label: def.maxTier > 1
-                              ? '${def.title} (Lv ${meta.upgradeTier(def.id)})'
-                              : def.title,
-                          description: def.description,
-                          onTap: () {},
-                        ),
-                    ],
-                    const _MenuHeader('ACTIVE SKILLS'),
-                    if (byArchetype.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 8,
-                        ),
-                        child: Text(
-                          'No skills acquired yet.',
-                          style: TextStyle(color: Colors.white38, fontSize: 13),
-                        ),
-                      )
-                    else
-                      for (final entry in byArchetype.entries)
-                        for (final s in entry.value)
+                    const Divider(color: Colors.white10),
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          if (state.devMode) ...[
+                            const _MenuHeader('PERFORMANCE'),
+                            _MenuItem(
+                              icon: Icons.speed,
+                              color: const Color(0xFF64FFDA),
+                              label:
+                                  'DPS: ${state.estimatedDps.toStringAsFixed(1)}',
+                              description:
+                                  'Enemy HP: ${state.enemyMaxHp.toStringAsFixed(1)} · TTK: ${state.estimatedTimeToKill.isFinite ? state.estimatedTimeToKill.toStringAsFixed(2) : 'n/a'}s',
+                              onTap: () {},
+                            ),
+                            _MenuItem(
+                              icon: Icons.monetization_on,
+                              color: const Color(0xFFFFC107),
+                              label: 'Gold/Kill: ${state.goldPerKill}',
+                              description:
+                                  'Est. Gold/Sec: ${state.estimatedGoldPerSecond.toStringAsFixed(2)}',
+                              onTap: () {},
+                            ),
+                          ],
+                          const _MenuHeader('MECH FRAME'),
                           _MenuItem(
-                            icon: entry.key.icon,
-                            color: entry.key.color,
-                            label: '${s.def.title} (Lv ${s.level})',
-                            description: s.def.descriptionForLevel(s.level),
+                            icon: Icons.smart_toy_rounded,
+                            color: const Color(0xFF64FFDA),
+                            label: mechDefinitionFor(state.selectedMech).title,
+                            description: mechDefinitionFor(
+                              state.selectedMech,
+                            ).description,
                             onTap: () {},
                           ),
-                    const SizedBox(height: 20),
+                          if (activeKeystones.isNotEmpty) ...[
+                            const _MenuHeader('ACTIVE KEYSTONES'),
+                            for (final k in activeKeystones)
+                              _MenuItem(
+                                icon: k.archetype.icon,
+                                color: k.archetype.color,
+                                label: k.def.title,
+                                description: k.def.description,
+                                onTap: () {},
+                              ),
+                          ],
+                          if (metaUpgradeCatalog.any(
+                            (def) => meta.upgradeTier(def.id) > 0,
+                          )) ...[
+                            const _MenuHeader('PERMANENT BOONS'),
+                            for (final def in metaUpgradeCatalog.where(
+                              (def) => meta.upgradeTier(def.id) > 0,
+                            ))
+                              _MenuItem(
+                                icon: _boonIcon(def.id),
+                                color: Colors.white,
+                                label: def.maxTier > 1
+                                    ? '${def.title} (Lv ${meta.upgradeTier(def.id)})'
+                                    : def.title,
+                                description: def.description,
+                                onTap: () {},
+                              ),
+                          ],
+                          const _MenuHeader('ACTIVE SKILLS'),
+                          if (byArchetype.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 8,
+                              ),
+                              child: Text(
+                                'No skills acquired yet.',
+                                style: TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            )
+                          else
+                            for (final entry in byArchetype.entries)
+                              for (final s in entry.value)
+                                _MenuItem(
+                                  icon: entry.key.icon,
+                                  color: entry.key.color,
+                                  label: '${s.def.title} (Lv ${s.level})',
+                                  description: s.def.descriptionForLevel(
+                                    s.level,
+                                  ),
+                                  onTap: () {},
+                                ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -568,182 +612,229 @@ class _DevToolsState extends State<_DevTools> {
                 constraints: BoxConstraints(
                   maxHeight: MediaQuery.of(context).size.height * 0.8,
                 ),
-                child: ListView(
-                  shrinkWrap: true,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _MenuHeader('CURRENCY & PROGRESS'),
-                    _MenuItem(
-                      icon: Icons.add_circle,
-                      color: const Color(0xFF64FFDA),
-                      label: 'Add Skill',
-                      description: 'Choose and instantly level up any skill.',
-                      onTap: () {
-                        Navigator.pop(menuContext);
-                        _pickSkill(context);
-                      },
-                    ),
-                    _MenuItem(
-                      icon: Icons.local_fire_department,
-                      color: const Color(0xFFFF8A00),
-                      label: 'Add Embers',
-                      description: 'Grant 100 meta-currency embers.',
-                      onTap: () => meta.devGrantEmbers(100),
-                    ),
-                    _MenuItem(
-                      icon: Icons.attach_money,
-                      color: const Color(0xFFFFC107),
-                      label: 'Add Gold',
-                      description: 'Grant 1000 in-run gold.',
-                      onTap: () => state.devGrantGold(1000),
-                    ),
-                    _MenuItem(
-                      icon: Icons.auto_awesome,
-                      color: const Color(0xFF64FFDA),
-                      label: 'Max All Skills',
-                      description: 'Instantly max out every in-run skill.',
-                      onTap: () => state.devMaxAllSkills(),
-                    ),
-                    _MenuItem(
-                      icon: Icons.star,
-                      color: const Color(0xFFFFD166),
-                      label: 'Max Meta',
-                      description:
-                          'Instantly unlock and max all meta-upgrades.',
-                      onTap: () => meta.devMaxAll(),
-                    ),
-                    _MenuHeader('FLOOR & COMBAT'),
-                    _MenuItem(
-                      icon: Icons.keyboard_double_arrow_up,
-                      color: const Color(0xFF64FFDA),
-                      label: 'Jump Floor Forward',
-                      description: 'Advance to the next floor.',
-                      onTap: () => state.devJumpFloor(1),
-                    ),
-                    _MenuItem(
-                      icon: Icons.keyboard_double_arrow_down,
-                      color: const Color(0xFFFFC107),
-                      label: 'Jump Floor Backward',
-                      description: 'Go back one floor.',
-                      onTap: () => state.devJumpFloor(-1),
-                    ),
-                    _MenuItem(
-                      icon: Icons.keyboard_double_arrow_right,
-                      color: const Color(0xFF64FFDA),
-                      label: 'Force Level Up',
-                      description: 'Trigger the upgrade selection screen.',
-                      onTap: () => state.devForceLevelUp(),
-                    ),
-                    _MenuItem(
-                      icon: Icons.delete_sweep,
-                      color: const Color(0xFFFF5252),
-                      label: 'Kill All',
-                      description: 'Wipe all enemies and collect rewards.',
-                      onTap: () => state.requestDevKillAll(),
-                    ),
-                    _MenuHeader('ENGINE & UTILITIES'),
-                    _MenuItem(
-                      icon: state.devPauseSpawning
-                          ? Icons.play_arrow
-                          : Icons.pause,
-                      color: const Color(0xFF64FFDA),
-                      label: state.devPauseSpawning
-                          ? 'Resume Spawning'
-                          : 'Pause Spawning',
-                      description: 'Toggle enemy generation.',
-                      onTap: () => state.toggleDevPauseSpawning(),
-                    ),
-                    _MenuItem(
-                      icon: Icons.healing,
-                      color: const Color(0xFFFF5252),
-                      label: 'Heal Nexus',
-                      description: 'Instantly restore health to 100%.',
-                      onTap: () => state.devHealNexus(),
-                    ),
-                    _MenuItem(
-                      icon: state.devTimeScale > 1.0
-                          ? Icons.speed
-                          : Icons.shutter_speed,
-                      color: const Color(0xFF64FFDA),
-                      label: 'Game Speed (${state.devTimeScale.round()}x)',
-                      description:
-                          'Cycle between 1x, 2x, and 5x simulation speed.',
-                      onTap: () => state.cycleGameSpeed(),
-                    ),
-                    _MenuItem(
-                      icon: state.showPerfOverlay
-                          ? Icons.bar_chart
-                          : Icons.bar_chart_outlined,
-                      color: const Color(0xFF64FFDA),
-                      label: 'Performance Overlay',
-                      description: 'Toggle FPS and component stats display.',
-                      onTap: () => state.togglePerfOverlay(),
-                    ),
-                    _MenuItem(
-                      icon: state.godMode
-                          ? Icons.shield
-                          : Icons.shield_outlined,
-                      color: const Color(0xFF64FFDA),
-                      label: 'God Mode',
-                      description: 'Prevent all damage to the Nexus.',
-                      onTap: () => state.toggleGodMode(),
-                    ),
-                    _MenuItem(
-                      icon: state.devDisableUpgrades
-                          ? Icons.upgrade
-                          : Icons.upgrade_outlined,
-                      color: state.devDisableUpgrades
-                          ? const Color(0xFFFF5252)
-                          : const Color(0xFF64FFDA),
-                      label: 'Disable Upgrades',
-                      description: 'Stop level-up prompts from interrupting.',
-                      onTap: () => state.toggleDevDisableUpgrades(),
-                    ),
-                    _MenuItem(
-                      icon: Icons.toggle_on,
-                      color: const Color(0xFF64FFDA),
-                      label: 'Disable Dev Mode',
-                      description: 'Hide this menu and the metrics panel.',
-                      onTap: () {
-                        Navigator.pop(menuContext);
-                        state.toggleDevMode();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            duration: Duration(seconds: 2),
-                            backgroundColor: Color(0xFFFF5252),
-                            content: Text(
-                              'Developer Mode: DISABLED',
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.tune_rounded,
+                            color: Color(0xFF64FFDA),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Developer Mode',
                               style: TextStyle(
-                                color: Colors.black,
+                                color: Colors.white,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        );
-                      },
+                          IconButton(
+                            onPressed: () => Navigator.pop(menuContext),
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const Divider(color: Colors.white10),
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          _MenuHeader('CURRENCY & PROGRESS'),
+                          _MenuItem(
+                            icon: Icons.add_circle,
+                            color: const Color(0xFF64FFDA),
+                            label: 'Add Skill',
+                            description:
+                                'Choose and instantly level up any skill.',
+                            onTap: () {
+                              Navigator.pop(menuContext);
+                              _pickSkill(context);
+                            },
+                          ),
+                          _MenuItem(
+                            icon: Icons.local_fire_department,
+                            color: const Color(0xFFFF8A00),
+                            label: 'Add Embers',
+                            description: 'Grant 100 meta-currency embers.',
+                            onTap: () => meta.devGrantEmbers(100),
+                          ),
+                          _MenuItem(
+                            icon: Icons.attach_money,
+                            color: const Color(0xFFFFC107),
+                            label: 'Add Gold',
+                            description: 'Grant 1000 in-run gold.',
+                            onTap: () => state.devGrantGold(1000),
+                          ),
+                          _MenuItem(
+                            icon: Icons.auto_awesome,
+                            color: const Color(0xFF64FFDA),
+                            label: 'Max All Skills',
+                            description:
+                                'Instantly max out every in-run skill.',
+                            onTap: () => state.devMaxAllSkills(),
+                          ),
+                          _MenuItem(
+                            icon: Icons.star,
+                            color: const Color(0xFFFFD166),
+                            label: 'Max Meta',
+                            description:
+                                'Instantly unlock and max all meta-upgrades.',
+                            onTap: () => meta.devMaxAll(),
+                          ),
+                          _MenuHeader('FLOOR & COMBAT'),
+                          _MenuItem(
+                            icon: Icons.keyboard_double_arrow_up,
+                            color: const Color(0xFF64FFDA),
+                            label: 'Jump Floor Forward',
+                            description: 'Advance to the next floor.',
+                            onTap: () => state.devJumpFloor(1),
+                          ),
+                          _MenuItem(
+                            icon: Icons.keyboard_double_arrow_down,
+                            color: const Color(0xFFFFC107),
+                            label: 'Jump Floor Backward',
+                            description: 'Go back one floor.',
+                            onTap: () => state.devJumpFloor(-1),
+                          ),
+                          _MenuItem(
+                            icon: Icons.keyboard_double_arrow_right,
+                            color: const Color(0xFF64FFDA),
+                            label: 'Force Level Up',
+                            description:
+                                'Trigger the upgrade selection screen.',
+                            onTap: () => state.devForceLevelUp(),
+                          ),
+                          _MenuItem(
+                            icon: Icons.delete_sweep,
+                            color: const Color(0xFFFF5252),
+                            label: 'Kill All',
+                            description:
+                                'Wipe all enemies and collect rewards.',
+                            onTap: () => state.requestDevKillAll(),
+                          ),
+                          _MenuHeader('ENGINE & UTILITIES'),
+                          _MenuItem(
+                            icon: state.devPauseSpawning
+                                ? Icons.play_arrow
+                                : Icons.pause,
+                            color: const Color(0xFF64FFDA),
+                            label: state.devPauseSpawning
+                                ? 'Resume Spawning'
+                                : 'Pause Spawning',
+                            description: 'Toggle enemy generation.',
+                            onTap: () => state.toggleDevPauseSpawning(),
+                          ),
+                          _MenuItem(
+                            icon: Icons.healing,
+                            color: const Color(0xFFFF5252),
+                            label: 'Heal Nexus',
+                            description: 'Instantly restore health to 100%.',
+                            onTap: () => state.devHealNexus(),
+                          ),
+                          _MenuItem(
+                            icon: state.devTimeScale > 1.0
+                                ? Icons.speed
+                                : Icons.shutter_speed,
+                            color: const Color(0xFF64FFDA),
+                            label:
+                                'Game Speed (${state.devTimeScale.round()}x)',
+                            description:
+                                'Cycle between 1x, 2x, and 5x simulation speed.',
+                            onTap: () => state.cycleGameSpeed(),
+                          ),
+                          _MenuItem(
+                            icon: state.showPerfOverlay
+                                ? Icons.bar_chart
+                                : Icons.bar_chart_outlined,
+                            color: const Color(0xFF64FFDA),
+                            label: 'Performance Overlay',
+                            description:
+                                'Toggle FPS and component stats display.',
+                            onTap: () => state.togglePerfOverlay(),
+                          ),
+                          _MenuItem(
+                            icon: state.godMode
+                                ? Icons.shield
+                                : Icons.shield_outlined,
+                            color: const Color(0xFF64FFDA),
+                            label: 'God Mode',
+                            description: 'Prevent all damage to the Nexus.',
+                            onTap: () => state.toggleGodMode(),
+                          ),
+                          _MenuItem(
+                            icon: state.devDisableUpgrades
+                                ? Icons.upgrade
+                                : Icons.upgrade_outlined,
+                            color: state.devDisableUpgrades
+                                ? const Color(0xFFFF5252)
+                                : const Color(0xFF64FFDA),
+                            label: 'Disable Upgrades',
+                            description:
+                                'Stop level-up prompts from interrupting.',
+                            onTap: () => state.toggleDevDisableUpgrades(),
+                          ),
+                          _MenuItem(
+                            icon: Icons.toggle_on,
+                            color: const Color(0xFF64FFDA),
+                            label: 'Disable Dev Mode',
+                            description:
+                                'Hide this menu and the metrics panel.',
+                            onTap: () {
+                              Navigator.pop(menuContext);
+                              state.toggleDevMode();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  duration: Duration(seconds: 2),
+                                  backgroundColor: Color(0xFFFF5252),
+                                  content: Text(
+                                    'Developer Mode: DISABLED',
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
 
-                    _MenuHeader('DANGER ZONE'),
-                    _MenuItem(
-                      icon: Icons.restart_alt,
-                      color: const Color(0xFFFF5252),
-                      label: 'Reset Progress',
-                      description: 'Clear current run (Gold, Floor, Upgrades).',
-                      onTap: () {
-                        Navigator.pop(menuContext);
-                        _confirmReset(context);
-                      },
+                          _MenuHeader('DANGER ZONE'),
+                          _MenuItem(
+                            icon: Icons.restart_alt,
+                            color: const Color(0xFFFF5252),
+                            label: 'Reset Progress',
+                            description:
+                                'Clear current run (Gold, Floor, Upgrades).',
+                            onTap: () {
+                              Navigator.pop(menuContext);
+                              _confirmReset(context);
+                            },
+                          ),
+                          _MenuItem(
+                            icon: Icons.delete_forever,
+                            color: const Color(0xFFFF5252),
+                            label: 'Wipe All Progress',
+                            description: 'Total factory reset of ALL progress.',
+                            onTap: () {
+                              Navigator.pop(menuContext);
+                              _confirmFullWipe(context);
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
                     ),
-                    _MenuItem(
-                      icon: Icons.delete_forever,
-                      color: const Color(0xFFFF5252),
-                      label: 'Wipe All Progress',
-                      description: 'Total factory reset of ALL progress.',
-                      onTap: () {
-                        Navigator.pop(menuContext);
-                        _confirmFullWipe(context);
-                      },
-                    ),
-                    const SizedBox(height: 20),
                   ],
                 ),
               ),
