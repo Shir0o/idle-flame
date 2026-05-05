@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../game/state/game_state.dart';
+import '../game/state/meta_catalog.dart';
 import '../game/state/meta_state.dart';
 import '../game/state/skill_catalog.dart';
 import 'meta_screen.dart';
@@ -107,8 +108,8 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<GameState>(
-      builder: (_, state, _) {
+    return Consumer2<GameState, MetaState>(
+      builder: (_, state, meta, _) {
         final possessedSkills = state.skillLevels.entries.map((entry) {
           final def = skillCatalog.firstWhere((d) => d.id == entry.key);
           return (def: def, level: entry.value);
@@ -118,6 +119,11 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
         for (final item in possessedSkills) {
           byArchetype.putIfAbsent(item.def.archetype, () => []).add(item);
         }
+
+        final activeKeystones = keystoneCatalog
+            .where((k) => meta.hasKeystone(k.id))
+            .map((k) => (def: k, archetype: k.archetype))
+            .toList();
 
         return _Panel(
           child: ConstrainedBox(
@@ -149,8 +155,11 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        if (!_expanded && byArchetype.isNotEmpty) ...[
+                        if (!_expanded &&
+                            (byArchetype.isNotEmpty ||
+                                activeKeystones.isNotEmpty)) ...[
                           const SizedBox(width: 4),
+                          // Show icons of possessed archetypes
                           for (final archetype in byArchetype.keys.take(5))
                             Padding(
                               padding: const EdgeInsets.only(right: 4),
@@ -160,7 +169,34 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
                                 size: 12,
                               ),
                             ),
-                          if (byArchetype.keys.length > 5)
+                          // Add icons of keystones for archetypes not already listed
+                          if (byArchetype.keys.length < 5)
+                            for (final k
+                                in activeKeystones
+                                    .where(
+                                      (k) =>
+                                          !byArchetype.containsKey(k.archetype),
+                                    )
+                                    .take(5 - byArchetype.keys.length))
+                              Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Icon(
+                                  k.archetype.icon,
+                                  color: k.archetype.color.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  size: 12,
+                                ),
+                              ),
+                          if (byArchetype.keys.length +
+                                  activeKeystones
+                                      .where(
+                                        (k) => !byArchetype.containsKey(
+                                          k.archetype,
+                                        ),
+                                      )
+                                      .length >
+                              5)
                             const Text(
                               '...',
                               style: TextStyle(
@@ -197,6 +233,62 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
                     _MetricRow(
                       'Gold/Sec',
                       state.estimatedGoldPerSecond.toStringAsFixed(2),
+                    ),
+                  ],
+                  if (activeKeystones.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    const _HeaderLabel('KEYSTONES'),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: activeKeystones.map((k) {
+                        return Tooltip(
+                          message: k.def.description,
+                          triggerMode: TooltipTriggerMode.tap,
+                          preferBelow: false,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: k.archetype.color.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(
+                                color: k.archetype.color.withValues(alpha: 0.6),
+                                width: 1.2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: k.archetype.color.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  k.archetype.icon,
+                                  color: k.archetype.color,
+                                  size: 10,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  k.def.title,
+                                  style: TextStyle(
+                                    color: k.archetype.color,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                   const SizedBox(height: 10),
