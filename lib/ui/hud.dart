@@ -154,66 +154,6 @@ class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
                       return _SkillChip(def.title, entry.value);
                     }).toList(),
                   ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () => showDevKeyDialog(context, state),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            state.devMode ? Icons.toggle_on : Icons.toggle_off,
-                            color: state.devMode
-                                ? const Color(0xFF64FFDA)
-                                : Colors.white.withValues(alpha: 0.5),
-                            size: 18,
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Dev mode',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  InkWell(
-                    onTap: state.toggleDevDisableUpgrades,
-                    borderRadius: BorderRadius.circular(6),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            state.devDisableUpgrades
-                                ? Icons.toggle_on
-                                : Icons.toggle_off,
-                            color: state.devDisableUpgrades
-                                ? const Color(0xFFFF5252)
-                                : Colors.white.withValues(alpha: 0.5),
-                            size: 18,
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Disable Upgrades',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ],
             ),
@@ -479,7 +419,8 @@ class _DevToolsState extends State<_DevTools> {
                       icon: Icons.star,
                       color: const Color(0xFFFFD166),
                       label: 'Max Meta',
-                      description: 'Instantly unlock and max all meta-upgrades.',
+                      description:
+                          'Instantly unlock and max all meta-upgrades.',
                       onTap: () => meta.devMaxAll(),
                     ),
                     _MenuHeader('FLOOR & COMBAT'),
@@ -513,9 +454,13 @@ class _DevToolsState extends State<_DevTools> {
                     ),
                     _MenuHeader('ENGINE & UTILITIES'),
                     _MenuItem(
-                      icon: state.devPauseSpawning ? Icons.play_arrow : Icons.pause,
+                      icon: state.devPauseSpawning
+                          ? Icons.play_arrow
+                          : Icons.pause,
                       color: const Color(0xFF64FFDA),
-                      label: state.devPauseSpawning ? 'Resume Spawning' : 'Pause Spawning',
+                      label: state.devPauseSpawning
+                          ? 'Resume Spawning'
+                          : 'Pause Spawning',
                       description: 'Toggle enemy generation.',
                       onTap: () => state.toggleDevPauseSpawning(),
                     ),
@@ -527,34 +472,56 @@ class _DevToolsState extends State<_DevTools> {
                       onTap: () => state.devHealNexus(),
                     ),
                     _MenuItem(
-                      icon: state.devTimeScale > 1.0 ? Icons.speed : Icons.shutter_speed,
+                      icon: state.devTimeScale > 1.0
+                          ? Icons.speed
+                          : Icons.shutter_speed,
                       color: const Color(0xFF64FFDA),
                       label: 'Game Speed (${state.devTimeScale.round()}x)',
-                      description: 'Cycle between 1x, 2x, and 5x simulation speed.',
+                      description:
+                          'Cycle between 1x, 2x, and 5x simulation speed.',
                       onTap: () => state.cycleGameSpeed(),
                     ),
                     _MenuItem(
-                      icon: state.showPerfOverlay ? Icons.bar_chart : Icons.bar_chart_outlined,
+                      icon: state.showPerfOverlay
+                          ? Icons.bar_chart
+                          : Icons.bar_chart_outlined,
                       color: const Color(0xFF64FFDA),
                       label: 'Performance Overlay',
                       description: 'Toggle FPS and component stats display.',
                       onTap: () => state.togglePerfOverlay(),
                     ),
                     _MenuItem(
-                      icon: state.godMode ? Icons.shield : Icons.shield_outlined,
+                      icon: state.godMode
+                          ? Icons.shield
+                          : Icons.shield_outlined,
                       color: const Color(0xFF64FFDA),
                       label: 'God Mode',
                       description: 'Prevent all damage to the Nexus.',
                       onTap: () => state.toggleGodMode(),
                     ),
                     _MenuItem(
-                      icon: state.devDisableUpgrades ? Icons.upgrade : Icons.upgrade_outlined,
-                      color: state.devDisableUpgrades ? const Color(0xFFFF5252) : const Color(0xFF64FFDA),
+                      icon: state.devDisableUpgrades
+                          ? Icons.upgrade
+                          : Icons.upgrade_outlined,
+                      color: state.devDisableUpgrades
+                          ? const Color(0xFFFF5252)
+                          : const Color(0xFF64FFDA),
                       label: 'Disable Upgrades',
                       description: 'Stop level-up prompts from interrupting.',
                       onTap: () => state.toggleDevDisableUpgrades(),
                     ),
+                    _MenuItem(
+                      icon: Icons.toggle_on,
+                      color: const Color(0xFF64FFDA),
+                      label: 'Disable Dev Mode',
+                      description: 'Hide this menu and the metrics panel.',
+                      onTap: () {
+                        Navigator.pop(menuContext);
+                        state.toggleDevMode();
+                      },
+                    ),
                     _MenuHeader('DANGER ZONE'),
+
                     _MenuItem(
                       icon: Icons.restart_alt,
                       color: const Color(0xFFFF5252),
