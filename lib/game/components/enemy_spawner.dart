@@ -2,10 +2,10 @@ import 'dart:math';
 
 import 'package:flame/components.dart';
 
-import '../idle_game.dart';
+import '../zenith_zero_game.dart';
 import 'enemy.dart';
 
-class EnemySpawner extends Component with HasGameReference<IdleGame> {
+class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
   final Random _rng = Random();
   double _timer = 0;
 

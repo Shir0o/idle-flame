@@ -107,8 +107,8 @@ void main() {
 
     await state.load();
 
-    expect(state.lastIdleReward, greaterThan(0));
-    expect(state.gold, state.lastIdleReward);
+    expect(state.lastVoidReward, greaterThan(0));
+    expect(state.gold, state.lastVoidReward);
   });
 
   test('reset clears progress, pending choices, and upgrades', () async {

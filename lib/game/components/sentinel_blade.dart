@@ -3,13 +3,13 @@ import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import '../idle_game.dart';
+import '../zenith_zero_game.dart';
 import 'enemy.dart';
 import 'combat_effects.dart';
 
 enum _StrikePhase { idle, windup, dashing, returning }
 
-class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
+class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGame> {
   SentinelBlade({required this.orbitIndex, this.level = 1})
     : super(priority: 62) {
     // Stagger initial readiness so blades don't all strike simultaneously
@@ -695,7 +695,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
   }
 }
 
-class SentinelShard extends PositionComponent with HasGameReference<IdleGame> {
+class SentinelShard extends PositionComponent with HasGameReference<ZenithZeroGame> {
   SentinelShard({
     required Vector2 startPos,
     required this.target,

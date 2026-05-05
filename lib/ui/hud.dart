@@ -83,7 +83,7 @@ class Hud extends StatelessWidget {
       child: Stack(
         children: const [
           Positioned(left: 16, right: 16, bottom: 16, child: _NexusHealthBar()),
-          Positioned(left: 0, right: 0, top: 80, child: _IdleRewardToast()),
+          Positioned(left: 0, right: 0, top: 80, child: _VoidRewardToast()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _RunOverPanel()),
           Positioned(top: 12, left: 16, child: _FloorBadge()),
@@ -1682,17 +1682,17 @@ class _Tag extends StatelessWidget {
   }
 }
 
-class _IdleRewardToast extends StatelessWidget {
-  const _IdleRewardToast();
+class _VoidRewardToast extends StatelessWidget {
+  const _VoidRewardToast();
 
   @override
   Widget build(BuildContext context) {
     return Consumer<GameState>(
       builder: (_, state, _) {
-        if (state.lastIdleReward <= 0) return const SizedBox.shrink();
+        if (state.lastVoidReward <= 0) return const SizedBox.shrink();
         return Center(
           child: GestureDetector(
-            onTap: state.clearIdleReward,
+            onTap: state.clearVoidReward,
             child: _Panel(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1717,7 +1717,7 @@ class _IdleRewardToast extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '+${state.lastIdleReward} gold earned while away',
+                        '+${state.lastVoidReward} gold earned while away',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,

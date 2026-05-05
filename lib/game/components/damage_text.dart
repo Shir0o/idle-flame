@@ -3,9 +3,9 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-import '../idle_game.dart';
+import '../zenith_zero_game.dart';
 
-class DamageText extends TextComponent with HasGameReference<IdleGame> {
+class DamageText extends TextComponent with HasGameReference<ZenithZeroGame> {
   DamageText({
     required Vector2 position,
     required int amount,

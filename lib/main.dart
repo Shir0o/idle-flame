@@ -2,9 +2,9 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'game/idle_game.dart';
 import 'game/state/game_state.dart';
 import 'game/state/meta_state.dart';
+import 'game/zenith_zero_game.dart';
 import 'ui/hud.dart';
 
 void main() async {
@@ -13,11 +13,11 @@ void main() async {
   await meta.load();
   final state = GameState(meta: meta);
   await state.load();
-  runApp(IdleFlameApp(state: state, meta: meta));
+  runApp(ZenithZeroApp(state: state, meta: meta));
 }
 
-class IdleFlameApp extends StatelessWidget {
-  const IdleFlameApp({super.key, required this.state, required this.meta});
+class ZenithZeroApp extends StatelessWidget {
+  const ZenithZeroApp({super.key, required this.state, required this.meta});
 
   final GameState state;
   final MetaState meta;
@@ -39,7 +39,7 @@ class IdleFlameApp extends StatelessWidget {
             body: Stack(
               children: [
                 Positioned.fill(
-                  child: GameWidget(game: IdleGame(state: state)),
+                  child: GameWidget(game: ZenithZeroGame(state: state)),
                 ),
                 const Hud(),
               ],

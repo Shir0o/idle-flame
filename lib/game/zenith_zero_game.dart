@@ -11,8 +11,8 @@ import 'components/enemy_spawner.dart';
 import 'components/hero.dart';
 import 'state/game_state.dart';
 
-class IdleGame extends FlameGame {
-  IdleGame({required this.state});
+class ZenithZeroGame extends FlameGame {
+  ZenithZeroGame({required this.state});
 
   final GameState state;
   final GameAudio audio = GameAudio();
@@ -161,7 +161,7 @@ class _PerfStatsComponent extends TextComponent {
         ),
       );
 
-  final IdleGame _game;
+  final ZenithZeroGame _game;
   double _accum = 0;
 
   @override

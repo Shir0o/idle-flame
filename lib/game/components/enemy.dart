@@ -5,13 +5,13 @@ import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 
 import '../audio/game_audio.dart';
-import '../idle_game.dart';
+import '../zenith_zero_game.dart';
 import 'combat_effects.dart';
 import 'damage_text.dart';
 
 enum DamageType { basic, nova, firewall, meteor, sentinel }
 
-class Enemy extends PositionComponent with HasGameReference<IdleGame> {
+class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   Enemy({required Vector2 position, required this.maxHp})
     : hp = maxHp,
       super(position: position, size: Vector2(64, 64), anchor: Anchor.center);

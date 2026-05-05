@@ -3,14 +3,14 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-import '../idle_game.dart';
+import '../zenith_zero_game.dart';
 import '../state/game_state.dart';
 import '../state/mech_catalog.dart';
 import 'combat_effects.dart';
 import 'enemy.dart';
 import 'sentinel_blade.dart';
 
-class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
+class HeroComponent extends PositionComponent with HasGameReference<ZenithZeroGame> {
   HeroComponent({this.mechType = MechType.standard})
     : super(
         size: Vector2.all(mechDefinitionFor(mechType).spriteSize),

@@ -3,10 +3,10 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-import '../idle_game.dart';
+import '../zenith_zero_game.dart';
 import '../state/skill_catalog.dart';
 
-class HitSparkEffect extends PositionComponent with HasGameReference<IdleGame> {
+class HitSparkEffect extends PositionComponent with HasGameReference<ZenithZeroGame> {
   HitSparkEffect({
     required this.effectCenter,
     required this.direction,
@@ -114,7 +114,7 @@ class HitSparkEffect extends PositionComponent with HasGameReference<IdleGame> {
 }
 
 class DeathBurstEffect extends PositionComponent
-    with HasGameReference<IdleGame> {
+    with HasGameReference<ZenithZeroGame> {
   DeathBurstEffect({
     required this.effectCenter,
     this.color = const Color(0xFFFF2D95),
@@ -194,7 +194,7 @@ class DeathBurstEffect extends PositionComponent
 }
 
 class CoinBurstEffect extends PositionComponent
-    with HasGameReference<IdleGame> {
+    with HasGameReference<ZenithZeroGame> {
   CoinBurstEffect({required this.effectCenter})
     : _particles = _buildParticles(),
       super(priority: 88);
@@ -254,7 +254,7 @@ class CoinBurstEffect extends PositionComponent
   }
 }
 
-class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
+class SlashArcEffect extends PositionComponent with HasGameReference<ZenithZeroGame> {
   SlashArcEffect({
     required this.from,
     required this.to,
@@ -377,7 +377,7 @@ class SlashArcEffect extends PositionComponent with HasGameReference<IdleGame> {
 }
 
 class BarrageStreakEffect extends PositionComponent
-    with HasGameReference<IdleGame> {
+    with HasGameReference<ZenithZeroGame> {
   BarrageStreakEffect({
     required this.effectCenter,
     this.color = const Color(0xFF64FFDA),
@@ -452,7 +452,7 @@ class BarrageStreakEffect extends PositionComponent
 }
 
 class FocusStrikeEffect extends PositionComponent
-    with HasGameReference<IdleGame> {
+    with HasGameReference<ZenithZeroGame> {
   FocusStrikeEffect({
     required this.from,
     required this.to,
@@ -528,7 +528,7 @@ class FocusStrikeEffect extends PositionComponent
 }
 
 class FrostFieldEffect extends PositionComponent
-    with HasGameReference<IdleGame> {
+    with HasGameReference<ZenithZeroGame> {
   FrostFieldEffect({
     required this.effectCenter,
     required this.fieldSize,
@@ -624,7 +624,7 @@ class FrostFieldEffect extends PositionComponent
 }
 
 class RuptureMarkEffect extends PositionComponent
-    with HasGameReference<IdleGame> {
+    with HasGameReference<ZenithZeroGame> {
   RuptureMarkEffect({required this.effectCenter, this.level = 1})
     : super(priority: 92);
 
@@ -733,7 +733,7 @@ class _SparkParticle {
 }
 
 class NovaPulseEffect extends PositionComponent
-    with HasGameReference<IdleGame> {
+    with HasGameReference<ZenithZeroGame> {
   NovaPulseEffect({
     required this.effectCenter,
     required this.radius,
@@ -852,7 +852,7 @@ class NovaPulseEffect extends PositionComponent
   }
 }
 
-class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
+class FirewallEffect extends PositionComponent with HasGameReference<ZenithZeroGame> {
   FirewallEffect({
     required this.effectCenter,
     required this.effectWidth,
@@ -1006,7 +1006,7 @@ class FirewallEffect extends PositionComponent with HasGameReference<IdleGame> {
 }
 
 class MeteorImpactEffect extends PositionComponent
-    with HasGameReference<IdleGame> {
+    with HasGameReference<ZenithZeroGame> {
   MeteorImpactEffect({
     required this.target,
     required this.radius,
@@ -1120,7 +1120,7 @@ class MeteorImpactEffect extends PositionComponent
 }
 
 class MeteorTargetingEffect extends PositionComponent
-    with HasGameReference<IdleGame> {
+    with HasGameReference<ZenithZeroGame> {
   MeteorTargetingEffect({
     required Vector2 target,
     required this.radius,
@@ -1183,7 +1183,7 @@ class MeteorTargetingEffect extends PositionComponent
   }
 }
 
-class HeroAuraEffect extends PositionComponent with HasGameReference<IdleGame> {
+class HeroAuraEffect extends PositionComponent with HasGameReference<ZenithZeroGame> {
   HeroAuraEffect({required this.effectCenter}) : super(priority: 45);
 
   final Vector2 effectCenter;

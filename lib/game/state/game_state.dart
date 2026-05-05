@@ -50,7 +50,7 @@ class GameState extends ChangeNotifier {
   int runKills = 0;
   int lifetimeKills = 0;
   int totalRuns = 0;
-  int lastIdleReward = 0;
+  int lastVoidReward = 0;
   int resetGeneration = 0;
   double nexusHp = maxNexusHp;
   MechType selectedMech = MechType.standard;
@@ -368,9 +368,9 @@ class GameState extends ChangeNotifier {
     if (earned > 0) meta.awardEmbers(earned);
   }
 
-  void clearIdleReward() {
-    if (lastIdleReward == 0) return;
-    lastIdleReward = 0;
+  void clearVoidReward() {
+    if (lastVoidReward == 0) return;
+    lastVoidReward = 0;
     notifyListeners();
   }
 
@@ -381,7 +381,7 @@ class GameState extends ChangeNotifier {
     floor = 1;
     killsOnFloor = 0;
     runKills = 0;
-    lastIdleReward = 0;
+    lastVoidReward = 0;
     nexusHp = nexusMaxHp;
     resetGeneration += 1;
     _skillLevels.clear();
@@ -452,12 +452,12 @@ class GameState extends ChangeNotifier {
 
     final lastSeen = prefs.getInt(_kLastSeen);
     if (lastSeen != null) {
-      final reward = _computeIdleReward(
+      final reward = _computeVoidReward(
         DateTime.fromMillisecondsSinceEpoch(lastSeen),
       );
       if (reward > 0) {
         gold += reward;
-        lastIdleReward = reward;
+        lastVoidReward = reward;
       }
     }
     await _writeLastSeen(prefs);
@@ -645,7 +645,7 @@ class GameState extends ChangeNotifier {
     _skillLevels[newId] = oldLevel.clamp(1, SkillDefinition.maxLevel);
   }
 
-  int _computeIdleReward(DateTime lastSeen) {
+  int _computeVoidReward(DateTime lastSeen) {
     if (isRunOver) return 0;
     final seconds = DateTime.now()
         .difference(lastSeen)
