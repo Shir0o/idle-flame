@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -207,6 +208,7 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
                             s.def.title,
                             s.level,
                             entry.key.color,
+                            s.def.descriptionForLevel(s.level),
                           );
                         }).toList(),
                       ),
@@ -283,17 +285,18 @@ class _MetricRow extends StatelessWidget {
 }
 
 class _SkillChip extends StatelessWidget {
-  const _SkillChip(this.label, this.level, this.baseColor);
+  const _SkillChip(this.label, this.level, this.baseColor, this.description);
 
   final String label;
   final int level;
   final Color baseColor;
+  final String description;
 
   @override
   Widget build(BuildContext context) {
     final active = level > 0;
     final color = active ? baseColor : Colors.white.withValues(alpha: 0.42);
-    return Container(
+    final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: active ? 0.13 : 0.06),
@@ -311,6 +314,14 @@ class _SkillChip extends StatelessWidget {
           letterSpacing: 0,
         ),
       ),
+    );
+
+    if (description.isEmpty) return chip;
+    return Tooltip(
+      message: description,
+      triggerMode: TooltipTriggerMode.tap,
+      preferBelow: false,
+      child: chip,
     );
   }
 }
@@ -503,7 +514,6 @@ class _DevToolsState extends State<_DevTools> {
                     ),
                     _MenuItem(
                       icon: Icons.star,
-
                       color: const Color(0xFFFFD166),
                       label: 'Max Meta',
                       description:
@@ -608,7 +618,6 @@ class _DevToolsState extends State<_DevTools> {
                       },
                     ),
                     _MenuHeader('DANGER ZONE'),
-
                     _MenuItem(
                       icon: Icons.restart_alt,
                       color: const Color(0xFFFF5252),

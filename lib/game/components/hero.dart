@@ -134,6 +134,47 @@ class HeroComponent extends PositionComponent with HasGameReference<IdleGame> {
     // Draw a pulsating hexagonal/circular shield
     canvas.drawCircle(center, shieldRadius, shieldPaint);
 
+    // Draw tech-themed hex grid pattern inside shield
+    final gridPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5
+      ..color = const Color(
+        0xFF64FFDA,
+      ).withValues(alpha: 0.1 * (0.3 + 0.1 * math.sin(t)));
+
+    final hexPath = Path();
+    const hexSize = 6.0;
+    final h = hexSize * math.sqrt(3);
+    for (int i = 0; i < 6; i++) {
+      final angle = i * math.pi / 3;
+      final x = hexSize * math.cos(angle);
+      final y = hexSize * math.sin(angle);
+      if (i == 0) {
+        hexPath.moveTo(x, y);
+      } else {
+        hexPath.lineTo(x, y);
+      }
+    }
+    hexPath.close();
+
+    for (
+      double y = center.dy - shieldRadius;
+      y <= center.dy + shieldRadius;
+      y += hexSize * 1.5
+    ) {
+      final isOffset =
+          ((y - center.dy + shieldRadius) / (hexSize * 1.5)).round() % 2 == 1;
+      final xStart = center.dx - shieldRadius + (isOffset ? h / 2 : 0);
+      for (double x = xStart; x <= center.dx + shieldRadius; x += h) {
+        if ((Offset(x, y) - center).distance < shieldRadius - 2) {
+          canvas.save();
+          canvas.translate(x, y);
+          canvas.drawPath(hexPath, gridPaint);
+          canvas.restore();
+        }
+      }
+    }
+
     // Add some orbiting particles or segments
     final segments = 6;
     for (var i = 0; i < segments; i++) {
