@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../game/state/game_state.dart';
 import '../game/state/meta_catalog.dart';
 import '../game/state/meta_state.dart';
+import '../game/state/skill_catalog.dart';
 
 class MetaShopScreen extends StatefulWidget {
   const MetaShopScreen({super.key});
@@ -110,6 +111,32 @@ class _Header extends StatelessWidget {
             fontSize: 12,
           ),
         ),
+        if (game.skillLevels.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            alignment: WrapAlignment.center,
+            children: game.skillLevels.keys.map((skillId) {
+              final def = skillCatalog.firstWhere((d) => d.id == skillId);
+              return Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: def.archetype.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: def.archetype.color.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Icon(
+                  def.archetype.icon,
+                  color: def.archetype.color,
+                  size: 14,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
