@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum SkillArchetype {
   chain,
   nova,
@@ -9,6 +11,42 @@ enum SkillArchetype {
   frost,
   rupture,
   sentinel,
+}
+
+extension SkillArchetypeExt on SkillArchetype {
+  IconData get icon {
+    return switch (this) {
+      SkillArchetype.chain => Icons.call_split,
+      SkillArchetype.nova => Icons.blur_circular,
+      SkillArchetype.firewall => Icons.horizontal_rule,
+      SkillArchetype.meteor => Icons.flare,
+      SkillArchetype.barrage => Icons.bolt,
+      SkillArchetype.focus => Icons.auto_fix_high,
+      SkillArchetype.bounty => Icons.paid,
+      SkillArchetype.frost => Icons.ac_unit,
+      SkillArchetype.rupture => Icons.flash_on,
+      SkillArchetype.sentinel => Icons.navigation,
+    };
+  }
+
+  Color get color {
+    return switch (this) {
+      SkillArchetype.chain => const Color(0xFF00E5FF),
+      SkillArchetype.nova => const Color(0xFFFF2D95),
+      SkillArchetype.firewall => const Color(0xFFFFD166),
+      SkillArchetype.meteor => const Color(0xFF7C4DFF),
+      SkillArchetype.barrage => const Color(0xFF64FFDA),
+      SkillArchetype.focus => const Color(0xFFFFF176),
+      SkillArchetype.bounty => const Color(0xFFFFD54F),
+      SkillArchetype.frost => const Color(0xFF80DEEA),
+      SkillArchetype.rupture => const Color(0xFFFF5252),
+      SkillArchetype.sentinel => const Color(0xFFE1F5FE),
+    };
+  }
+
+  String get label {
+    return name[0].toUpperCase() + name.substring(1);
+  }
 }
 
 class SkillDefinition {

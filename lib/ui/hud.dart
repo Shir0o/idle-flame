@@ -58,12 +58,12 @@ class Hud extends StatelessWidget {
         children: const [
           Positioned(top: 12, left: 16, child: _FloorBadge()),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
-          Positioned(top: 92, left: 16, child: _BalanceDebugPanel()),
+          Positioned(top: 92, left: 16, child: _ArsenalPanel()),
           Positioned(left: 16, right: 16, bottom: 16, child: _NexusHealthBar()),
           Positioned(left: 0, right: 0, top: 80, child: _IdleRewardToast()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _RunOverPanel()),
-          Positioned(top: 52, right: 16, child: _MuteButton()),
+          Positioned(top: 64, right: 16, child: _MuteButton()),
           Positioned(right: 16, bottom: 16, child: _DevTools()),
         ],
       ),
@@ -71,22 +71,30 @@ class Hud extends StatelessWidget {
   }
 }
 
-class _BalanceDebugPanel extends StatefulWidget {
-  const _BalanceDebugPanel();
+class _ArsenalPanel extends StatefulWidget {
+  const _ArsenalPanel();
 
   @override
-  State<_BalanceDebugPanel> createState() => _BalanceDebugPanelState();
+  State<_ArsenalPanel> createState() => _ArsenalPanelState();
 }
 
-class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
+class _ArsenalPanelState extends State<_ArsenalPanel> {
   bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<GameState>(
       builder: (_, state, _) {
-        if (!state.devMode) return const SizedBox.shrink();
-        final timeToKill = state.estimatedTimeToKill;
+        final possessedSkills = state.skillLevels.entries.map((entry) {
+          final def = skillCatalog.firstWhere((d) => d.id == entry.key);
+          return (def: def, level: entry.value);
+        }).toList();
+
+        final byArchetype = <SkillArchetype, List<_PossessedSkill>>{};
+        for (final item in possessedSkills) {
+          byArchetype.putIfAbsent(item.def.archetype, () => []).add(item);
+        }
+
         return _Panel(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 240),
@@ -103,13 +111,13 @@ class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.tune,
+                          Icons.grid_view_rounded,
                           color: Color(0xFF64FFDA),
                           size: 16,
                         ),
                         const SizedBox(width: 6),
                         const Text(
-                          'Balance',
+                          'Arsenal',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -117,6 +125,18 @@ class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
                           ),
                         ),
                         const SizedBox(width: 4),
+                        if (!_expanded && byArchetype.isNotEmpty) ...[
+                          const SizedBox(width: 4),
+                          for (final archetype in byArchetype.keys)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Icon(
+                                archetype.icon,
+                                color: archetype.color.withValues(alpha: 0.8),
+                                size: 12,
+                              ),
+                            ),
+                        ],
                         Icon(
                           _expanded
                               ? Icons.keyboard_arrow_up
@@ -129,37 +149,93 @@ class _BalanceDebugPanelState extends State<_BalanceDebugPanel> {
                   ),
                 ),
                 if (_expanded) ...[
-                  const SizedBox(height: 8),
-                  _MetricRow('DPS', state.estimatedDps.toStringAsFixed(1)),
-                  _MetricRow('Enemy HP', state.enemyMaxHp.toStringAsFixed(1)),
-                  _MetricRow('Gold/Kill', '${state.goldPerKill}'),
-                  _MetricRow(
-                    'TTK',
-                    timeToKill.isFinite
-                        ? '${timeToKill.toStringAsFixed(2)}s'
-                        : 'n/a',
-                  ),
-                  _MetricRow(
-                    'Gold/Sec',
-                    state.estimatedGoldPerSecond.toStringAsFixed(2),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 5,
-                    runSpacing: 5,
-                    children: state.skillLevels.entries.map((entry) {
-                      final def = skillCatalog.firstWhere(
-                        (d) => d.id == entry.key,
-                      );
-                      return _SkillChip(def.title, entry.value);
-                    }).toList(),
-                  ),
+                  if (state.devMode) ...[
+                    const SizedBox(height: 8),
+                    const _HeaderLabel('PERFORMANCE'),
+                    _MetricRow('DPS', state.estimatedDps.toStringAsFixed(1)),
+                    _MetricRow('Enemy HP', state.enemyMaxHp.toStringAsFixed(1)),
+                    _MetricRow('Gold/Kill', '${state.goldPerKill}'),
+                    _MetricRow(
+                      'TTK',
+                      state.estimatedTimeToKill.isFinite
+                          ? '${state.estimatedTimeToKill.toStringAsFixed(2)}s'
+                          : 'n/a',
+                    ),
+                    _MetricRow(
+                      'Gold/Sec',
+                      state.estimatedGoldPerSecond.toStringAsFixed(2),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  const _HeaderLabel('SKILLS'),
+                  if (byArchetype.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 4),
+                      child: Text(
+                        'No skills acquired yet.',
+                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                    )
+                  else
+                    for (final entry in byArchetype.entries) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            entry.key.icon,
+                            color: entry.key.color,
+                            size: 12,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            entry.key.label.toUpperCase(),
+                            style: TextStyle(
+                              color: entry.key.color.withValues(alpha: 0.7),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: entry.value.map((s) {
+                          return _SkillChip(s.def.title, s.level);
+                        }).toList(),
+                      ),
+                    ],
                 ],
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+typedef _PossessedSkill = ({SkillDefinition def, int level});
+
+class _HeaderLabel extends StatelessWidget {
+  const _HeaderLabel(this.label);
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.4),
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.0,
+        ),
+      ),
     );
   }
 }
@@ -1230,35 +1306,9 @@ class _ChoiceCard extends StatelessWidget {
     );
   }
 
-  Color get _accent {
-    return switch (choice.definition.archetype) {
-      SkillArchetype.chain => const Color(0xFF00E5FF),
-      SkillArchetype.nova => const Color(0xFFFF2D95),
-      SkillArchetype.firewall => const Color(0xFFFFD166),
-      SkillArchetype.meteor => const Color(0xFF7C4DFF),
-      SkillArchetype.barrage => const Color(0xFF64FFDA),
-      SkillArchetype.focus => const Color(0xFFFFF176),
-      SkillArchetype.bounty => const Color(0xFFFFD54F),
-      SkillArchetype.frost => const Color(0xFF80DEEA),
-      SkillArchetype.rupture => const Color(0xFFFF5252),
-      SkillArchetype.sentinel => const Color(0xFFE1F5FE),
-    };
-  }
+  Color get _accent => choice.definition.archetype.color;
 
-  IconData get _icon {
-    return switch (choice.definition.archetype) {
-      SkillArchetype.chain => Icons.call_split,
-      SkillArchetype.nova => Icons.blur_circular,
-      SkillArchetype.firewall => Icons.horizontal_rule,
-      SkillArchetype.meteor => Icons.flare,
-      SkillArchetype.barrage => Icons.bolt,
-      SkillArchetype.focus => Icons.auto_fix_high,
-      SkillArchetype.bounty => Icons.paid,
-      SkillArchetype.frost => Icons.ac_unit,
-      SkillArchetype.rupture => Icons.flash_on,
-      SkillArchetype.sentinel => Icons.navigation,
-    };
-  }
+  IconData get _icon => choice.definition.archetype.icon;
 
   Color get _tierColor {
     return switch (choice.level) {
@@ -1268,20 +1318,7 @@ class _ChoiceCard extends StatelessWidget {
     };
   }
 
-  String get _archetypeLabel {
-    return switch (choice.definition.archetype) {
-      SkillArchetype.chain => 'Chain',
-      SkillArchetype.nova => 'Nova',
-      SkillArchetype.firewall => 'Firewall',
-      SkillArchetype.meteor => 'Meteor',
-      SkillArchetype.barrage => 'Barrage',
-      SkillArchetype.focus => 'Focus',
-      SkillArchetype.bounty => 'Bounty',
-      SkillArchetype.frost => 'Frost',
-      SkillArchetype.rupture => 'Rupture',
-      SkillArchetype.sentinel => 'Sentinel',
-    };
-  }
+  String get _archetypeLabel => choice.definition.archetype.label;
 }
 
 class _Tag extends StatelessWidget {
