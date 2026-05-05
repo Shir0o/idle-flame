@@ -4,7 +4,7 @@
 - **App Name:** Zenith Zero: Idle Descent
 - **Bundle ID (iOS/macOS):** `com.twang.zenithzero`
 - **Package Name (Android):** `com.twang.zenithzero`
-- **Version:** `1.2.0+3`
+- **Version:** `1.2.0+4`
 
 ## Build Instructions
 

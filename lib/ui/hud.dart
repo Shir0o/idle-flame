@@ -1717,7 +1717,7 @@ class _VoidRewardToast extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '+${state.lastVoidReward} gold earned while away',
+                        '+${state.lastVoidReward} gold earned in Zenith Zero',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,

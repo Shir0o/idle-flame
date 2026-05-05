@@ -24,4 +24,4 @@ For internal team instructions, architectural mandates, and developer tool acces
 *   [RELEASE.md](RELEASE.md) — Version History & Build Instructions
 
 ---
-*Developed with ❤️ for the Zenith Zero project.*
+*Developed with ❤️ for Zenith Zero: Idle Descent.*
