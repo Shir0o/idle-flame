@@ -88,7 +88,7 @@ class Hud extends StatelessWidget {
           Positioned.fill(child: _RunOverPanel()),
           Positioned(top: 12, left: 16, child: _FloorBadge()),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
-          Positioned(top: 64, right: 16, child: _MuteButton()),
+          Positioned(top: 72, right: 16, child: _MuteButton()),
           Positioned(top: 92, left: 16, child: _ArsenalPanel()),
           Positioned(right: 16, bottom: 16, child: _DevTools()),
         ],
@@ -253,7 +253,6 @@ class _ArsenalPanel extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(
                       Icons.grid_view_rounded,
