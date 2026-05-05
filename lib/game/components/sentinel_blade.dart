@@ -292,16 +292,15 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
       final swingDist = math.max(28.0, chordLen * 0.45);
 
       _dashControl1 =
-          _dashStart +
-          chord * 0.35 +
-          chordNormal * (swingDist * swingSide);
+          _dashStart + chord * 0.35 + chordNormal * (swingDist * swingSide);
       _dashControl2 = entryAnchor;
     }
 
     _phase = _StrikePhase.dashing;
     _phaseTimer = 0;
     // Recalculate duration based on the actual control point distance.
-    final approxArcLen = (_dashControl1 - _dashStart).length +
+    final approxArcLen =
+        (_dashControl1 - _dashStart).length +
         (_dashControl2 - _dashControl1).length +
         (_dashEnd - _dashControl2).length;
     _phaseDuration = math.max(
@@ -356,7 +355,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     }
     if (p >= 1.0) {
       final dir = motion.length2 > 0 ? motion.normalized() : Vector2(1, 0);
-      
+
       // Look for a new target from current position to continue the chain.
       // We use nearest targeting here to minimize travel time (auto-seeking).
       _findTarget(position, useNearest: true);
@@ -402,12 +401,12 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
 
     // Level 5 Mastery: Shard Seekers
     if (level >= 5) {
-      final secondaryTargets =
-          game.aliveEnemies.where((e) => e != t).toList()..sort(
-            (a, b) => (a.position - position).length2.compareTo(
-              (b.position - position).length2,
-            ),
-          );
+      final secondaryTargets = game.aliveEnemies.where((e) => e != t).toList()
+        ..sort(
+          (a, b) => (a.position - position).length2.compareTo(
+            (b.position - position).length2,
+          ),
+        );
 
       final shardTargets = secondaryTargets.take(3).toList();
       for (final st in shardTargets) {
@@ -462,10 +461,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     final continueDir = motionDir.length2 > 0
         ? motionDir.normalized()
         : straight;
-    _returnControl =
-        _returnStart +
-        continueDir * 28 +
-        normal * (swing * side);
+    _returnControl = _returnStart + continueDir * 28 + normal * (swing * side);
 
     // Dynamic duration ensures the return flight feels consistent with the dash speed.
     final approxReturnLen = toSlotLen + swing * 0.6;
@@ -496,7 +492,11 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
       // Blend toward the resting (north-facing) angle as we settle.
       final flightAngle = math.atan2(motion.y, motion.x);
       final restAngle = -math.pi / 2;
-      angle = _lerpAngle(flightAngle, restAngle, Curves.easeInCubic.transform(p));
+      angle = _lerpAngle(
+        flightAngle,
+        restAngle,
+        Curves.easeInCubic.transform(p),
+      );
     }
 
     if (_phaseTimer >= _phaseDuration) {
@@ -531,11 +531,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
       ..close();
   }
 
-  void _drawSword(
-    Canvas canvas,
-    double size,
-    Paint bladePaint,
-  ) {
+  void _drawSword(Canvas canvas, double size, Paint bladePaint) {
     // Celestial Jian: balanced, slender, and noble.
     final bladeLength = size * 2.2;
     final bladeWidth = size * 0.20; // More defined than the needle
@@ -609,7 +605,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
       } else {
         tangent = (_trail[i - 1] - _trail[i + 1]);
       }
-      
+
       if (tangent.length2 == 0) continue;
       final t = tangent.normalized();
       final normal = Vector2(-t.y, t.x);
@@ -652,7 +648,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<IdleGame> {
     super.render(canvas);
 
     // Motion ribbon (only present during strike phases).
-    // The trail points are in world space, so we temporarily undo the component's 
+    // The trail points are in world space, so we temporarily undo the component's
     // internal translation/rotation/scale to draw it correctly.
     canvas.save();
     final m = transform.transformMatrix.clone();

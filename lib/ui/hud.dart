@@ -7,46 +7,69 @@ import '../game/state/meta_state.dart';
 import '../game/state/skill_catalog.dart';
 import 'meta_screen.dart';
 
-Future<void> showDevKeyDialog(BuildContext context, GameState state) async {
+Future<bool> showDevKeyDialog(BuildContext context, GameState state) async {
   final controller = TextEditingController();
-  await showDialog(
+  final success = await showDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: const Color(0xFF111827),
-      title: const Text(
-        'Enter Access Key',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
-          hintText: 'Key',
-          hintStyle: TextStyle(color: Colors.white38),
-        ),
-        onSubmitted: (val) {
-          if (state.unlockDevMode(val)) {
-            Navigator.of(context).pop();
-          }
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          String? error;
+          return AlertDialog(
+            backgroundColor: const Color(0xFF111827),
+            title: const Text(
+              'Enter Access Key',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Key',
+                    hintStyle: const TextStyle(color: Colors.white38),
+                    errorText: error,
+                    errorStyle: const TextStyle(color: Color(0xFFFF5252)),
+                  ),
+                  onSubmitted: (val) {
+                    if (state.unlockDevMode(val)) {
+                      Navigator.of(dialogContext).pop(true);
+                    } else {
+                      setState(() => error = 'Invalid Key');
+                    }
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (state.unlockDevMode(controller.text)) {
+                    Navigator.of(dialogContext).pop(true);
+                  } else {
+                    setState(() => error = 'Invalid Key');
+                  }
+                },
+                child: const Text('Unlock'),
+              ),
+            ],
+          );
         },
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () {
-            if (state.unlockDevMode(controller.text)) {
-              Navigator.of(context).pop();
-            }
-          },
-          child: const Text('Unlock'),
-        ),
-      ],
-    ),
+      );
+    },
   );
+  return success ?? false;
 }
 
 class Hud extends StatelessWidget {
@@ -128,7 +151,7 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
                         const SizedBox(width: 4),
                         if (!_expanded && byArchetype.isNotEmpty) ...[
                           const SizedBox(width: 4),
-                          for (final archetype in byArchetype.keys)
+                          for (final archetype in byArchetype.keys.take(5))
                             Padding(
                               padding: const EdgeInsets.only(right: 4),
                               child: Icon(
@@ -137,7 +160,16 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
                                 size: 12,
                               ),
                             ),
+                          if (byArchetype.keys.length > 5)
+                            const Text(
+                              '...',
+                              style: TextStyle(
+                                color: Colors.white38,
+                                fontSize: 10,
+                              ),
+                            ),
                         ],
+                        const Spacer(),
                         Icon(
                           _expanded
                               ? Icons.keyboard_arrow_up
@@ -347,8 +379,28 @@ class _FloorBadgeState extends State<_FloorBadge> {
 
     if (_tapCount >= 5) {
       _tapCount = 0;
-      showDevKeyDialog(context, state);
+      showDevKeyDialog(context, state).then((success) {
+        if (success && mounted) _showToggleFeedback(context, state.devMode);
+      });
     }
+  }
+
+  void _showToggleFeedback(BuildContext context, bool enabled) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 2),
+        backgroundColor: enabled
+            ? const Color(0xFF64FFDA)
+            : const Color(0xFFFF5252),
+        content: Text(
+          enabled ? 'Developer Mode: ENABLED' : 'Developer Mode: DISABLED',
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -615,8 +667,22 @@ class _DevToolsState extends State<_DevTools> {
                       onTap: () {
                         Navigator.pop(menuContext);
                         state.toggleDevMode();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            duration: Duration(seconds: 2),
+                            backgroundColor: Color(0xFFFF5252),
+                            content: Text(
+                              'Developer Mode: DISABLED',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
                       },
                     ),
+
                     _MenuHeader('DANGER ZONE'),
                     _MenuItem(
                       icon: Icons.restart_alt,
