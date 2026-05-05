@@ -327,6 +327,7 @@ class _SkillChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final active = level > 0;
+    final maxed = level >= SkillDefinition.maxLevel;
     final color = active ? baseColor : Colors.white.withValues(alpha: 0.42);
     final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -334,17 +335,38 @@ class _SkillChip extends StatelessWidget {
         color: color.withValues(alpha: active ? 0.13 : 0.06),
         borderRadius: BorderRadius.circular(5),
         border: Border.all(
-          color: color.withValues(alpha: active ? 0.28 : 0.16),
+          color: maxed
+              ? const Color(0xFFFFD166)
+              : color.withValues(alpha: active ? 0.28 : 0.16),
+          width: maxed ? 1.5 : 1,
         ),
+        boxShadow: maxed
+            ? [
+                BoxShadow(
+                  color: const Color(0xFFFFD166).withValues(alpha: 0.2),
+                  blurRadius: 4,
+                ),
+              ]
+            : null,
       ),
-      child: Text(
-        '$label $level',
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (maxed)
+            const Padding(
+              padding: EdgeInsets.only(right: 4),
+              child: Icon(Icons.star, color: Color(0xFFFFD166), size: 10),
+            ),
+          Text(
+            '$label $level',
+            style: TextStyle(
+              color: maxed ? const Color(0xFFFFD166) : color,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0,
+            ),
+          ),
+        ],
       ),
     );
 
