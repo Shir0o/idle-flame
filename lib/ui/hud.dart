@@ -192,10 +192,19 @@ class _ArsenalPanel extends StatelessWidget {
                           ],
                           const _MenuHeader('DUNGEON STATISTICS'),
                           _MenuItem(
+                            icon: Icons.history_rounded,
+                            color: const Color(0xFF64FFDA),
+                            label: 'Total Runs: ${state.totalRuns}',
+                            description: 'Total descents into the Neon Void.',
+                            onTap: () {},
+                          ),
+                          _MenuItem(
                             icon: Icons.dangerous_rounded,
+
                             color: const Color(0xFFFF5252),
                             label: 'Total Kills: ${state.lifetimeKills}',
-                            description: 'Lifetime enemies breached across all runs.',
+                            description:
+                                'Lifetime enemies breached across all runs.',
                             onTap: () {},
                           ),
 
@@ -1681,16 +1690,37 @@ class _IdleRewardToast extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.bedtime, color: Color(0xFFFFC107), size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    '+${state.lastIdleReward} while you were away',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Color(0xFFFFC107),
+                    size: 20,
                   ),
+                  const SizedBox(width: 10),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'WELCOME BACK',
+                        style: TextStyle(
+                          color: Color(0xFFFFC107),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      Text(
+                        '+${state.lastIdleReward} gold earned while away',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  const Icon(Icons.close, color: Colors.white24, size: 16),
                 ],
               ),
             ),

@@ -30,7 +30,7 @@ class IdleFlameApp extends StatelessWidget {
         ChangeNotifierProvider<MetaState>.value(value: meta),
       ],
       child: MaterialApp(
-        title: 'Idle Flame',
+        title: 'Zenith Zero',
         debugShowCheckedModeBanner: false,
         home: _AppLifecycle(
           state: state,

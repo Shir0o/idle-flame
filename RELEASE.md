@@ -48,15 +48,17 @@
 
 ## Changelog
 
-### v1.2.0 (Gold Master)
-- **Master Developer Suite:** Implemented a professional, hidden debugging command center unlocked by the `TWANGPRO` toggle switch. Includes God Mode, Game Speed control (1x-5x), Max Meta, Kill All, and more.
-- **Audio Overhaul:** Set sound to mute by default on launch. Added a persistent, high-visibility HUD toggle with labeled feedback ("MUTED" / "SOUND ON").
-- **Dungeon Intelligence:** Added 'Dungeon Statistics' to the Arsenal menu, tracking lifetime kills and displaying real-time difficulty multipliers based on floor depth.
-- **Arsenal Panel:** Reworked the metrics panel into a public-facing 'Arsenal' modal menu that tracks Mech, Skills, Keystones, and Boons with full descriptions.
-- **UI Unification:** Standardized all modal menus with consistent headers, icons, and close buttons for a premium feel.
-- **Visual Restoration:** Fully restored high-end "Endless Seek" sword logic and Celestial Jian visuals with world-space energy trails.
-- **Persistence:** All developer preferences, audio toggles, dungeon stats, and game speed settings now persist across app restarts.
-- **QA:** Expanded test suite to 18 unit tests and achieved 100% clean static analysis.
+### v1.2.0 (The Zenith Rebrand)
+- **Definitive Rebrand:** Officially unified the project under the title **'Zenith Zero'** across all UI, headers, and metadata.
+- **Master Developer Suite:** Implemented a professional debugging command center unlocked by the `TWANGPRO` toggle. Includes God Mode, Game Speed (1x-5x), Max Meta, Kill All, and Performance Metrics.
+- **Audio Overhaul:** Set sound to mute by default on launch. Added a persistent, labeled HUD toggle ("MUTED" / "SOUND ON") with premium color-coding.
+- **Career Statistics:** The Arsenal menu now tracks deep career analytics, including **Total Runs** and **Lifetime Total Kills**, persisting across all sessions.
+- **Dungeon Intelligence:** Added real-time **Difficulty Multipliers** to the Arsenal, providing transparency on enemy health and damage scaling.
+- **Arsenal Panel:** Reworked the metrics panel into a public-facing 'Arsenal' modal that summarizes Mech, Skills, Keystones, and Boons with full descriptions.
+- **UI Unification:** Standardized all modal menus with consistent headers, icons, and close buttons for a premium "Gold Master" feel.
+- **Return Experience:** Enhanced the offline reward notification with a polished "Welcome Back" toast.
+- **Visual Restoration:** Fully restored high-end "Endless Seek" sword logic and Celestial Jian visuals with energy trails.
+- **QA & Stability:** Expanded test suite to 20 unit tests, achieved 100% clean analysis, and implemented full state persistence.
 
 ### v1.1.0
 - **Combat Evolution:** Overhauled Sentinel Blades into "Celestial Jian" (yujian-style flying swords) with aggressive sweep pathing and "Endless Seek" logic.

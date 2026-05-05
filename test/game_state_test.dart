@@ -338,4 +338,23 @@ void main() {
 
     expect(loaded.lifetimeKills, 25);
   });
+
+  test('totalRuns increments correctly and persists', () async {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    // Initial load defaults to 1 (first run)
+    await state.load();
+    expect(state.totalRuns, 1);
+
+    await state.resetProgress();
+    expect(state.totalRuns, 2);
+
+    await state.save();
+
+    final loaded = GameState();
+    addTearDown(loaded.dispose);
+    await loaded.load();
+    expect(loaded.totalRuns, 2);
+  });
 }

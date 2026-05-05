@@ -49,6 +49,7 @@ class GameState extends ChangeNotifier {
   int killsOnFloor = 0;
   int runKills = 0;
   int lifetimeKills = 0;
+  int totalRuns = 0;
   int lastIdleReward = 0;
   int resetGeneration = 0;
   double nexusHp = maxNexusHp;
@@ -375,6 +376,7 @@ class GameState extends ChangeNotifier {
 
   Future<void> resetProgress() async {
     _saveDebounce?.cancel();
+    totalRuns += 1;
     gold = 0;
     floor = 1;
     killsOnFloor = 0;
@@ -423,6 +425,7 @@ class GameState extends ChangeNotifier {
     killsOnFloor = prefs.getInt(_kKills) ?? 0;
     runKills = prefs.getInt(_kRunKills) ?? 0;
     lifetimeKills = prefs.getInt(_kLifetimeKills) ?? 0;
+    totalRuns = prefs.getInt(_kTotalRuns) ?? 1;
     selectedMech = mechTypeFromId(prefs.getString(_kSelectedMech));
     devMode = prefs.getBool(_kDevMode) ?? false;
     devDisableUpgrades = prefs.getBool(_kDevDisableUpgrades) ?? false;
@@ -468,6 +471,7 @@ class GameState extends ChangeNotifier {
     await prefs.setInt(_kKills, killsOnFloor);
     await prefs.setInt(_kRunKills, runKills);
     await prefs.setInt(_kLifetimeKills, lifetimeKills);
+    await prefs.setInt(_kTotalRuns, totalRuns);
     await prefs.setDouble(_kNexusHp, nexusHp);
     await prefs.setString(_kSelectedMech, selectedMech.name);
     await prefs.setBool(_kDevMode, devMode);
@@ -666,6 +670,7 @@ class GameState extends ChangeNotifier {
   static const _kKills = 'killsOnFloor';
   static const _kRunKills = 'runKills';
   static const _kLifetimeKills = 'lifetimeKills';
+  static const _kTotalRuns = 'totalRuns';
   static const _kNexusHp = 'nexusHp';
   static const _kSelectedMech = 'selectedMech';
   static const _kDevMode = 'devMode';
