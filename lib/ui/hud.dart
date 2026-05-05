@@ -218,184 +218,217 @@ class _ArsenalPanelState extends State<_ArsenalPanel> {
                   ),
                 ),
                 if (_expanded) ...[
-                  if (state.devMode) ...[
-                    const SizedBox(height: 8),
-                    const _HeaderLabel('PERFORMANCE'),
-                    _MetricRow('DPS', state.estimatedDps.toStringAsFixed(1)),
-                    _MetricRow('Enemy HP', state.enemyMaxHp.toStringAsFixed(1)),
-                    _MetricRow('Gold/Kill', '${state.goldPerKill}'),
-                    _MetricRow(
-                      'TTK',
-                      state.estimatedTimeToKill.isFinite
-                          ? '${state.estimatedTimeToKill.toStringAsFixed(2)}s'
-                          : 'n/a',
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.4,
                     ),
-                    _MetricRow(
-                      'Gold/Sec',
-                      state.estimatedGoldPerSecond.toStringAsFixed(2),
-                    ),
-                  ],
-                  if (activeKeystones.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    const _HeaderLabel('KEYSTONES'),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: activeKeystones.map((k) {
-                        return Tooltip(
-                          message: k.def.description,
-                          triggerMode: TooltipTriggerMode.tap,
-                          preferBelow: false,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: k.archetype.color.withValues(alpha: 0.16),
-                              borderRadius: BorderRadius.circular(5),
-                              border: Border.all(
-                                color: k.archetype.color.withValues(alpha: 0.6),
-                                width: 1.2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: k.archetype.color.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                  blurRadius: 4,
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  k.archetype.icon,
-                                  color: k.archetype.color,
-                                  size: 10,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  k.def.title,
-                                  style: TextStyle(
-                                    color: k.archetype.color,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                  if (metaUpgradeCatalog.any(
-                    (def) => meta.upgradeTier(def.id) > 0,
-                  )) ...[
-                    const SizedBox(height: 10),
-                    const _HeaderLabel('PERMANENT BOONS'),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: metaUpgradeCatalog
-                          .where((def) => meta.upgradeTier(def.id) > 0)
-                          .map((def) {
-                            final tier = meta.upgradeTier(def.id);
-                            return Tooltip(
-                              message: def.description,
-                              triggerMode: TooltipTriggerMode.tap,
-                              preferBelow: false,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.06),
-                                  borderRadius: BorderRadius.circular(5),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      _boonIcon(def.id),
-                                      color: Colors.white.withValues(
-                                        alpha: 0.6,
-                                      ),
-                                      size: 10,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      def.maxTier > 1
-                                          ? '${def.title} (Lv $tier)'
-                                          : def.title,
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.8,
-                                        ),
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          })
-                          .toList(),
-                    ),
-                  ],
-                  const SizedBox(height: 10),
-                  const _HeaderLabel('SKILLS'),
-                  if (byArchetype.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4),
-                      child: Text(
-                        'No skills acquired yet.',
-                        style: TextStyle(color: Colors.white38, fontSize: 11),
-                      ),
-                    )
-                  else
-                    for (final entry in byArchetype.entries) ...[
-                      const SizedBox(height: 6),
-                      Row(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            entry.key.icon,
-                            color: entry.key.color,
-                            size: 12,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            entry.key.label.toUpperCase(),
-                            style: TextStyle(
-                              color: entry.key.color.withValues(alpha: 0.7),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
+                          if (state.devMode) ...[
+                            const _HeaderLabel('PERFORMANCE'),
+                            _MetricRow(
+                              'DPS',
+                              state.estimatedDps.toStringAsFixed(1),
                             ),
-                          ),
+                            _MetricRow(
+                              'Enemy HP',
+                              state.enemyMaxHp.toStringAsFixed(1),
+                            ),
+                            _MetricRow('Gold/Kill', '${state.goldPerKill}'),
+                            _MetricRow(
+                              'TTK',
+                              state.estimatedTimeToKill.isFinite
+                                  ? '${state.estimatedTimeToKill.toStringAsFixed(2)}s'
+                                  : 'n/a',
+                            ),
+                            _MetricRow(
+                              'Gold/Sec',
+                              state.estimatedGoldPerSecond.toStringAsFixed(2),
+                            ),
+                          ],
+                          if (activeKeystones.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            const _HeaderLabel('KEYSTONES'),
+                            Wrap(
+                              spacing: 4,
+                              runSpacing: 4,
+                              children: activeKeystones.map((k) {
+                                return Tooltip(
+                                  message: k.def.description,
+                                  triggerMode: TooltipTriggerMode.tap,
+                                  preferBelow: false,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: k.archetype.color.withValues(
+                                        alpha: 0.16,
+                                      ),
+                                      borderRadius: BorderRadius.circular(5),
+                                      border: Border.all(
+                                        color: k.archetype.color.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                        width: 1.2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: k.archetype.color.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          blurRadius: 4,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          k.archetype.icon,
+                                          color: k.archetype.color,
+                                          size: 10,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          k.def.title,
+                                          style: TextStyle(
+                                            color: k.archetype.color,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                          if (metaUpgradeCatalog.any(
+                            (def) => meta.upgradeTier(def.id) > 0,
+                          )) ...[
+                            const SizedBox(height: 10),
+                            const _HeaderLabel('PERMANENT BOONS'),
+                            Wrap(
+                              spacing: 4,
+                              runSpacing: 4,
+                              children: metaUpgradeCatalog
+                                  .where((def) => meta.upgradeTier(def.id) > 0)
+                                  .map((def) {
+                                    final tier = meta.upgradeTier(def.id);
+                                    return Tooltip(
+                                      message: def.description,
+                                      triggerMode: TooltipTriggerMode.tap,
+                                      preferBelow: false,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.06,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            5,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              _boonIcon(def.id),
+                                              color: Colors.white.withValues(
+                                                alpha: 0.6,
+                                              ),
+                                              size: 10,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              def.maxTier > 1
+                                                  ? '${def.title} (Lv $tier)'
+                                                  : def.title,
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.8,
+                                                ),
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  })
+                                  .toList(),
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          const _HeaderLabel('SKILLS'),
+                          if (byArchetype.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 4),
+                              child: Text(
+                                'No skills acquired yet.',
+                                style: TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            )
+                          else
+                            for (final entry in byArchetype.entries) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(
+                                    entry.key.icon,
+                                    color: entry.key.color,
+                                    size: 12,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    entry.key.label.toUpperCase(),
+                                    style: TextStyle(
+                                      color: entry.key.color.withValues(
+                                        alpha: 0.7,
+                                      ),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 4,
+                                runSpacing: 4,
+                                children: entry.value.map((s) {
+                                  return _SkillChip(
+                                    s.def.title,
+                                    s.level,
+                                    entry.key.color,
+                                    s.def.descriptionForLevel(s.level),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: entry.value.map((s) {
-                          return _SkillChip(
-                            s.def.title,
-                            s.level,
-                            entry.key.color,
-                            s.def.descriptionForLevel(s.level),
-                          );
-                        }).toList(),
-                      ),
-                    ],
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -1157,24 +1190,31 @@ class _AddSkillChip extends StatelessWidget {
     final color = maxed
         ? Colors.white.withValues(alpha: 0.32)
         : def.archetype.color;
-    return InkWell(
-      onTap: maxed ? null : () => state.devGrantSkill(def.id),
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withValues(alpha: 0.32)),
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.32)),
+      ),
+      child: Text(
+        '${def.title}  $level/${SkillDefinition.maxLevel}',
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
         ),
-        child: Text(
-          '${def.title}  $level/${SkillDefinition.maxLevel}',
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
+      ),
+    );
+
+    return Tooltip(
+      message: def.descriptionForLevel(level + 1),
+      triggerMode: TooltipTriggerMode.tap,
+      preferBelow: false,
+      child: InkWell(
+        onTap: maxed ? null : () => state.devGrantSkill(def.id),
+        borderRadius: BorderRadius.circular(6),
+        child: chip,
       ),
     );
   }
