@@ -1,11 +1,11 @@
 {
-    "name": "Zenith Zero",
+    "name": "Zenith Zero: Idle Descent",
     "short_name": "Zenith Zero",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#000000",
     "theme_color": "#64FFDA",
-    "description": "Zenith Zero — auto-RPG dungeon descender.",
+    "description": "Zenith Zero: Idle Descent — auto-RPG dungeon descender.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

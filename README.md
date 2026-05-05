@@ -1,4 +1,4 @@
-# Zenith Zero
+# Zenith Zero: Idle Descent
 
 **Zenith Zero** is a high-octane auto-RPG dungeon descender built with Flutter and the Flame engine. Command the Zenith Zero mech as it descends through infinite floors of neon-lit dungeons, evolving its arsenal and mastering elemental synergies.
 

@@ -30,7 +30,7 @@ class ZenithZeroApp extends StatelessWidget {
         ChangeNotifierProvider<MetaState>.value(value: meta),
       ],
       child: MaterialApp(
-        title: 'Zenith Zero',
+        title: 'Zenith Zero: Idle Descent',
         debugShowCheckedModeBanner: false,
         home: _AppLifecycle(
           state: state,
