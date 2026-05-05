@@ -194,11 +194,11 @@ class _ArsenalPanel extends StatelessWidget {
                           _MenuItem(
                             icon: Icons.dangerous_rounded,
                             color: const Color(0xFFFF5252),
-                            label: 'Total Kills: ${state.totalKills}',
-                            description:
-                                'Lifetime enemies breached across all runs.',
+                            label: 'Total Kills: ${state.lifetimeKills}',
+                            description: 'Lifetime enemies breached across all runs.',
                             onTap: () {},
                           ),
+
                           _MenuItem(
                             icon: Icons.trending_up,
                             color: const Color(0xFF64FFDA),

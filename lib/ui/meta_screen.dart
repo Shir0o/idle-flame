@@ -105,7 +105,7 @@ class _Header extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Floor ${game.floor} · ${game.totalKills} kills · ${game.gold} gold',
+          'Floor ${game.floor} · ${game.runKills} kills · ${game.gold} gold',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.7),
             fontSize: 12,

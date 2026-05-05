@@ -310,4 +310,32 @@ void main() {
     state.devJumpFloor(-100);
     expect(state.floor, 1);
   });
+
+  test('lifetime kills persist across runs and resetProgress', () async {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.runKills, 0);
+    expect(state.lifetimeKills, 0);
+
+    for (var i = 0; i < 25; i++) {
+      state.registerKill();
+    }
+
+    expect(state.runKills, 25);
+    expect(state.lifetimeKills, 25);
+
+    await state.resetProgress();
+
+    expect(state.runKills, 0);
+    expect(state.lifetimeKills, 25);
+
+    await state.save();
+
+    final loaded = GameState();
+    addTearDown(loaded.dispose);
+    await loaded.load();
+
+    expect(loaded.lifetimeKills, 25);
+  });
 }

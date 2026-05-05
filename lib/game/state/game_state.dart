@@ -47,7 +47,8 @@ class GameState extends ChangeNotifier {
   int gold = 0;
   int floor = 1;
   int killsOnFloor = 0;
-  int totalKills = 0;
+  int runKills = 0;
+  int lifetimeKills = 0;
   int lastIdleReward = 0;
   int resetGeneration = 0;
   double nexusHp = maxNexusHp;
@@ -173,7 +174,8 @@ class GameState extends ChangeNotifier {
     }
     gold += goldPerKill;
     killsOnFloor += 1;
-    totalKills += 1;
+    runKills += 1;
+    lifetimeKills += 1;
     if (killsOnFloor >= killsPerFloor) {
       killsOnFloor = 0;
       floor += 1;
@@ -361,7 +363,7 @@ class GameState extends ChangeNotifier {
   void _awardEmbersForRun() {
     if (_embersAwardedThisRun) return;
     _embersAwardedThisRun = true;
-    final earned = floor * 5 + totalKills;
+    final earned = floor * 5 + runKills;
     if (earned > 0) meta.awardEmbers(earned);
   }
 
@@ -376,7 +378,7 @@ class GameState extends ChangeNotifier {
     gold = 0;
     floor = 1;
     killsOnFloor = 0;
-    totalKills = 0;
+    runKills = 0;
     lastIdleReward = 0;
     nexusHp = nexusMaxHp;
     resetGeneration += 1;
@@ -388,7 +390,7 @@ class GameState extends ChangeNotifier {
     await prefs.remove(_kGold);
     await prefs.remove(_kFloor);
     await prefs.remove(_kKills);
-    await prefs.remove(_kTotalKills);
+    await prefs.remove(_kRunKills);
     await prefs.remove(_kNexusHp);
     await prefs.remove(_kSkillLevels);
     await prefs.remove(_kPendingUpgrades);
@@ -419,7 +421,8 @@ class GameState extends ChangeNotifier {
     gold = prefs.getInt(_kGold) ?? 0;
     floor = prefs.getInt(_kFloor) ?? 1;
     killsOnFloor = prefs.getInt(_kKills) ?? 0;
-    totalKills = prefs.getInt(_kTotalKills) ?? 0;
+    runKills = prefs.getInt(_kRunKills) ?? 0;
+    lifetimeKills = prefs.getInt(_kLifetimeKills) ?? 0;
     selectedMech = mechTypeFromId(prefs.getString(_kSelectedMech));
     devMode = prefs.getBool(_kDevMode) ?? false;
     devDisableUpgrades = prefs.getBool(_kDevDisableUpgrades) ?? false;
@@ -463,7 +466,8 @@ class GameState extends ChangeNotifier {
     await prefs.setInt(_kGold, gold);
     await prefs.setInt(_kFloor, floor);
     await prefs.setInt(_kKills, killsOnFloor);
-    await prefs.setInt(_kTotalKills, totalKills);
+    await prefs.setInt(_kRunKills, runKills);
+    await prefs.setInt(_kLifetimeKills, lifetimeKills);
     await prefs.setDouble(_kNexusHp, nexusHp);
     await prefs.setString(_kSelectedMech, selectedMech.name);
     await prefs.setBool(_kDevMode, devMode);
@@ -660,7 +664,8 @@ class GameState extends ChangeNotifier {
   static const _kGold = 'gold';
   static const _kFloor = 'floor';
   static const _kKills = 'killsOnFloor';
-  static const _kTotalKills = 'totalKills';
+  static const _kRunKills = 'runKills';
+  static const _kLifetimeKills = 'lifetimeKills';
   static const _kNexusHp = 'nexusHp';
   static const _kSelectedMech = 'selectedMech';
   static const _kDevMode = 'devMode';
