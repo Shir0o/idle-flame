@@ -994,61 +994,146 @@ class _DevToolsState extends State<_DevTools> {
 
   Future<void> _pickSkill(BuildContext context) async {
     final state = context.read<GameState>();
+    bool showDetails = false;
+
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF111827),
-        title: const Text(
-          'Add skill',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: SizedBox(
-          width: 360,
-          height: 460,
-          child: AnimatedBuilder(
-            animation: state,
-            builder: (_, _) {
-              final byArchetype = <SkillArchetype, List<SkillDefinition>>{};
-              for (final def in skillCatalog) {
-                byArchetype.putIfAbsent(def.archetype, () => []).add(def);
-              }
-              return ListView(
-                children: [
-                  for (final archetype in SkillArchetype.values) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8, bottom: 4),
-                      child: Text(
-                        archetype.label.toUpperCase(),
-                        style: TextStyle(
-                          color: archetype.color.withValues(alpha: 0.56),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.6,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF111827),
+            title: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Add skill',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () =>
+                      setDialogState(() => showDetails = !showDetails),
+                  icon: Icon(
+                    showDetails ? Icons.visibility : Icons.visibility_off,
+                    size: 16,
+                  ),
+                  label: Text(
+                    showDetails ? 'Hide Details' : 'Show Details',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 420,
+              height: 520,
+              child: AnimatedBuilder(
+                animation: state,
+                builder: (_, _) {
+                  final byArchetype = <SkillArchetype, List<SkillDefinition>>{};
+                  for (final def in skillCatalog) {
+                    byArchetype.putIfAbsent(def.archetype, () => []).add(def);
+                  }
+                  return ListView(
+                    children: [
+                      for (final archetype in SkillArchetype.values) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12, bottom: 4),
+                          child: Text(
+                            archetype.label.toUpperCase(),
+                            style: TextStyle(
+                              color: archetype.color.withValues(alpha: 0.8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        for (final def in byArchetype[archetype] ?? const [])
-                          _AddSkillChip(def: def, state: state),
+                        if (showDetails)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: archetype.color.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: archetype.color.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (var i = 1;
+                                    i <= SkillDefinition.maxLevel;
+                                    i++)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 2),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Lv $i: ',
+                                          style: TextStyle(
+                                            color: archetype.color.withValues(
+                                              alpha: 0.7,
+                                            ),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            _archetypeDescription(
+                                              archetype,
+                                              i,
+                                            ),
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final def
+                                in byArchetype[archetype] ?? const [])
+                              _AddSkillChip(def: def, state: state),
+                          ],
+                        ),
                       ],
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Done'),
-          ),
-        ],
+                    ],
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Done'),
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  String _archetypeDescription(SkillArchetype arch, int level) {
+    // Helper to get description from any skill of this archetype
+    final first = skillCatalog.firstWhere((d) => d.archetype == arch);
+    return first.descriptionForLevel(level);
   }
 }
 
@@ -1167,8 +1252,18 @@ class _AddSkillChip extends StatelessWidget {
       ),
     );
 
+    final tooltipBuffer = StringBuffer();
+    tooltipBuffer.writeln(def.title);
+    tooltipBuffer.writeln('---');
+    for (var i = 1; i <= SkillDefinition.maxLevel; i++) {
+      final isCurrent = i == level;
+      final isNext = i == level + 1;
+      final marker = isCurrent ? '● ' : (isNext ? '○ ' : '  ');
+      tooltipBuffer.writeln('$marker Lv $i: ${def.descriptionForLevel(i)}');
+    }
+
     return Tooltip(
-      message: def.descriptionForLevel(level + 1),
+      message: tooltipBuffer.toString(),
       triggerMode: TooltipTriggerMode.tap,
       preferBelow: false,
       child: InkWell(
