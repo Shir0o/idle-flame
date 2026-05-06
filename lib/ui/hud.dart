@@ -1721,7 +1721,7 @@ class _WelcomeToastState extends State<_WelcomeToast> {
   @override
   Widget build(BuildContext context) {
     return Consumer<GameState>(
-      builder: (_, state, __) {
+      builder: (_, state, _) {
         final showReward = state.lastVoidReward > 0;
         final showGeneral = !state.sessionWelcomeShown;
 

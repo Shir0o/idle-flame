@@ -9,7 +9,8 @@ import 'combat_effects.dart';
 
 enum _StrikePhase { idle, windup, dashing, returning }
 
-class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class SentinelBlade extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   SentinelBlade({required this.orbitIndex, this.level = 1})
     : super(priority: 62) {
     // Stagger initial readiness so blades don't all strike simultaneously
@@ -48,6 +49,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
   final List<Vector2> _trail = [];
   final List<_Stardust> _stardust = [];
   static const int _maxTrailPoints = 48;
+  static final math.Random _rng = math.Random();
 
   static const double _attackRange = double.infinity;
   static const double _dashSpeedRef = 1000;
@@ -129,17 +131,23 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
       }
 
       // Spawn stardust
-      if (math.Random().nextDouble() < 0.35) {
-        final rand = math.Random();
-        final dir = Vector2(math.cos(angle + math.pi), math.sin(angle + math.pi));
-        _stardust.add(_Stardust(
-          position: tailPos +
-              Vector2(rand.nextDouble() - 0.5, rand.nextDouble() - 0.5) * 4,
-          velocity: dir * (20 + rand.nextDouble() * 40) +
-              Vector2(rand.nextDouble() - 0.5, rand.nextDouble() - 0.5) * 25,
-          life: 0.3 + rand.nextDouble() * 0.5,
-          size: 0.8 + rand.nextDouble() * 1.6,
-        ));
+      if (_stardust.length < 24 && _rng.nextDouble() < 0.35) {
+        final dir = Vector2(
+          math.cos(angle + math.pi),
+          math.sin(angle + math.pi),
+        );
+        _stardust.add(
+          _Stardust(
+            position:
+                tailPos +
+                Vector2(_rng.nextDouble() - 0.5, _rng.nextDouble() - 0.5) * 4,
+            velocity:
+                dir * (20 + _rng.nextDouble() * 40) +
+                Vector2(_rng.nextDouble() - 0.5, _rng.nextDouble() - 0.5) * 25,
+            life: 0.3 + _rng.nextDouble() * 0.5,
+            size: 0.8 + _rng.nextDouble() * 1.6,
+          ),
+        );
       }
     } else if (_trail.isNotEmpty) {
       // Fade out by dropping a point per frame so the ribbon trails off.
@@ -251,7 +259,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
       final targetAngle = math.atan2(toTarget.y, toTarget.x);
       // Subtle "readying" tilt.
       final tilt = 0.25 * math.sin(p * math.pi);
-      
+
       // Smoothly rotate from the angle we had when we entered windup
       // to the angle needed to face the target.
       angle = _lerpAngle(_startAngle, targetAngle + tilt, p);
@@ -371,7 +379,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
     final motion = position - prev;
     if (motion.length2 > 0) {
       final targetA = math.atan2(motion.y, motion.x);
-      // We still follow the path direction, but with a tiny bit of 
+      // We still follow the path direction, but with a tiny bit of
       // damping to prevent micro-jitters in the Bezier math.
       angle = _lerpAngle(angle, targetA, 1 - math.exp(-25 * dt));
     }
@@ -394,7 +402,7 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
       // Look for a new target to continue the chain.
       // We prioritize targets roughly in front of the blade to avoid 180-degree snaps.
       _findTargetDirectional(position, dir);
-      
+
       if (_target != null) {
         // Continue the sweep with a shorter windup.
         _enterWindup(isChain: true);
@@ -420,11 +428,13 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
       if (dist2 > 300 * 300) continue; // Range limit for chain logic
 
       final dirToEnemy = toEnemy.normalized();
-      final alignment = currentDir.dot(dirToEnemy); // 1.0 = same dir, -1.0 = opposite
-      
+      final alignment = currentDir.dot(
+        dirToEnemy,
+      ); // 1.0 = same dir, -1.0 = opposite
+
       // Score: high alignment (forward) and low distance.
       // We penalize targets behind the blade heavily.
-      if (alignment < -0.2) continue; 
+      if (alignment < -0.2) continue;
 
       final score = alignment * 1000 - math.sqrt(dist2);
       if (score > bestScore) {
@@ -442,14 +452,16 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
       type: DamageType.sentinel,
     );
 
-    parent?.add(
-      HitSparkEffect(
-        effectCenter: t.position.clone(),
-        direction: (position - t.position).normalized(),
-        color: const Color(0xFF00B0FF),
-        count: 12,
-      ),
-    );
+    if (!HitSparkEffect.atCap && game.canSpawnMinorEffect()) {
+      parent?.add(
+        HitSparkEffect(
+          effectCenter: t.position.clone(),
+          direction: (position - t.position).normalized(),
+          color: const Color(0xFF00B0FF),
+          count: 12,
+        ),
+      );
+    }
 
     // Slice arc tangent to the blade's velocity through the target.
     final dir = motion.length2 > 0
@@ -468,22 +480,18 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
 
     // Level 5 Mastery: Shard Seekers
     if (level >= 5) {
-      final secondaryTargets = game.aliveEnemies.where((e) => e != t).toList()
-        ..sort(
-          (a, b) => (a.position - position).length2.compareTo(
-            (b.position - position).length2,
-          ),
-        );
-
-      final shardTargets = secondaryTargets.take(3).toList();
-      for (final st in shardTargets) {
-        parent?.add(
-          SentinelShard(
-            startPos: position.clone(),
-            target: st,
-            damage: game.state.sentinelDamage * 0.4,
-          ),
-        );
+      final world = parent;
+      if (world != null) {
+        for (final st in _nearestShardTargets(t)) {
+          if (!SentinelShard.reserveSpawn()) break;
+          world.add(
+            SentinelShard(
+              startPos: position.clone(),
+              target: st,
+              damage: game.state.sentinelDamage * 0.4,
+            ),
+          );
+        }
       }
     }
 
@@ -496,6 +504,27 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
     }
 
     _attackTimer = game.state.sentinelAttackCooldown;
+  }
+
+  List<Enemy> _nearestShardTargets(Enemy primary) {
+    final selected = <Enemy>[];
+    final distances = <double>[];
+    for (final enemy in game.aliveEnemies) {
+      if (enemy == primary) continue;
+      final distance = (enemy.position - position).length2;
+      var insertAt = 0;
+      while (insertAt < distances.length && distances[insertAt] <= distance) {
+        insertAt++;
+      }
+      if (insertAt >= 3) continue;
+      selected.insert(insertAt, enemy);
+      distances.insert(insertAt, distance);
+      if (selected.length > 3) {
+        selected.removeLast();
+        distances.removeLast();
+      }
+    }
+    return selected;
   }
 
   Vector2 _formationSlot(Vector2 heroPos) {
@@ -691,9 +720,11 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
       final hw = (headHalfWidth + wave) * taper;
 
       // Color fades along the length.
-      final color = Color.lerp(startColor, endColor, progress)!.withValues(
-        alpha: startColor.a * (1.0 - progress) * opacityMultiplier,
-      );
+      final color = Color.lerp(
+        startColor,
+        endColor,
+        progress,
+      )!.withValues(alpha: startColor.a * (1.0 - progress) * opacityMultiplier);
 
       // Add two vertices (left and right) for each point in the trail.
       // We are rendering in world space, so we use the coordinates directly.
@@ -811,7 +842,8 @@ class SentinelBlade extends PositionComponent with HasGameReference<ZenithZeroGa
   }
 }
 
-class SentinelShard extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class SentinelShard extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   SentinelShard({
     required Vector2 startPos,
     required this.target,
@@ -823,6 +855,20 @@ class SentinelShard extends PositionComponent with HasGameReference<ZenithZeroGa
   double _age = 0;
   static const double _speed = 850;
   static const double _maxLife = 1.2;
+  static int _reservedOrAliveCount = 0;
+  static const int _maxAlive = 36;
+
+  static bool reserveSpawn() {
+    if (_reservedOrAliveCount >= _maxAlive) return false;
+    _reservedOrAliveCount++;
+    return true;
+  }
+
+  @override
+  void onRemove() {
+    _reservedOrAliveCount = math.max(0, _reservedOrAliveCount - 1);
+    super.onRemove();
+  }
 
   final Paint _paint = Paint()
     ..color = const Color(0xFFE1F5FE)

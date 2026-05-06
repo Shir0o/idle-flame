@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 import '../zenith_zero_game.dart';
 import '../state/skill_catalog.dart';
 
-class HitSparkEffect extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class HitSparkEffect extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   HitSparkEffect({
     required this.effectCenter,
     required this.direction,
@@ -29,7 +30,7 @@ class HitSparkEffect extends PositionComponent with HasGameReference<ZenithZeroG
 
   @override
   void onRemove() {
-    _aliveCount--;
+    _aliveCount = math.max(0, _aliveCount - 1);
     super.onRemove();
   }
 
@@ -254,7 +255,8 @@ class CoinBurstEffect extends PositionComponent
   }
 }
 
-class SlashArcEffect extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class SlashArcEffect extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   SlashArcEffect({
     required this.from,
     required this.to,
@@ -852,7 +854,8 @@ class NovaPulseEffect extends PositionComponent
   }
 }
 
-class FirewallEffect extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class FirewallEffect extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   FirewallEffect({
     required this.effectCenter,
     required this.effectWidth,
@@ -1183,7 +1186,8 @@ class MeteorTargetingEffect extends PositionComponent
   }
 }
 
-class HeroAuraEffect extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class HeroAuraEffect extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   HeroAuraEffect({required this.effectCenter}) : super(priority: 45);
 
   final Vector2 effectCenter;

@@ -11,12 +11,7 @@ import 'damage_text.dart';
 
 enum DamageType { basic, nova, firewall, meteor, sentinel, mothership }
 
-enum EnemyType {
-  basic,
-  fast,
-  tank,
-  elite,
-}
+enum EnemyType { basic, fast, tank, elite }
 
 class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   Enemy({
@@ -25,7 +20,11 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     this.type = EnemyType.basic,
   }) : maxHp = baseMaxHp * _typeData[type]!.hpMult,
        hp = baseMaxHp * _typeData[type]!.hpMult,
-       super(position: position, size: _typeData[type]!.size, anchor: Anchor.center);
+       super(
+         position: position,
+         size: _typeData[type]!.size,
+         anchor: Anchor.center,
+       );
 
   final EnemyType type;
   final double maxHp;
@@ -108,7 +107,14 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     canvas.drawPath(path, _strokePaint);
   }
 
-  Path _getPathForType(EnemyType type, double w, double h, double cx, double cy, double bob) {
+  Path _getPathForType(
+    EnemyType type,
+    double w,
+    double h,
+    double cx,
+    double cy,
+    double bob,
+  ) {
     switch (type) {
       case EnemyType.basic:
         // Diamond
@@ -127,8 +133,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
           ..close();
       case EnemyType.tank:
         // Square
-        return Path()
-          ..addRect(Rect.fromLTWH(0, bob, w, h));
+        return Path()..addRect(Rect.fromLTWH(0, bob, w, h));
       case EnemyType.elite:
         // Hexagon
         final path = Path();
@@ -173,7 +178,10 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     if (dist > _stopRadius) {
       _walkPhase += dt;
       position +=
-          toHero.normalized() * _typeData[type]!.speed * game.state.enemySpeedMultiplier * dt;
+          toHero.normalized() *
+          _typeData[type]!.speed *
+          game.state.enemySpeedMultiplier *
+          dt;
       _breachTimer = 0;
       return;
     }
@@ -182,7 +190,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
       _breachTimer = 0;
       game.state.damageNexus(game.state.enemyBreachDamage);
       game.shakeCamera(intensity: 5, duration: 0.18);
-      if (!HitSparkEffect.atCap) {
+      if (!HitSparkEffect.atCap && game.canSpawnMinorEffect()) {
         parent?.add(
           HitSparkEffect(
             effectCenter: game.hero.position.clone(),
@@ -217,15 +225,17 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     _knockbackVelocity += pushDirection * visual.knockback;
     _hitPopTimer = 0.16;
     hp -= finalAmount;
-    parent?.add(
-      DamageText(
-        position: position + Vector2(0, -size.y / 2),
-        amount: finalAmount.round(),
-        color: visual.textColor,
-        scale: visual.textScale,
-      ),
-    );
-    if (!HitSparkEffect.atCap) {
+    if (!DamageText.atCap && game.canSpawnDamageText()) {
+      parent?.add(
+        DamageText(
+          position: position + Vector2(0, -size.y / 2),
+          amount: finalAmount.round(),
+          color: visual.textColor,
+          scale: visual.textScale,
+        ),
+      );
+    }
+    if (!HitSparkEffect.atCap && game.canSpawnMinorEffect()) {
       parent?.add(
         HitSparkEffect(
           effectCenter: position.clone(),
@@ -264,7 +274,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   void _die() {
     _dying = true;
     game.audio.playEnemyDeath();
-    if (game.state.bountyLevel > 0) {
+    if (game.state.bountyLevel > 0 && !game.effectsConstrained) {
       parent?.add(CoinBurstEffect(effectCenter: position.clone()));
     }
     final meta = game.state.meta;
@@ -272,13 +282,15 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     if (meta.hasKeystone('shatter') && game.state.frostLevel > 0) {
       final blastRadiusSq = 110.0 * 110.0;
       final dmg = game.state.heroDamage * 0.8;
-      parent?.add(
-        NovaPulseEffect(
-          effectCenter: position.clone(),
-          radius: 110,
-          level: game.state.flameNovaLevel,
-        ),
-      );
+      if (game.canSpawnMajorEffect()) {
+        parent?.add(
+          NovaPulseEffect(
+            effectCenter: position.clone(),
+            radius: 110,
+            level: game.state.flameNovaLevel,
+          ),
+        );
+      }
       for (final other in _otherAliveEnemies()) {
         if ((other.position - position).length2 <= blastRadiusSq) {
           other.takeDamage(
@@ -315,7 +327,9 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
       }
     }
     game.state.registerKill();
-    parent?.add(DeathBurstEffect(effectCenter: position.clone()));
+    if (game.canSpawnMajorEffect()) {
+      parent?.add(DeathBurstEffect(effectCenter: position.clone()));
+    }
     add(
       ScaleEffect.to(
         Vector2.zero(),

@@ -474,13 +474,15 @@ class HeroComponent extends PositionComponent
     game.shakeCamera(intensity: finalShake, duration: 0.16);
 
     final effectRadius = radius.isFinite ? radius : game.size.length;
-    parent?.add(
-      NovaPulseEffect(
-        effectCenter: position.clone(),
-        radius: effectRadius * (isAftershock ? 0.7 : 1.0),
-        level: novaLevel,
-      ),
-    );
+    if (game.canSpawnMajorEffect()) {
+      parent?.add(
+        NovaPulseEffect(
+          effectCenter: position.clone(),
+          radius: effectRadius * (isAftershock ? 0.7 : 1.0),
+          level: novaLevel,
+        ),
+      );
+    }
     for (final enemy in targets) {
       enemy.takeDamage(
         game.state.flameNovaDamage * finalDamageScale,
@@ -501,13 +503,15 @@ class HeroComponent extends PositionComponent
     final effectWidth = width.isFinite ? width : game.size.x;
     final halfWidth = effectWidth / 2;
     final wallCenter = Vector2(position.x, wallY);
-    parent?.add(
-      FirewallEffect(
-        effectCenter: wallCenter,
-        effectWidth: effectWidth,
-        level: game.state.firewallLevel,
-      ),
-    );
+    if (game.canSpawnMajorEffect()) {
+      parent?.add(
+        FirewallEffect(
+          effectCenter: wallCenter,
+          effectWidth: effectWidth,
+          level: game.state.firewallLevel,
+        ),
+      );
+    }
     final enemies = _aliveEnemies().where((enemy) {
       final insideWidth = (enemy.position.x - position.x).abs() <= halfWidth;
       final nearWall = (enemy.position.y - wallY).abs() <= 28;
@@ -536,8 +540,10 @@ class HeroComponent extends PositionComponent
   void _castMeteorMark() {
     final enemies = _aliveEnemies();
     if (enemies.isEmpty) return;
-    enemies.sort((a, b) => b.position.y.compareTo(a.position.y));
-    final target = enemies.first;
+    var target = enemies.first;
+    for (final enemy in enemies.skip(1)) {
+      if (enemy.position.y > target.position.y) target = enemy;
+    }
 
     final meteorLevel = game.state.meteorMarkLevel;
     final radius = game.state.meteorMarkRadius;
@@ -630,13 +636,15 @@ class HeroComponent extends PositionComponent
     double radiusSq, {
     double damageScale = 1.0,
   }) {
-    parent?.add(
-      MeteorImpactEffect(
-        target: impactPos,
-        radius: radius,
-        level: game.state.meteorMarkLevel,
-      ),
-    );
+    if (game.canSpawnMajorEffect()) {
+      parent?.add(
+        MeteorImpactEffect(
+          target: impactPos,
+          radius: radius,
+          level: game.state.meteorMarkLevel,
+        ),
+      );
+    }
     _pulse(0.24);
     game.shakeCamera(intensity: 7, duration: 0.22);
     game.audio.playSkillCast(); // Using cast sound for impact 'thud'

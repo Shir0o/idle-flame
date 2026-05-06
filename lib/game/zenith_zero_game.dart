@@ -29,6 +29,9 @@ class ZenithZeroGame extends FlameGame {
   bool _lastShowPerfOverlay = false;
   late final FpsTextComponent _fpsText;
   late final _PerfStatsComponent _perfStats;
+  int _damageTextsThisFrame = 0;
+  int _minorEffectsThisFrame = 0;
+  int _majorEffectsThisFrame = 0;
 
   @override
   Color backgroundColor() => Colors.black;
@@ -72,7 +75,11 @@ class ZenithZeroGame extends FlameGame {
   @override
   void update(double dt) {
     final scaledDt = dt * state.devTimeScale;
-    aliveEnemies = activeEnemies.where((e) => e.isAlive).toList();
+    aliveEnemies.clear();
+    for (final enemy in activeEnemies) {
+      if (enemy.isAlive) aliveEnemies.add(enemy);
+    }
+    _resetVisualBudget();
 
     if (_lastShowPerfOverlay != state.showPerfOverlay) {
       _lastShowPerfOverlay = state.showPerfOverlay;
@@ -123,6 +130,45 @@ class ZenithZeroGame extends FlameGame {
     _shakeTime = duration;
     _shakeDuration = duration;
     _shakeIntensity = intensity;
+  }
+
+  bool canSpawnDamageText() {
+    if (world.children.length > 700) return false;
+    final maxPerFrame = aliveEnemies.length > 80 ? 8 : 16;
+    if (_damageTextsThisFrame >= maxPerFrame) return false;
+    _damageTextsThisFrame++;
+    return true;
+  }
+
+  bool canSpawnMinorEffect() {
+    final componentCount = world.children.length;
+    if (componentCount > 700) return false;
+    final maxPerFrame = componentCount > 420 || aliveEnemies.length > 90
+        ? 5
+        : 14;
+    if (_minorEffectsThisFrame >= maxPerFrame) return false;
+    _minorEffectsThisFrame++;
+    return true;
+  }
+
+  bool canSpawnMajorEffect() {
+    final componentCount = world.children.length;
+    if (componentCount > 760) return false;
+    final maxPerFrame = componentCount > 420 || aliveEnemies.length > 90
+        ? 2
+        : 6;
+    if (_majorEffectsThisFrame >= maxPerFrame) return false;
+    _majorEffectsThisFrame++;
+    return true;
+  }
+
+  bool get effectsConstrained =>
+      world.children.length > 420 || aliveEnemies.length > 90;
+
+  void _resetVisualBudget() {
+    _damageTextsThisFrame = 0;
+    _minorEffectsThisFrame = 0;
+    _majorEffectsThisFrame = 0;
   }
 
   void _devKillAllEnemies() {

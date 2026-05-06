@@ -25,6 +25,9 @@ class DamageText extends TextComponent with HasGameReference<ZenithZeroGame> {
   }
 
   static final Map<Color, TextPaint> _paintCache = {};
+  static int _aliveCount = 0;
+  static const int _maxAlive = 80;
+  static bool get atCap => _aliveCount >= _maxAlive;
 
   static TextPaint _getPaint(Color color) {
     return _paintCache.putIfAbsent(
@@ -51,6 +54,18 @@ class DamageText extends TextComponent with HasGameReference<ZenithZeroGame> {
 
   static final math.Random _rng = math.Random();
   static const double _duration = 0.72;
+
+  @override
+  void onMount() {
+    super.onMount();
+    _aliveCount++;
+  }
+
+  @override
+  void onRemove() {
+    _aliveCount = math.max(0, _aliveCount - 1);
+    super.onRemove();
+  }
 
   @override
   void update(double dt) {

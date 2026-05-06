@@ -7,9 +7,9 @@ import 'combat_effects.dart';
 
 enum CrewShipType {
   interceptor, // Ranged plasma
-  kamikaze,    // Dive explosion
-  slicer,      // Melee saw
-  thermal,     // Charge laser
+  kamikaze, // Dive explosion
+  slicer, // Melee saw
+  thermal, // Charge laser
 }
 
 class Mothership extends PositionComponent
@@ -19,6 +19,7 @@ class Mothership extends PositionComponent
   final int level;
   double _spawnTimer = 0;
   double _totalTime = 0;
+  final math.Random _rng = math.Random();
 
   final Paint _hullPaint = Paint()
     ..color = const Color(0xFFCE93D8)
@@ -71,26 +72,34 @@ class Mothership extends PositionComponent
   }
 
   void _launchCrewShips() {
+    final world = parent;
+    if (world == null) return;
+
     final count = game.state.mothershipDroneCount;
+    if (CrewShip.availableSlots <= 0) return;
     game.audio.playSkillCast();
 
+    final currentLevel = game.state.mothershipLevel;
     final availableTypes = <CrewShipType>[CrewShipType.interceptor];
-    if (level >= 2) availableTypes.add(CrewShipType.kamikaze);
-    if (level >= 3) availableTypes.add(CrewShipType.slicer);
-    if (level >= 4) availableTypes.add(CrewShipType.thermal);
+    if (currentLevel >= 2) availableTypes.add(CrewShipType.kamikaze);
+    if (currentLevel >= 3) availableTypes.add(CrewShipType.slicer);
+    if (currentLevel >= 4) availableTypes.add(CrewShipType.thermal);
 
     for (var i = 0; i < count; i++) {
-      final type = availableTypes[math.Random().nextInt(availableTypes.length)];
+      if (!CrewShip.reserveSpawn()) break;
+      final type = availableTypes[_rng.nextInt(availableTypes.length)];
       final offset = Vector2(
-        (math.Random().nextDouble() - 0.5) * 30,
-        (math.Random().nextDouble() - 0.5) * 30,
+        (_rng.nextDouble() - 0.5) * 30,
+        (_rng.nextDouble() - 0.5) * 30,
       );
-      parent?.add(CrewShip(
-        startPos: position + offset,
-        level: level,
-        damage: game.state.mothershipDroneDamage,
-        type: type,
-      ));
+      world.add(
+        CrewShip(
+          startPos: position + offset,
+          level: currentLevel,
+          damage: game.state.mothershipDroneDamage,
+          type: type,
+        ),
+      );
     }
   }
 
@@ -146,6 +155,22 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
   final double _maxLife = 6.0;
   double _speed = 400;
   double _rotationSpeed = 0;
+  static int _reservedOrAliveCount = 0;
+  static const int _maxAlive = 24;
+  static int get availableSlots =>
+      math.max(0, _maxAlive - _reservedOrAliveCount);
+
+  static bool reserveSpawn() {
+    if (_reservedOrAliveCount >= _maxAlive) return false;
+    _reservedOrAliveCount++;
+    return true;
+  }
+
+  @override
+  void onRemove() {
+    _reservedOrAliveCount = math.max(0, _reservedOrAliveCount - 1);
+    super.onRemove();
+  }
 
   @override
   void onMount() {
@@ -158,16 +183,26 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
     final enemies = game.aliveEnemies;
     if (enemies.isEmpty) return;
 
+    Enemy? best;
     if (type == CrewShipType.kamikaze) {
-      // Kamikaze targets anything close to nexus
-      enemies.sort((a, b) => (a.position - game.hero.position)
-          .length2
-          .compareTo((b.position - game.hero.position).length2));
+      var bestDistance = double.infinity;
+      for (final enemy in enemies) {
+        final distance = (enemy.position - game.hero.position).length2;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = enemy;
+        }
+      }
     } else {
-      // Others target furthest enemies (standard drone behavior)
-      enemies.sort((a, b) => b.position.x.compareTo(a.position.x));
+      var furthestX = -double.infinity;
+      for (final enemy in enemies) {
+        if (enemy.position.x > furthestX) {
+          furthestX = enemy.position.x;
+          best = enemy;
+        }
+      }
     }
-    _target = enemies.first;
+    _target = best;
   }
 
   @override
@@ -230,12 +265,16 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
   }
 
   void _firePlasma() {
-    parent?.add(CrewShipProjectile(
-      startPos: position.clone(),
-      target: _target!,
-      damage: damage * 0.8,
-      color: const Color(0xFFCE93D8),
-    ));
+    final target = _target;
+    if (target == null || !CrewShipProjectile.reserveSpawn()) return;
+    parent?.add(
+      CrewShipProjectile(
+        startPos: position.clone(),
+        target: target,
+        damage: damage * 0.8,
+        color: const Color(0xFFCE93D8),
+      ),
+    );
   }
 
   void _updateKamikaze(double dt, Vector2 toTarget, double dist) {
@@ -253,16 +292,24 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
     final blastRadius = 72.0;
     final blastRadius2 = blastRadius * blastRadius;
 
-    parent?.add(NovaPulseEffect(
-      effectCenter: position.clone(),
-      radius: blastRadius,
-      color: const Color(0xFFFF5252),
-      level: level,
-    ));
+    if (game.canSpawnMajorEffect()) {
+      parent?.add(
+        NovaPulseEffect(
+          effectCenter: position.clone(),
+          radius: blastRadius,
+          color: const Color(0xFFFF5252),
+          level: level,
+        ),
+      );
+    }
 
     for (final e in game.aliveEnemies) {
       if ((e.position - position).length2 < blastRadius2) {
-        e.takeDamage(damage * 2.5, source: position, type: DamageType.mothership);
+        e.takeDamage(
+          damage * 2.5,
+          source: position,
+          type: DamageType.mothership,
+        );
       }
     }
   }
@@ -286,13 +333,21 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
     const range2 = range * range;
     for (final e in game.aliveEnemies) {
       if ((e.position - position).length2 < range2) {
-        e.takeDamage(damage * 0.4, source: position, type: DamageType.mothership);
-        parent?.add(HitSparkEffect(
-          effectCenter: e.position.clone(),
-          direction: (e.position - position).normalized(),
-          color: const Color(0xFFCE93D8),
-          count: 3,
-        ));
+        e.takeDamage(
+          damage * 0.4,
+          source: position,
+          type: DamageType.mothership,
+        );
+        if (!HitSparkEffect.atCap && game.canSpawnMinorEffect()) {
+          parent?.add(
+            HitSparkEffect(
+              effectCenter: e.position.clone(),
+              direction: (e.position - position).normalized(),
+              color: const Color(0xFFCE93D8),
+              count: 3,
+            ),
+          );
+        }
       }
     }
   }
@@ -314,14 +369,20 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
   void _fireLaser() {
     if (_target == null) return;
-    parent?.add(LaserBeamEffect(
-      from: position.clone(),
-      to: _target!.position.clone(),
-      color: const Color(0xFFFF2D95),
-      duration: 1.0,
-      width: 6,
-    ));
-    _target?.takeDamage(damage * 4.0, source: position, type: DamageType.mothership);
+    parent?.add(
+      LaserBeamEffect(
+        from: position.clone(),
+        to: _target!.position.clone(),
+        color: const Color(0xFFFF2D95),
+        duration: 1.0,
+        width: 6,
+      ),
+    );
+    _target?.takeDamage(
+      damage * 4.0,
+      source: position,
+      type: DamageType.mothership,
+    );
   }
 
   double _lerpAngle(double a, double b, double t) {
@@ -358,10 +419,12 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
       ..lineTo(-2, 0)
       ..lineTo(-4, 6)
       ..close();
-    canvas.drawPath(
-        path, Paint()..color = const Color(0xFFCE93D8));
-    canvas.drawCircle(const Offset(-4, 0), 2,
-        Paint()..color = const Color(0xFFE1F5FE));
+    canvas.drawPath(path, Paint()..color = const Color(0xFFCE93D8));
+    canvas.drawCircle(
+      const Offset(-4, 0),
+      2,
+      Paint()..color = const Color(0xFFE1F5FE),
+    );
   }
 
   void _drawKamikaze(Canvas canvas) {
@@ -373,8 +436,11 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
     canvas.drawPath(path, Paint()..color = const Color(0xFFFF5252));
     // Pulsing core
     final pulse = 0.7 + 0.3 * math.sin(_age * 15);
-    canvas.drawCircle(const Offset(2, 0), 3 * pulse,
-        Paint()..color = Colors.white);
+    canvas.drawCircle(
+      const Offset(2, 0),
+      3 * pulse,
+      Paint()..color = Colors.white,
+    );
   }
 
   void _drawSlicer(Canvas canvas) {
@@ -384,16 +450,20 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
       ..color = const Color(0xFFCE93D8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
-    
-    for(int i=0; i<4; i++) {
+
+    for (int i = 0; i < 4; i++) {
       final a = i * math.pi / 2;
       canvas.drawLine(
-        Offset(math.cos(a)*2, math.sin(a)*2),
-        Offset(math.cos(a)*10, math.sin(a)*10),
+        Offset(math.cos(a) * 2, math.sin(a) * 2),
+        Offset(math.cos(a) * 10, math.sin(a) * 10),
         paint,
       );
     }
-    canvas.drawCircle(Offset.zero, 4, Paint()..color = Colors.white.withValues(alpha: 0.8));
+    canvas.drawCircle(
+      Offset.zero,
+      4,
+      Paint()..color = Colors.white.withValues(alpha: 0.8),
+    );
     canvas.restore();
   }
 
@@ -406,7 +476,7 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
       ..lineTo(-2, 8)
       ..close();
     canvas.drawPath(path, Paint()..color = const Color(0xFFCE93D8));
-    
+
     // Charging effect
     if (_actionTimer > 2.0) {
       final p = (_actionTimer - 2.0).clamp(0.0, 1.0);
@@ -434,6 +504,20 @@ class CrewShipProjectile extends PositionComponent
   double _age = 0;
   static const double _speed = 700;
   static const double _maxLife = 2.0;
+  static int _reservedOrAliveCount = 0;
+  static const int _maxAlive = 48;
+
+  static bool reserveSpawn() {
+    if (_reservedOrAliveCount >= _maxAlive) return false;
+    _reservedOrAliveCount++;
+    return true;
+  }
+
+  @override
+  void onRemove() {
+    _reservedOrAliveCount = math.max(0, _reservedOrAliveCount - 1);
+    super.onRemove();
+  }
 
   @override
   void update(double dt) {
