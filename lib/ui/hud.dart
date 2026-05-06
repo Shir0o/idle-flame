@@ -82,14 +82,14 @@ class Hud extends StatelessWidget {
     return SafeArea(
       child: Stack(
         children: const [
-          Positioned(left: 16, right: 16, bottom: 16, child: _NexusHealthBar()),
+          Positioned(left: 16, bottom: 16, child: _NexusHealthBar()),
           Positioned(left: 0, right: 0, top: 80, child: _VoidRewardToast()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _RunOverPanel()),
           Positioned(top: 12, left: 16, child: _FloorBadge()),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
           Positioned(top: 80, right: 16, child: _MuteButton()),
-          Positioned(top: 92, left: 16, child: _ArsenalPanel()),
+          Positioned(bottom: 80, left: 16, child: _ArsenalPanel()),
           Positioned(right: 16, bottom: 16, child: _DevTools()),
         ],
       ),
@@ -1381,93 +1381,90 @@ class _NexusHealthBarState extends State<_NexusHealthBar>
     final godMode = context.select<GameState, bool>((s) => s.godMode);
     return Selector<GameState, ({double hp, double maxHp})>(
       selector: (_, state) => (hp: state.nexusHp, maxHp: state.nexusMaxHp),
-      builder: (_, data, _) => Align(
-        alignment: Alignment.bottomLeft,
-        child: _Panel(
-          child: SizedBox(
-            width: 210,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      godMode ? Icons.shield : Icons.favorite,
-                      color: godMode
-                          ? const Color(0xFF64FFDA)
-                          : const Color(0xFFFF5252),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        godMode ? 'Nexus (GOD MODE)' : 'Nexus',
-                        style: TextStyle(
-                          color: godMode
-                              ? const Color(0xFF64FFDA)
-                              : Colors.white.withValues(alpha: 0.86),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '${data.hp.ceil()}/${data.maxHp.round()}',
+      builder: (_, data, _) => _Panel(
+        child: SizedBox(
+          width: 210,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    godMode ? Icons.shield : Icons.favorite,
+                    color: godMode
+                        ? const Color(0xFF64FFDA)
+                        : const Color(0xFFFF5252),
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      godMode ? 'Nexus (GOD MODE)' : 'Nexus',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                        color: godMode
+                            ? const Color(0xFF64FFDA)
+                            : Colors.white.withValues(alpha: 0.86),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: data.hp / data.maxHp,
-                        minHeight: 7,
-                        backgroundColor: Colors.white.withValues(alpha: 0.12),
-                        valueColor: AlwaysStoppedAnimation(
-                          godMode
-                              ? const Color(0xFF64FFDA)
-                              : const Color(0xFFFF5252),
-                        ),
+                  ),
+                  Text(
+                    '${data.hp.ceil()}/${data.maxHp.round()}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 7),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: data.hp / data.maxHp,
+                      minHeight: 7,
+                      backgroundColor: Colors.white.withValues(alpha: 0.12),
+                      valueColor: AlwaysStoppedAnimation(
+                        godMode
+                            ? const Color(0xFF64FFDA)
+                            : const Color(0xFFFF5252),
                       ),
                     ),
-                    if (godMode)
-                      Positioned.fill(
-                        child: AnimatedBuilder(
-                          animation: _controller,
-                          builder: (context, child) {
-                            return FractionallySizedBox(
-                              widthFactor: 0.4,
-                              alignment: Alignment(
-                                -1.5 + (_controller.value * 3),
-                                0,
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.white.withValues(alpha: 0),
-                                      Colors.white.withValues(alpha: 0.4),
-                                      Colors.white.withValues(alpha: 0),
-                                    ],
-                                  ),
+                  ),
+                  if (godMode)
+                    Positioned.fill(
+                      child: AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, child) {
+                          return FractionallySizedBox(
+                            widthFactor: 0.4,
+                            alignment: Alignment(
+                              -1.5 + (_controller.value * 3),
+                              0,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.white.withValues(alpha: 0),
+                                    Colors.white.withValues(alpha: 0.4),
+                                    Colors.white.withValues(alpha: 0),
+                                  ],
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        },
                       ),
-                  ],
-                ),
-              ],
-            ),
+                    ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
