@@ -35,6 +35,16 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     ..color = _typeData[type]!.outlineColor
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2.5;
+  late final Paint _detailPaint = Paint()
+    ..color = _typeData[type]!.outlineColor.withValues(alpha: 0.72)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.4
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round;
+  late final Paint _glowPaint = Paint()
+    ..color = _typeData[type]!.baseColor.withValues(alpha: 0.2)
+    ..style = PaintingStyle.fill
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9);
 
   double _flashTimer = 0;
   double _hitPopTimer = 0;
@@ -103,8 +113,14 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     final path = _getPathForType(type, w, h, cx, cy, bob);
 
     _fillPaint.color = _color;
+    _glowPaint.color = _color.withValues(
+      alpha: type == EnemyType.elite ? 0.3 : 0.18,
+    );
+    canvas.drawPath(path, _fillPaint);
+    canvas.drawPath(path, _glowPaint);
     canvas.drawPath(path, _fillPaint);
     canvas.drawPath(path, _strokePaint);
+    _drawDetailsForType(canvas, type, w, h, cx, cy, bob);
   }
 
   Path _getPathForType(
@@ -117,39 +133,158 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   ) {
     switch (type) {
       case EnemyType.basic:
-        // Diamond
         return Path()
-          ..moveTo(cx, bob)
-          ..lineTo(w, cy + bob)
-          ..lineTo(cx, h + bob)
-          ..lineTo(0, cy + bob)
+          ..moveTo(cx, h * 0.08 + bob)
+          ..lineTo(w * 0.78, h * 0.34 + bob)
+          ..lineTo(w * 0.92, h * 0.58 + bob)
+          ..lineTo(w * 0.58, h * 0.52 + bob)
+          ..lineTo(cx, h * 0.9 + bob)
+          ..lineTo(w * 0.42, h * 0.52 + bob)
+          ..lineTo(w * 0.08, h * 0.58 + bob)
+          ..lineTo(w * 0.22, h * 0.34 + bob)
           ..close();
       case EnemyType.fast:
-        // Triangle (pointing down-ish)
         return Path()
-          ..moveTo(cx, bob)
-          ..lineTo(w, h + bob)
-          ..lineTo(0, h + bob)
+          ..moveTo(cx, h * 0.02 + bob)
+          ..lineTo(w * 0.62, h * 0.54 + bob)
+          ..lineTo(w * 0.96, h * 0.92 + bob)
+          ..lineTo(cx, h * 0.72 + bob)
+          ..lineTo(w * 0.04, h * 0.92 + bob)
+          ..lineTo(w * 0.38, h * 0.54 + bob)
           ..close();
       case EnemyType.tank:
-        // Square
-        return Path()..addRect(Rect.fromLTWH(0, bob, w, h));
+        return Path()
+          ..moveTo(w * 0.24, h * 0.1 + bob)
+          ..lineTo(w * 0.76, h * 0.1 + bob)
+          ..lineTo(w * 0.94, h * 0.3 + bob)
+          ..lineTo(w * 0.94, h * 0.72 + bob)
+          ..lineTo(w * 0.72, h * 0.92 + bob)
+          ..lineTo(w * 0.28, h * 0.92 + bob)
+          ..lineTo(w * 0.06, h * 0.72 + bob)
+          ..lineTo(w * 0.06, h * 0.3 + bob)
+          ..close();
       case EnemyType.elite:
-        // Hexagon
-        final path = Path();
-        const sides = 6;
-        final radius = w / 2;
-        for (var i = 0; i < sides; i++) {
-          final angle = (i * 2 * math.pi / sides) - (math.pi / 2);
-          final x = cx + radius * math.cos(angle);
-          final y = cy + radius * math.sin(angle) + bob;
-          if (i == 0) {
-            path.moveTo(x, y);
-          } else {
-            path.lineTo(x, y);
-          }
-        }
-        return path..close();
+        return Path()
+          ..moveTo(cx, h * 0.02 + bob)
+          ..lineTo(w * 0.62, h * 0.16 + bob)
+          ..lineTo(w * 0.86, h * 0.14 + bob)
+          ..lineTo(w * 0.78, h * 0.38 + bob)
+          ..lineTo(w * 0.96, h * 0.56 + bob)
+          ..lineTo(w * 0.72, h * 0.86 + bob)
+          ..lineTo(cx, h * 0.98 + bob)
+          ..lineTo(w * 0.28, h * 0.86 + bob)
+          ..lineTo(w * 0.04, h * 0.56 + bob)
+          ..lineTo(w * 0.22, h * 0.38 + bob)
+          ..lineTo(w * 0.14, h * 0.14 + bob)
+          ..lineTo(w * 0.38, h * 0.16 + bob)
+          ..close();
+    }
+  }
+
+  void _drawDetailsForType(
+    Canvas canvas,
+    EnemyType type,
+    double w,
+    double h,
+    double cx,
+    double cy,
+    double bob,
+  ) {
+    final corePaint = Paint()
+      ..color = _typeData[type]!.outlineColor.withValues(alpha: 0.86)
+      ..style = PaintingStyle.fill;
+    final darkCutPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.26)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    switch (type) {
+      case EnemyType.basic:
+        canvas.drawLine(
+          Offset(cx, h * 0.18 + bob),
+          Offset(cx, h * 0.78 + bob),
+          _detailPaint,
+        );
+        canvas.drawLine(
+          Offset(w * 0.28, h * 0.42 + bob),
+          Offset(w * 0.72, h * 0.42 + bob),
+          darkCutPaint,
+        );
+        canvas.drawCircle(Offset(cx, cy + bob), w * 0.08, corePaint);
+        break;
+      case EnemyType.fast:
+        canvas.drawLine(
+          Offset(cx, h * 0.14 + bob),
+          Offset(cx, h * 0.7 + bob),
+          _detailPaint,
+        );
+        canvas.drawLine(
+          Offset(w * 0.22, h * 0.82 + bob),
+          Offset(w * 0.42, h * 0.58 + bob),
+          darkCutPaint,
+        );
+        canvas.drawLine(
+          Offset(w * 0.78, h * 0.82 + bob),
+          Offset(w * 0.58, h * 0.58 + bob),
+          darkCutPaint,
+        );
+        canvas.drawCircle(Offset(cx, h * 0.2 + bob), w * 0.06, corePaint);
+        break;
+      case EnemyType.tank:
+        final plate = RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: Offset(cx, cy + bob),
+            width: w * 0.5,
+            height: h * 0.42,
+          ),
+          const Radius.circular(4),
+        );
+        canvas.drawRRect(
+          plate,
+          Paint()
+            ..color = Colors.black.withValues(alpha: 0.2)
+            ..style = PaintingStyle.fill,
+        );
+        canvas.drawRRect(plate, _detailPaint);
+        canvas.drawLine(
+          Offset(w * 0.16, h * 0.32 + bob),
+          Offset(w * 0.84, h * 0.32 + bob),
+          darkCutPaint,
+        );
+        canvas.drawLine(
+          Offset(w * 0.16, h * 0.7 + bob),
+          Offset(w * 0.84, h * 0.7 + bob),
+          darkCutPaint,
+        );
+        canvas.drawCircle(Offset(cx, cy + bob), w * 0.08, corePaint);
+        break;
+      case EnemyType.elite:
+        final crown = Path()
+          ..moveTo(w * 0.28, h * 0.24 + bob)
+          ..lineTo(cx, h * 0.08 + bob)
+          ..lineTo(w * 0.72, h * 0.24 + bob);
+        canvas.drawPath(crown, _detailPaint);
+        canvas.drawLine(
+          Offset(cx, h * 0.24 + bob),
+          Offset(cx, h * 0.82 + bob),
+          _detailPaint,
+        );
+        canvas.drawLine(
+          Offset(w * 0.25, h * 0.48 + bob),
+          Offset(w * 0.75, h * 0.48 + bob),
+          darkCutPaint,
+        );
+        canvas.drawCircle(Offset(cx, cy + bob), w * 0.12, corePaint);
+        canvas.drawCircle(
+          Offset(cx, cy + bob),
+          w * 0.19,
+          Paint()
+            ..color = _typeData[type]!.outlineColor.withValues(alpha: 0.34)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5,
+        );
+        break;
     }
   }
 

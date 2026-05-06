@@ -92,11 +92,7 @@ class Hud extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              children: [
-                _FloorBadge(),
-                SizedBox(height: 8),
-                _ArsenalPanel(),
-              ],
+              children: [_FloorBadge(), SizedBox(height: 8), _ArsenalPanel()],
             ),
           ),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
@@ -213,7 +209,8 @@ class _ArsenalPanel extends StatelessWidget {
                             icon: Icons.local_fire_department_rounded,
                             color: const Color(0xFFFF8A00),
                             label: 'Lifetime Embers: ${meta.lifetimeEmbers}',
-                            description: 'Total Embers harvested from the Void.',
+                            description:
+                                'Total Embers harvested from the Void.',
                             onTap: () {},
                           ),
                           _MenuItem(
@@ -994,9 +991,11 @@ class _DevToolsState extends State<_DevTools> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                for (var i = 1;
-                                    i <= SkillDefinition.maxLevel;
-                                    i++)
+                                for (
+                                  var i = 1;
+                                  i <= SkillDefinition.maxLevel;
+                                  i++
+                                )
                                   Padding(
                                     padding: const EdgeInsets.only(bottom: 2),
                                     child: Row(
@@ -1015,10 +1014,7 @@ class _DevToolsState extends State<_DevTools> {
                                         ),
                                         Expanded(
                                           child: Text(
-                                            _archetypeDescription(
-                                              archetype,
-                                              i,
-                                            ),
+                                            _archetypeDescription(archetype, i),
                                             style: const TextStyle(
                                               color: Colors.white70,
                                               fontSize: 11,
@@ -1570,7 +1566,7 @@ class _ChoiceCard extends StatelessWidget {
                         color: _accent.withValues(alpha: 0.45),
                       ),
                     ),
-                    child: Icon(_icon, color: _accent, size: 22),
+                    child: _ChoiceIcon(archetype: choice.definition.archetype),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1661,8 +1657,6 @@ class _ChoiceCard extends StatelessWidget {
 
   Color get _accent => choice.definition.archetype.color;
 
-  IconData get _icon => choice.definition.archetype.icon;
-
   Color get _tierColor {
     return switch (choice.level) {
       2 || 4 => const Color(0xFFFF2D95),
@@ -1672,6 +1666,89 @@ class _ChoiceCard extends StatelessWidget {
   }
 
   String get _archetypeLabel => choice.definition.archetype.label;
+}
+
+class _ChoiceIcon extends StatelessWidget {
+  const _ChoiceIcon({required this.archetype});
+
+  final SkillArchetype archetype;
+
+  @override
+  Widget build(BuildContext context) {
+    if (archetype == SkillArchetype.mothership) {
+      return CustomPaint(
+        size: const Size.square(26),
+        painter: _MothershipSkillIconPainter(color: archetype.color),
+      );
+    }
+    return Icon(archetype.icon, color: archetype.color, size: 22);
+  }
+}
+
+class _MothershipSkillIconPainter extends CustomPainter {
+  const _MothershipSkillIconPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final cx = w / 2;
+    final cy = h / 2;
+    final hull = Path()
+      ..moveTo(w * 0.88, cy)
+      ..lineTo(w * 0.63, h * 0.25)
+      ..lineTo(w * 0.34, h * 0.18)
+      ..lineTo(w * 0.12, h * 0.34)
+      ..lineTo(w * 0.2, cy)
+      ..lineTo(w * 0.12, h * 0.66)
+      ..lineTo(w * 0.34, h * 0.82)
+      ..lineTo(w * 0.63, h * 0.75)
+      ..close();
+    final glow = Paint()
+      ..color = color.withValues(alpha: 0.22)
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    final fill = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    final edge = Paint()
+      ..color = Colors.white.withValues(alpha: 0.82)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..strokeJoin = StrokeJoin.round;
+    final bay = Paint()
+      ..color = const Color(0xFF00E5FF).withValues(alpha: 0.68)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(hull, glow);
+    canvas.drawPath(hull, fill);
+    canvas.drawPath(hull, edge);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(cx * 0.88, cy),
+          width: w * 0.34,
+          height: h * 0.18,
+        ),
+        const Radius.circular(3),
+      ),
+      bay,
+    );
+    canvas.drawCircle(
+      Offset(w * 0.58, cy),
+      w * 0.12,
+      Paint()..color = Colors.white.withValues(alpha: 0.86),
+    );
+    canvas.drawCircle(Offset(w * 0.16, h * 0.38), w * 0.07, bay);
+    canvas.drawCircle(Offset(w * 0.16, h * 0.62), w * 0.07, bay);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MothershipSkillIconPainter oldDelegate) {
+    return oldDelegate.color != color;
+  }
 }
 
 class _Tag extends StatelessWidget {

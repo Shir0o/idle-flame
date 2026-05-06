@@ -107,33 +107,92 @@ class Mothership extends PositionComponent
   void render(Canvas canvas) {
     super.render(canvas);
 
-    final size = 32.0;
-    final path = Path()
-      ..moveTo(size * 0.6, 0)
-      ..lineTo(size * 0.4, -size * 0.4)
-      ..lineTo(-size * 0.3, -size * 0.5)
-      ..lineTo(-size * 0.6, -size * 0.2)
-      ..lineTo(-size * 0.6, size * 0.2)
-      ..lineTo(-size * 0.3, size * 0.5)
-      ..lineTo(size * 0.4, size * 0.4)
+    const s = 38.0;
+    final pulse = 0.5 + 0.5 * math.sin(_totalTime * 5.0);
+    final hullPath = Path()
+      ..moveTo(s * 0.72, 0)
+      ..lineTo(s * 0.48, -s * 0.28)
+      ..lineTo(s * 0.12, -s * 0.42)
+      ..lineTo(-s * 0.18, -s * 0.64)
+      ..lineTo(-s * 0.62, -s * 0.42)
+      ..lineTo(-s * 0.86, -s * 0.14)
+      ..lineTo(-s * 0.76, 0)
+      ..lineTo(-s * 0.86, s * 0.14)
+      ..lineTo(-s * 0.62, s * 0.42)
+      ..lineTo(-s * 0.18, s * 0.64)
+      ..lineTo(s * 0.12, s * 0.42)
+      ..lineTo(s * 0.48, s * 0.28)
       ..close();
+    final wingPaint = Paint()
+      ..color = const Color(0xFF7C4DFF).withValues(alpha: 0.78)
+      ..style = PaintingStyle.fill;
+    final outlinePaint = Paint()
+      ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.72)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeJoin = StrokeJoin.round;
+    final bayPaint = Paint()
+      ..color = const Color(0xFF00E5FF).withValues(alpha: 0.34 + pulse * 0.22)
+      ..style = PaintingStyle.fill;
+    final enginePaint = Paint()
+      ..color = const Color(0xFFFF2D95).withValues(alpha: 0.52 + pulse * 0.34)
+      ..style = PaintingStyle.fill;
 
     canvas.drawPath(
-      path,
+      hullPath,
       Paint()
-        ..color = const Color(0xFFCE93D8).withValues(alpha: 0.25)
+        ..color = const Color(0xFFCE93D8).withValues(alpha: 0.26)
         ..style = PaintingStyle.fill
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
     );
+    canvas.drawPath(hullPath, _hullPaint);
+    canvas.drawPath(hullPath, outlinePaint);
 
-    canvas.drawPath(path, _hullPaint);
+    final topPod = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(-s * 0.2, -s * 0.52),
+        width: s * 0.72,
+        height: s * 0.22,
+      ),
+      const Radius.circular(8),
+    );
+    final bottomPod = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(-s * 0.2, s * 0.52),
+        width: s * 0.72,
+        height: s * 0.22,
+      ),
+      const Radius.circular(8),
+    );
+    canvas.drawRRect(topPod, wingPaint);
+    canvas.drawRRect(bottomPod, wingPaint);
+    canvas.drawRRect(topPod, outlinePaint);
+    canvas.drawRRect(bottomPod, outlinePaint);
 
-    // Command bridge
-    canvas.drawCircle(Offset(size * 0.1, 0), 6, _glowPaint);
+    final bay = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(-s * 0.1, 0),
+        width: s * 0.66,
+        height: s * 0.24,
+      ),
+      const Radius.circular(6),
+    );
+    canvas.drawRRect(bay, bayPaint);
+    canvas.drawRRect(bay, outlinePaint);
 
-    // Side thrusters
-    canvas.drawCircle(Offset(-size * 0.5, -size * 0.25), 4, _glowPaint);
-    canvas.drawCircle(Offset(-size * 0.5, size * 0.25), 4, _glowPaint);
+    canvas.drawCircle(Offset(s * 0.2, 0), 7, _glowPaint);
+    canvas.drawCircle(Offset(s * 0.2, 0), 3.5, bayPaint);
+    canvas.drawCircle(
+      Offset(-s * 0.76, -s * 0.2),
+      4 + pulse * 1.4,
+      enginePaint,
+    );
+    canvas.drawCircle(Offset(-s * 0.76, s * 0.2), 4 + pulse * 1.4, enginePaint);
+    canvas.drawCircle(
+      Offset(-s * 0.9, 0),
+      2.5 + pulse,
+      Paint()..color = const Color(0xFFE1F5FE).withValues(alpha: 0.58),
+    );
   }
 }
 
@@ -414,14 +473,29 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
   void _drawInterceptor(Canvas canvas) {
     final path = Path()
-      ..moveTo(8, 0)
-      ..lineTo(-4, -6)
-      ..lineTo(-2, 0)
-      ..lineTo(-4, 6)
+      ..moveTo(10, 0)
+      ..lineTo(1, -4)
+      ..lineTo(-8, -8)
+      ..lineTo(-4, 0)
+      ..lineTo(-8, 8)
+      ..lineTo(1, 4)
       ..close();
-    canvas.drawPath(path, Paint()..color = const Color(0xFFCE93D8));
+    final hull = Paint()..color = const Color(0xFFCE93D8);
+    final edge = Paint()
+      ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.76)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    canvas.drawPath(path, hull);
+    canvas.drawPath(path, edge);
+    canvas.drawLine(
+      const Offset(-2, 0),
+      const Offset(8, 0),
+      Paint()
+        ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.7)
+        ..strokeWidth = 1.1,
+    );
     canvas.drawCircle(
-      const Offset(-4, 0),
+      const Offset(-6, 0),
       2,
       Paint()..color = const Color(0xFFE1F5FE),
     );
@@ -429,39 +503,57 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
   void _drawKamikaze(Canvas canvas) {
     final path = Path()
-      ..moveTo(10, 0)
-      ..lineTo(-6, -4)
-      ..lineTo(-6, 4)
+      ..moveTo(11, 0)
+      ..lineTo(1, -5)
+      ..lineTo(-9, -4)
+      ..lineTo(-5, 0)
+      ..lineTo(-9, 4)
+      ..lineTo(1, 5)
       ..close();
     canvas.drawPath(path, Paint()..color = const Color(0xFFFF5252));
-    // Pulsing core
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.72)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.1,
+    );
     final pulse = 0.7 + 0.3 * math.sin(_age * 15);
     canvas.drawCircle(
-      const Offset(2, 0),
+      const Offset(3, 0),
       3 * pulse,
       Paint()..color = Colors.white,
+    );
+    canvas.drawCircle(
+      const Offset(-7, 0),
+      2.2 + pulse,
+      Paint()..color = const Color(0xFFFFD166).withValues(alpha: 0.72),
     );
   }
 
   void _drawSlicer(Canvas canvas) {
     canvas.save();
     canvas.rotate(_rotationSpeed);
-    final paint = Paint()
-      ..color = const Color(0xFFCE93D8)
+    final bladePaint = Paint()..color = const Color(0xFFCE93D8);
+    final edgePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.82)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 1.0;
 
-    for (int i = 0; i < 4; i++) {
-      final a = i * math.pi / 2;
-      canvas.drawLine(
-        Offset(math.cos(a) * 2, math.sin(a) * 2),
-        Offset(math.cos(a) * 10, math.sin(a) * 10),
-        paint,
-      );
+    for (int i = 0; i < 6; i++) {
+      final a = i * math.pi / 3;
+      final blade = Path()
+        ..moveTo(math.cos(a - 0.18) * 4, math.sin(a - 0.18) * 4)
+        ..lineTo(math.cos(a) * 12, math.sin(a) * 12)
+        ..lineTo(math.cos(a + 0.32) * 5, math.sin(a + 0.32) * 5)
+        ..close();
+      canvas.drawPath(blade, bladePaint);
+      canvas.drawPath(blade, edgePaint);
     }
+    canvas.drawCircle(Offset.zero, 5, Paint()..color = const Color(0xFF7C4DFF));
     canvas.drawCircle(
       Offset.zero,
-      4,
+      2.5,
       Paint()..color = Colors.white.withValues(alpha: 0.8),
     );
     canvas.restore();
@@ -470,20 +562,44 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
   void _drawThermal(Canvas canvas) {
     final path = Path()
       ..moveTo(12, 0)
-      ..lineTo(-2, -8)
-      ..lineTo(-8, -8)
-      ..lineTo(-8, 8)
-      ..lineTo(-2, 8)
+      ..lineTo(3, -5)
+      ..lineTo(-5, -9)
+      ..lineTo(-10, -5)
+      ..lineTo(-8, 5)
+      ..lineTo(-5, 9)
+      ..lineTo(3, 5)
       ..close();
     canvas.drawPath(path, Paint()..color = const Color(0xFFCE93D8));
-
-    // Charging effect
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.7)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.1,
+    );
+    canvas.drawRect(
+      const Rect.fromLTWH(-5, -3, 10, 6),
+      Paint()..color = const Color(0xFF00E5FF).withValues(alpha: 0.28),
+    );
+    canvas.drawCircle(
+      const Offset(10, 0),
+      2.5,
+      Paint()..color = const Color(0xFFFF2D95).withValues(alpha: 0.68),
+    );
     if (_actionTimer > 2.0) {
       final p = (_actionTimer - 2.0).clamp(0.0, 1.0);
       canvas.drawCircle(
         const Offset(14, 0),
-        4 * p,
+        5 * p,
         Paint()..color = const Color(0xFFFF2D95).withValues(alpha: 0.8),
+      );
+      canvas.drawCircle(
+        const Offset(14, 0),
+        8 * p,
+        Paint()
+          ..color = const Color(0xFFFF2D95).withValues(alpha: 0.22)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4,
       );
     }
   }
