@@ -11,19 +11,32 @@ import 'damage_text.dart';
 
 enum DamageType { basic, nova, firewall, meteor, sentinel }
 
-class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
-  Enemy({required Vector2 position, required this.maxHp})
-    : hp = maxHp,
-      super(position: position, size: Vector2(64, 64), anchor: Anchor.center);
+enum EnemyType {
+  basic,
+  fast,
+  tank,
+  elite,
+}
 
+class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
+  Enemy({
+    required Vector2 position,
+    required double baseMaxHp,
+    this.type = EnemyType.basic,
+  }) : maxHp = baseMaxHp * _typeData[type]!.hpMult,
+       hp = baseMaxHp * _typeData[type]!.hpMult,
+       super(position: position, size: _typeData[type]!.size, anchor: Anchor.center);
+
+  final EnemyType type;
   final double maxHp;
   double hp;
-  Color _color = _baseColor;
-  final Paint _fillPaint = Paint()..color = _baseColor;
-  final Paint _strokePaint = Paint()
-    ..color = _outlineColor
+  late Color _color = _typeData[type]!.baseColor;
+  late final Paint _fillPaint = Paint()..color = _typeData[type]!.baseColor;
+  late final Paint _strokePaint = Paint()
+    ..color = _typeData[type]!.outlineColor
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2.5;
+
   double _flashTimer = 0;
   double _hitPopTimer = 0;
   double _breachTimer = 0;
@@ -33,11 +46,39 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   bool _lastDamageWasExecute = false;
   bool get isAlive => !_dying;
 
-  static const double _speed = 60;
   static const double _stopRadius = 50;
   static const double _breachInterval = 1.0;
-  static const Color _baseColor = Color(0xFFFF2D95);
-  static const Color _outlineColor = Color(0xFFFFB3DC);
+
+  static final Map<EnemyType, _EnemyTypeData> _typeData = {
+    EnemyType.basic: _EnemyTypeData(
+      baseColor: const Color(0xFFFF2D95),
+      outlineColor: const Color(0xFFFFB3DC),
+      speed: 60,
+      hpMult: 1.0,
+      size: Vector2(64, 64),
+    ),
+    EnemyType.fast: _EnemyTypeData(
+      baseColor: const Color(0xFF00E5FF),
+      outlineColor: const Color(0xFFB2F7FF),
+      speed: 100,
+      hpMult: 0.6,
+      size: Vector2(48, 48),
+    ),
+    EnemyType.tank: _EnemyTypeData(
+      baseColor: const Color(0xFF7C4DFF),
+      outlineColor: const Color(0xFFD1C4E9),
+      speed: 40,
+      hpMult: 2.8,
+      size: Vector2(80, 80),
+    ),
+    EnemyType.elite: _EnemyTypeData(
+      baseColor: const Color(0xFFFFD166),
+      outlineColor: const Color(0xFFFFF4D6),
+      speed: 50,
+      hpMult: 6.0,
+      size: Vector2(96, 96),
+    ),
+  };
 
   @override
   void onMount() {
@@ -60,16 +101,51 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     final cy = h / 2;
     final bob = math.sin(_walkPhase * 7.2) * 2.4;
 
-    final path = Path()
-      ..moveTo(cx, bob)
-      ..lineTo(w, cy + bob)
-      ..lineTo(cx, h + bob)
-      ..lineTo(0, cy + bob)
-      ..close();
+    final path = _getPathForType(type, w, h, cx, cy, bob);
 
     _fillPaint.color = _color;
     canvas.drawPath(path, _fillPaint);
     canvas.drawPath(path, _strokePaint);
+  }
+
+  Path _getPathForType(EnemyType type, double w, double h, double cx, double cy, double bob) {
+    switch (type) {
+      case EnemyType.basic:
+        // Diamond
+        return Path()
+          ..moveTo(cx, bob)
+          ..lineTo(w, cy + bob)
+          ..lineTo(cx, h + bob)
+          ..lineTo(0, cy + bob)
+          ..close();
+      case EnemyType.fast:
+        // Triangle (pointing down-ish)
+        return Path()
+          ..moveTo(cx, bob)
+          ..lineTo(w, h + bob)
+          ..lineTo(0, h + bob)
+          ..close();
+      case EnemyType.tank:
+        // Square
+        return Path()
+          ..addRect(Rect.fromLTWH(0, bob, w, h));
+      case EnemyType.elite:
+        // Hexagon
+        final path = Path();
+        const sides = 6;
+        final radius = w / 2;
+        for (var i = 0; i < sides; i++) {
+          final angle = (i * 2 * math.pi / sides) - (math.pi / 2);
+          final x = cx + radius * math.cos(angle);
+          final y = cy + radius * math.sin(angle) + bob;
+          if (i == 0) {
+            path.moveTo(x, y);
+          } else {
+            path.lineTo(x, y);
+          }
+        }
+        return path..close();
+    }
   }
 
   @override
@@ -77,7 +153,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     super.update(dt);
     if (_flashTimer > 0) {
       _flashTimer -= dt;
-      if (_flashTimer <= 0) _color = _baseColor;
+      if (_flashTimer <= 0) _color = _typeData[type]!.baseColor;
     }
     if (_hitPopTimer > 0 && !_dying) {
       _hitPopTimer -= dt;
@@ -97,7 +173,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     if (dist > _stopRadius) {
       _walkPhase += dt;
       position +=
-          toHero.normalized() * _speed * game.state.enemySpeedMultiplier * dt;
+          toHero.normalized() * _typeData[type]!.speed * game.state.enemySpeedMultiplier * dt;
       _breachTimer = 0;
       return;
     }
@@ -346,4 +422,36 @@ class _DamageVisual {
   final int sparkCount;
   final double sparkSpread;
   final double sparkSpeed;
+}
+
+class _EnemyTypeData {
+  const _EnemyTypeData({
+    required this.baseColor,
+    required this.outlineColor,
+    required this.speed,
+    required this.hpMult,
+    required this.size,
+  });
+
+  final Color baseColor;
+  final Color outlineColor;
+  final double speed;
+  final double hpMult;
+  final Vector2 size;
+
+  _EnemyTypeData copyWith({
+    Color? baseColor,
+    Color? outlineColor,
+    double? speed,
+    double? hpMult,
+    Vector2? size,
+  }) {
+    return _EnemyTypeData(
+      baseColor: baseColor ?? this.baseColor,
+      outlineColor: outlineColor ?? this.outlineColor,
+      speed: speed ?? this.speed,
+      hpMult: hpMult ?? this.hpMult,
+      size: size ?? this.size,
+    );
+  }
 }

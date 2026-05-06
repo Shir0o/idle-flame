@@ -34,6 +34,23 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
   void _spawn() {
     final size = game.size;
     final pos = Vector2(_rng.nextDouble() * size.x, -_offscreenPad);
-    parent?.add(Enemy(position: pos, maxHp: game.state.enemyMaxHp));
+
+    final roll = _rng.nextDouble();
+    EnemyType type;
+    if (roll < 0.70) {
+      type = EnemyType.basic;
+    } else if (roll < 0.85) {
+      type = EnemyType.fast;
+    } else if (roll < 0.95) {
+      type = EnemyType.tank;
+    } else {
+      type = EnemyType.elite;
+    }
+
+    parent?.add(Enemy(
+      position: pos,
+      baseMaxHp: game.state.enemyMaxHp,
+      type: type,
+    ));
   }
 }
