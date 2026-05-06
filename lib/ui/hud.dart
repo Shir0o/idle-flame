@@ -86,10 +86,21 @@ class Hud extends StatelessWidget {
           Positioned(left: 0, right: 0, top: 80, child: _VoidRewardToast()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _RunOverPanel()),
-          Positioned(top: 12, left: 16, child: _FloorBadge()),
+          Positioned(
+            top: 12,
+            left: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _FloorBadge(),
+                SizedBox(height: 8),
+                _ArsenalPanel(),
+              ],
+            ),
+          ),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
           Positioned(top: 80, right: 16, child: _MuteButton()),
-          Positioned(bottom: 80, left: 16, child: _ArsenalPanel()),
           Positioned(right: 16, bottom: 16, child: _DevTools()),
         ],
       ),
@@ -307,105 +318,22 @@ class _ArsenalPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer2<GameState, MetaState>(
       builder: (context, state, meta, _) {
-        final possessedSkills = state.skillLevels.entries.map((entry) {
-          final def = skillCatalog.firstWhere((d) => d.id == entry.key);
-          return (def: def, level: entry.value);
-        }).toList();
-
-        final byArchetype = <SkillArchetype, List<_PossessedSkill>>{};
-        for (final item in possessedSkills) {
-          byArchetype.putIfAbsent(item.def.archetype, () => []).add(item);
-        }
-
-        final activeKeystones = keystoneCatalog
-            .where((k) => meta.hasKeystone(k.id))
-            .map((k) => (def: k, archetype: k.archetype))
-            .toList();
-
         return _Panel(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 140),
-            child: InkWell(
-              onTap: () => _showArsenalMenu(context, state, meta),
-              borderRadius: BorderRadius.circular(6),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.grid_view_rounded,
-                      color: Color(0xFF64FFDA),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 6),
-                    if (byArchetype.isNotEmpty || activeKeystones.isNotEmpty)
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Show icons of possessed archetypes
-                              for (final archetype in byArchetype.keys.take(5))
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 4),
-                                  child: Icon(
-                                    archetype.icon,
-                                    color: archetype.color.withValues(
-                                      alpha: 0.8,
-                                    ),
-                                    size: 12,
-                                  ),
-                                ),
-                              // Add icons of keystones for archetypes not already listed
-                              if (byArchetype.keys.length < 5)
-                                for (final k
-                                    in activeKeystones
-                                        .where(
-                                          (k) => !byArchetype.containsKey(
-                                            k.archetype,
-                                          ),
-                                        )
-                                        .take(5 - byArchetype.keys.length))
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 4),
-                                    child: Icon(
-                                      k.archetype.icon,
-                                      color: k.archetype.color.withValues(
-                                        alpha: 0.4,
-                                      ),
-                                      size: 12,
-                                    ),
-                                  ),
-                              if (byArchetype.keys.length +
-                                      activeKeystones
-                                          .where(
-                                            (k) => !byArchetype.containsKey(
-                                              k.archetype,
-                                            ),
-                                          )
-                                          .length >
-                                  5)
-                                const Text(
-                                  '...',
-                                  style: TextStyle(
-                                    color: Colors.white38,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.open_in_new_rounded,
-                      color: Colors.white.withValues(alpha: 0.4),
-                      size: 14,
-                    ),
-                  ],
-                ),
+          child: InkWell(
+            onTap: () => _showArsenalMenu(context, state, meta),
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFF64FFDA).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(
+                Icons.grid_view_rounded,
+                color: Color(0xFF64FFDA),
+                size: 18,
               ),
             ),
           ),
