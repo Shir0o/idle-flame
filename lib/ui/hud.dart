@@ -83,7 +83,7 @@ class Hud extends StatelessWidget {
       child: Stack(
         children: const [
           Positioned(left: 16, bottom: 16, child: _NexusHealthBar()),
-          Positioned(left: 0, right: 0, top: 80, child: _VoidRewardToast()),
+          Positioned.fill(child: _WelcomeToast()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _RunOverPanel()),
           Positioned(
@@ -1702,53 +1702,100 @@ class _Tag extends StatelessWidget {
   }
 }
 
-class _VoidRewardToast extends StatelessWidget {
-  const _VoidRewardToast();
+class _WelcomeToast extends StatefulWidget {
+  const _WelcomeToast();
+
+  @override
+  State<_WelcomeToast> createState() => _WelcomeToastState();
+}
+
+class _WelcomeToastState extends State<_WelcomeToast> {
+  Timer? _timer;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<GameState>(
-      builder: (_, state, _) {
-        if (state.lastVoidReward <= 0) return const SizedBox.shrink();
+      builder: (_, state, __) {
+        final showReward = state.lastVoidReward > 0;
+        final showGeneral = !state.sessionWelcomeShown;
+
+        if (!showReward && !showGeneral) {
+          _timer?.cancel();
+          _timer = null;
+          return const SizedBox.shrink();
+        }
+
+        // Start timer if not already running
+        _timer ??= Timer(const Duration(seconds: 6), () {
+          if (mounted) {
+            state.dismissWelcome();
+          }
+        });
+
+        final title = showReward ? 'WELCOME BACK' : 'ZENITH ZERO';
+        final subTitle = showReward
+            ? '+${state.lastVoidReward} gold earned offline'
+            : 'Prepare for the Descent';
+
         return Center(
-          child: GestureDetector(
-            onTap: state.clearVoidReward,
-            child: _Panel(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: Color(0xFFFFC107),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'WELCOME BACK',
-                        style: TextStyle(
-                          color: Color(0xFFFFC107),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 800),
+            tween: Tween(begin: 0.0, end: 1.0),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value.clamp(0.0, 1.0),
+                child: Transform.scale(
+                  scale: 0.8 + (value * 0.2),
+                  child: child,
+                ),
+              );
+            },
+            child: GestureDetector(
+              onTap: state.dismissWelcome,
+              child: _Panel(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Color(0xFFFFC107),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: Color(0xFFFFC107),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.5,
+                          ),
                         ),
-                      ),
-                      Text(
-                        '+${state.lastVoidReward} gold earned in Zenith Zero',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                        Text(
+                          subTitle,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 12),
-                  const Icon(Icons.close, color: Colors.white24, size: 16),
-                ],
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.close, color: Colors.white24, size: 16),
+                  ],
+                ),
               ),
             ),
           ),

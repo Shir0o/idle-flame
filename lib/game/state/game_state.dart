@@ -52,6 +52,7 @@ class GameState extends ChangeNotifier {
   int totalRuns = 0;
   int lastVoidReward = 0;
   int resetGeneration = 0;
+  bool sessionWelcomeShown = false;
   double nexusHp = maxNexusHp;
   MechType selectedMech = MechType.standard;
   bool devMode = false;
@@ -116,10 +117,10 @@ class GameState extends ChangeNotifier {
 
   int get mothershipLevel => _archetypeLevel(SkillArchetype.mothership);
   int get mothershipDroneCount =>
-      3 + (mothershipLevel >= 3 ? 2 : 0) + (mothershipLevel >= 5 ? 3 : 0);
+      (3 + (mothershipLevel / 4).floor()).clamp(3, 10);
   double get mothershipDroneDamage =>
       heroDamage * (0.25 + mothershipLevel * 0.1);
-  double get mothershipSpawnInterval => 4.0 * pow(0.85, mothershipLevel - 1);
+  double get mothershipSpawnInterval => 4.0 / (1 + (mothershipLevel - 1) * 0.15);
   bool get mothershipDroneExplode => mothershipLevel >= 4;
 
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
@@ -406,6 +407,13 @@ class GameState extends ChangeNotifier {
 
   void clearVoidReward() {
     if (lastVoidReward == 0) return;
+    lastVoidReward = 0;
+    notifyListeners();
+  }
+
+  void dismissWelcome() {
+    if (sessionWelcomeShown && lastVoidReward == 0) return;
+    sessionWelcomeShown = true;
     lastVoidReward = 0;
     notifyListeners();
   }
