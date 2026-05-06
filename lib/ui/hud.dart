@@ -793,6 +793,15 @@ class _DevToolsState extends State<_DevTools> {
                             onTap: () => state.cycleGameSpeed(),
                           ),
                           _MenuItem(
+                            icon: Icons.fitness_center_rounded,
+                            color: const Color(0xFFFF5252),
+                            label:
+                                'Enemy Strength (${state.devEnemyStrength.round()}x)',
+                            description:
+                                'Cycle between 1x, 2x, 5x, and 10x enemy HP/DMG.',
+                            onTap: () => state.cycleEnemyStrength(),
+                          ),
+                          _MenuItem(
                             icon: state.showPerfOverlay
                                 ? Icons.bar_chart
                                 : Icons.bar_chart_outlined,

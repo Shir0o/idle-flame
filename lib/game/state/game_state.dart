@@ -61,6 +61,7 @@ class GameState extends ChangeNotifier {
   bool showPerfOverlay = kDebugMode;
   bool muted = true;
   double devTimeScale = 1.0;
+  double devEnemyStrength = 1.0;
   int devKillAllRequest = 0;
 
   final Map<String, int> _skillLevels = {};
@@ -136,8 +137,9 @@ class GameState extends ChangeNotifier {
   bool get hasPendingLevelUp => _pendingUpgradeIds.isNotEmpty;
   List<SkillChoice> get pendingChoices =>
       _pendingUpgradeIds.map(_choiceFor).nonNulls.toList(growable: false);
-  double get enemyMaxHp => _baseEnemyHp * pow(_enemyHpGrowth, floor - 1);
-  double get enemyBreachDamage => 4 + floor * 0.8;
+  double get enemyMaxHp =>
+      _baseEnemyHp * pow(_enemyHpGrowth, floor - 1) * devEnemyStrength;
+  double get enemyBreachDamage => (4 + floor * 0.8) * devEnemyStrength;
   int get goldPerKill {
     final base = _baseGoldPerKill * pow(_goldGrowth, floor - 1);
     final bountyMultiplier = 1 + bountyLevel * 0.08;
@@ -308,6 +310,20 @@ class GameState extends ChangeNotifier {
     _saveSoon();
   }
 
+  void cycleEnemyStrength() {
+    if (devEnemyStrength == 1.0) {
+      devEnemyStrength = 2.0;
+    } else if (devEnemyStrength == 2.0) {
+      devEnemyStrength = 5.0;
+    } else if (devEnemyStrength == 5.0) {
+      devEnemyStrength = 10.0;
+    } else {
+      devEnemyStrength = 1.0;
+    }
+    notifyListeners();
+    _saveSoon();
+  }
+
   void devHealNexus() {
     nexusHp = nexusMaxHp;
     notifyListeners();
@@ -453,6 +469,7 @@ class GameState extends ChangeNotifier {
     showPerfOverlay = prefs.getBool(_kShowPerfOverlay) ?? kDebugMode;
     muted = prefs.getBool(_kMuted) ?? true;
     devTimeScale = prefs.getDouble(_kDevTimeScale) ?? 1.0;
+    devEnemyStrength = prefs.getDouble(_kDevEnemyStrength) ?? 1.0;
     nexusHp = (prefs.getDouble(_kNexusHp) ?? nexusMaxHp).clamp(0, nexusMaxHp);
     _resetPerRunMeta();
     _skillLevels
@@ -500,6 +517,7 @@ class GameState extends ChangeNotifier {
     await prefs.setBool(_kShowPerfOverlay, showPerfOverlay);
     await prefs.setBool(_kMuted, muted);
     await prefs.setDouble(_kDevTimeScale, devTimeScale);
+    await prefs.setDouble(_kDevEnemyStrength, devEnemyStrength);
     await prefs.setStringList(_kSkillLevels, _encodeSkillLevels());
     await prefs.setStringList(_kPendingUpgrades, _pendingUpgradeIds);
     await _writeLastSeen(prefs);
@@ -699,6 +717,7 @@ class GameState extends ChangeNotifier {
   static const _kShowPerfOverlay = 'showPerfOverlay';
   static const _kMuted = 'muted';
   static const _kDevTimeScale = 'devTimeScale';
+  static const _kDevEnemyStrength = 'devEnemyStrength';
   static const _kSkillLevels = 'skillLevels';
   static const _kPendingUpgrades = 'pendingUpgrades';
   static const _kOldEmberChainLevel = 'emberChainLevel';

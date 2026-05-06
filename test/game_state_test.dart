@@ -249,6 +249,21 @@ void main() {
     expect(state.showPerfOverlay, !initialPerf);
   });
 
+  test('cycleEnemyStrength works correctly', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.devEnemyStrength, 1.0);
+    state.cycleEnemyStrength();
+    expect(state.devEnemyStrength, 2.0);
+    state.cycleEnemyStrength();
+    expect(state.devEnemyStrength, 5.0);
+    state.cycleEnemyStrength();
+    expect(state.devEnemyStrength, 10.0);
+    state.cycleEnemyStrength();
+    expect(state.devEnemyStrength, 1.0);
+  });
+
   test('devForceLevelUp triggers upgrade choices', () {
     final state = GameState();
     addTearDown(state.dispose);
