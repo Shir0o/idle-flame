@@ -1304,6 +1304,66 @@ class _AuraParticle {
   double age = 0;
 }
 
+class LaserBeamEffect extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
+  LaserBeamEffect({
+    required this.from,
+    required this.to,
+    this.color = const Color(0xFFFF5252),
+    this.width = 4.0,
+    this.duration = 0.5,
+  }) : super(priority: 58);
+
+  final Vector2 from;
+  final Vector2 to;
+  final Color color;
+  @override
+  final double width;
+  final double duration;
+  double _age = 0;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _age += dt;
+    if (_age >= duration) removeFromParent();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final t = (_age / duration).clamp(0.0, 1.0);
+    // Beams usually flicker or pulse
+    final pulse = 0.8 + 0.2 * math.sin(_age * 40);
+    final alpha = 1.0 - Curves.easeIn.transform(t);
+
+    final beamPaint = Paint()
+      ..color = color.withValues(alpha: alpha * pulse)
+      ..strokeWidth = width * pulse
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final glowPaint = Paint()
+      ..color = color.withValues(alpha: alpha * 0.3)
+      ..strokeWidth = width * 3.0 * pulse
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+
+    final corePaint = Paint()
+      ..color = Colors.white.withValues(alpha: alpha)
+      ..strokeWidth = width * 0.4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final start = Offset(from.x, from.y);
+    final end = Offset(to.x, to.y);
+
+    canvas.drawLine(start, end, glowPaint);
+    canvas.drawLine(start, end, beamPaint);
+    canvas.drawLine(start, end, corePaint);
+  }
+}
+
 void _drawSnowflake(Canvas canvas, Offset center, double radius, Paint paint) {
   for (var i = 0; i < 6; i++) {
     final angle = i / 6 * math.pi * 2;
