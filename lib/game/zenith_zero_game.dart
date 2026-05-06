@@ -11,6 +11,24 @@ import 'components/enemy_spawner.dart';
 import 'components/hero.dart';
 import 'state/game_state.dart';
 
+enum VisualLoadTier { normal, busy, overloaded, critical }
+
+VisualLoadTier visualLoadTierForCounts({
+  required int enemyCount,
+  required int componentCount,
+}) {
+  if (componentCount > 760 || enemyCount > 150) {
+    return VisualLoadTier.critical;
+  }
+  if (componentCount > 620 || enemyCount > 120) {
+    return VisualLoadTier.overloaded;
+  }
+  if (componentCount > 420 || enemyCount > 90) {
+    return VisualLoadTier.busy;
+  }
+  return VisualLoadTier.normal;
+}
+
 class ZenithZeroGame extends FlameGame {
   ZenithZeroGame({required this.state});
 
@@ -32,6 +50,12 @@ class ZenithZeroGame extends FlameGame {
   int _damageTextsThisFrame = 0;
   int _minorEffectsThisFrame = 0;
   int _majorEffectsThisFrame = 0;
+  int _basicHitSoundsThisFrame = 0;
+  int _skillHitSoundsThisFrame = 0;
+  Enemy? nearestEnemyToHero;
+  Enemy? deepestEnemy;
+  Enemy? rightmostEnemy;
+  VisualLoadTier visualLoadTier = VisualLoadTier.normal;
 
   @override
   Color backgroundColor() => Colors.black;
@@ -75,10 +99,7 @@ class ZenithZeroGame extends FlameGame {
   @override
   void update(double dt) {
     final scaledDt = dt * state.devTimeScale;
-    aliveEnemies.clear();
-    for (final enemy in activeEnemies) {
-      if (enemy.isAlive) aliveEnemies.add(enemy);
-    }
+    _refreshCombatSummary();
     _resetVisualBudget();
 
     if (_lastShowPerfOverlay != state.showPerfOverlay) {
@@ -132,20 +153,73 @@ class ZenithZeroGame extends FlameGame {
     _shakeIntensity = intensity;
   }
 
-  bool canSpawnDamageText() {
+  List<Enemy> selectNearestEnemies(
+    Vector2 origin,
+    int limit, {
+    double range = double.infinity,
+  }) {
+    if (limit <= 0 || aliveEnemies.isEmpty) return const <Enemy>[];
+
+    final selected = <Enemy>[];
+    final distances = <double>[];
+    final rangeSquared = range * range;
+
+    for (final enemy in aliveEnemies) {
+      final distance = (enemy.position - origin).length2;
+      if (distance > rangeSquared) continue;
+
+      var insertAt = 0;
+      while (insertAt < distances.length && distances[insertAt] <= distance) {
+        insertAt++;
+      }
+      if (insertAt >= limit) continue;
+
+      selected.insert(insertAt, enemy);
+      distances.insert(insertAt, distance);
+      if (selected.length > limit) {
+        selected.removeLast();
+        distances.removeLast();
+      }
+    }
+
+    return selected;
+  }
+
+  bool hasEnemyWithin(Vector2 origin, double range) {
+    if (aliveEnemies.isEmpty) return false;
+    final rangeSquared = range * range;
+    for (final enemy in aliveEnemies) {
+      if ((enemy.position - origin).length2 <= rangeSquared) return true;
+    }
+    return false;
+  }
+
+  bool canSpawnDamageText({bool lowPriority = false}) {
     if (world.children.length > 700) return false;
-    final maxPerFrame = aliveEnemies.length > 80 ? 8 : 16;
+    final tier = visualLoadTier;
+    if (lowPriority && tier != VisualLoadTier.normal) return false;
+    final maxPerFrame = switch (tier) {
+      VisualLoadTier.normal => 16,
+      VisualLoadTier.busy => 8,
+      VisualLoadTier.overloaded => 4,
+      VisualLoadTier.critical => 0,
+    };
     if (_damageTextsThisFrame >= maxPerFrame) return false;
     _damageTextsThisFrame++;
     return true;
   }
 
-  bool canSpawnMinorEffect() {
+  bool canSpawnMinorEffect({bool lowPriority = false}) {
     final componentCount = world.children.length;
     if (componentCount > 700) return false;
-    final maxPerFrame = componentCount > 420 || aliveEnemies.length > 90
-        ? 5
-        : 14;
+    final tier = visualLoadTier;
+    if (lowPriority && tier != VisualLoadTier.normal) return false;
+    final maxPerFrame = switch (tier) {
+      VisualLoadTier.normal => 14,
+      VisualLoadTier.busy => 5,
+      VisualLoadTier.overloaded => 2,
+      VisualLoadTier.critical => 0,
+    };
     if (_minorEffectsThisFrame >= maxPerFrame) return false;
     _minorEffectsThisFrame++;
     return true;
@@ -154,21 +228,87 @@ class ZenithZeroGame extends FlameGame {
   bool canSpawnMajorEffect() {
     final componentCount = world.children.length;
     if (componentCount > 760) return false;
-    final maxPerFrame = componentCount > 420 || aliveEnemies.length > 90
-        ? 2
-        : 6;
+    final maxPerFrame = switch (visualLoadTier) {
+      VisualLoadTier.normal => 6,
+      VisualLoadTier.busy => 2,
+      VisualLoadTier.overloaded => 1,
+      VisualLoadTier.critical => 0,
+    };
     if (_majorEffectsThisFrame >= maxPerFrame) return false;
     _majorEffectsThisFrame++;
     return true;
   }
 
-  bool get effectsConstrained =>
-      world.children.length > 420 || aliveEnemies.length > 90;
+  bool canPlayBasicHitSound({bool lowPriority = false}) {
+    final maxPerFrame = switch (visualLoadTier) {
+      VisualLoadTier.normal => lowPriority ? 2 : 4,
+      VisualLoadTier.busy => lowPriority ? 1 : 2,
+      VisualLoadTier.overloaded => lowPriority ? 0 : 1,
+      VisualLoadTier.critical => 0,
+    };
+    if (_basicHitSoundsThisFrame >= maxPerFrame) return false;
+    _basicHitSoundsThisFrame++;
+    return true;
+  }
+
+  bool canPlaySkillHitSound({bool lowPriority = false}) {
+    final maxPerFrame = switch (visualLoadTier) {
+      VisualLoadTier.normal => lowPriority ? 2 : 4,
+      VisualLoadTier.busy => lowPriority ? 1 : 2,
+      VisualLoadTier.overloaded => lowPriority ? 0 : 1,
+      VisualLoadTier.critical => 0,
+    };
+    if (_skillHitSoundsThisFrame >= maxPerFrame) return false;
+    _skillHitSoundsThisFrame++;
+    return true;
+  }
+
+  bool get effectsConstrained => visualLoadTier != VisualLoadTier.normal;
 
   void _resetVisualBudget() {
     _damageTextsThisFrame = 0;
     _minorEffectsThisFrame = 0;
     _majorEffectsThisFrame = 0;
+    _basicHitSoundsThisFrame = 0;
+    _skillHitSoundsThisFrame = 0;
+  }
+
+  void _refreshCombatSummary() {
+    aliveEnemies.clear();
+    nearestEnemyToHero = null;
+    deepestEnemy = null;
+    rightmostEnemy = null;
+
+    var nearestDistance = double.infinity;
+    var deepestY = -double.infinity;
+    var rightmostX = -double.infinity;
+    final heroPos = hero.position;
+
+    for (final enemy in activeEnemies) {
+      if (!enemy.isAlive) continue;
+      aliveEnemies.add(enemy);
+
+      final distance = (enemy.position - heroPos).length2;
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestEnemyToHero = enemy;
+      }
+
+      if (enemy.position.y > deepestY) {
+        deepestY = enemy.position.y;
+        deepestEnemy = enemy;
+      }
+
+      if (enemy.position.x > rightmostX) {
+        rightmostX = enemy.position.x;
+        rightmostEnemy = enemy;
+      }
+    }
+
+    visualLoadTier = visualLoadTierForCounts(
+      enemyCount: aliveEnemies.length,
+      componentCount: world.children.length,
+    );
   }
 
   void _devKillAllEnemies() {

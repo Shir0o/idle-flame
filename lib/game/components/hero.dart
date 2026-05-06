@@ -313,14 +313,12 @@ class HeroComponent extends PositionComponent
   }
 
   void _tryAttack() {
-    final targets = _enemiesInRange(game.state.heroAttackRange);
-    if (targets.length > 1) {
-      targets.sort((a, b) {
-        final aDist = (a.position - position).length2;
-        final bDist = (b.position - position).length2;
-        return aDist.compareTo(bDist);
-      });
-    }
+    final emberTargets = game.state.emberTargets;
+    final targets = game.selectNearestEnemies(
+      position,
+      emberTargets,
+      range: game.state.heroAttackRange,
+    );
 
     if (targets.isNotEmpty) {
       game.audio.playBasicAttack();
@@ -339,20 +337,16 @@ class HeroComponent extends PositionComponent
       _idlePhase -= 0.05;
     }
 
-    for (var i = 0; i < targets.take(game.state.emberTargets).length; i++) {
-      final enemy = targets[i];
-      final focusLevel = game.state.focusLevel;
-      final chainLevel = game.state.chainLevel;
-      final barrageLevel = game.state.barrageLevel;
-      final slashColor = critRoll
-          ? const Color(0xFFFF6B35)
-          : (focusLevel > 0
-                ? const Color(0xFFFFF176)
-                : const Color(0xFF00E5FF));
+    final focusLevel = game.state.focusLevel;
+    final chainLevel = game.state.chainLevel;
+    final barrageLevel = game.state.barrageLevel;
+    final slashColor = critRoll
+        ? const Color(0xFFFF6B35)
+        : (focusLevel > 0 ? const Color(0xFFFFF176) : const Color(0xFF00E5FF));
+    final jumpInterval = chainLevel >= 4 ? 0.04 : 0.08;
 
-      // Calculate jump delay
-      // Level 4 Special: snap faster
-      final jumpInterval = chainLevel >= 4 ? 0.04 : 0.08;
+    for (var i = 0; i < targets.length; i++) {
+      final enemy = targets[i];
       final delay = i * jumpInterval;
 
       final prevTargetPos = i == 0
@@ -392,7 +386,7 @@ class HeroComponent extends PositionComponent
         );
       }
 
-      if (barrageLevel > 0) {
+      if (barrageLevel > 0 && _canSpawnAttackEffect(lowPriority: i > 0)) {
         parent?.add(
           BarrageStreakEffect(
             effectCenter: position.clone(),
@@ -414,16 +408,18 @@ class HeroComponent extends PositionComponent
     bool twinShot,
     bool isPrimary,
   ) {
-    parent?.add(
-      SlashArcEffect(
-        from: fromPos,
-        to: enemy.position.clone(),
-        color: slashColor,
-        widthMultiplier: 1 + focusLevel * 0.04,
-        level: chainLevel,
-      ),
-    );
-    if (focusLevel > 0) {
+    if (_canSpawnAttackEffect(lowPriority: !isPrimary)) {
+      parent?.add(
+        SlashArcEffect(
+          from: fromPos,
+          to: enemy.position.clone(),
+          color: slashColor,
+          widthMultiplier: 1 + focusLevel * 0.04,
+          level: chainLevel,
+        ),
+      );
+    }
+    if (focusLevel > 0 && _canSpawnAttackEffect(lowPriority: true)) {
       parent?.add(
         FocusStrikeEffect(
           from: fromPos,
@@ -462,8 +458,8 @@ class HeroComponent extends PositionComponent
 
     // Level 4 Special: Reactor Surge (under pressure)
     // "Pressure" is defined as having enemies within 150 units of the nexus
-    final enemiesNearNexus = _enemiesInRange(150);
-    final isUnderPressure = novaLevel >= 4 && enemiesNearNexus.isNotEmpty;
+    final isUnderPressure =
+        novaLevel >= 4 && game.hasEnemyWithin(position, 150);
 
     final finalDamageScale = damageScale * (isUnderPressure ? 1.5 : 1.0);
     final finalShake =
@@ -538,12 +534,8 @@ class HeroComponent extends PositionComponent
   }
 
   void _castMeteorMark() {
-    final enemies = _aliveEnemies();
-    if (enemies.isEmpty) return;
-    var target = enemies.first;
-    for (final enemy in enemies.skip(1)) {
-      if (enemy.position.y > target.position.y) target = enemy;
-    }
+    final target = game.deepestEnemy;
+    if (target == null) return;
 
     final meteorLevel = game.state.meteorMarkLevel;
     final radius = game.state.meteorMarkRadius;
@@ -661,6 +653,7 @@ class HeroComponent extends PositionComponent
   }
 
   List<Enemy> _enemiesInRange(double range) {
+    if (!range.isFinite) return _aliveEnemies();
     final rangeSquared = range * range;
     return _aliveEnemies()
         .where((enemy) => (enemy.position - position).length2 <= rangeSquared)
@@ -682,5 +675,10 @@ class HeroComponent extends PositionComponent
     for (final blade in _sentinelBlades) {
       blade.pulse(duration);
     }
+  }
+
+  bool _canSpawnAttackEffect({bool lowPriority = false}) {
+    return game.visualLoadTier == VisualLoadTier.normal ||
+        game.canSpawnMinorEffect(lowPriority: lowPriority);
   }
 }

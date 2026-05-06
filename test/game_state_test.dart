@@ -1,3 +1,6 @@
+import 'package:flame/components.dart';
+import 'package:zenith_zero/game/components/enemy.dart';
+import 'package:zenith_zero/game/zenith_zero_game.dart';
 import 'package:zenith_zero/game/state/game_state.dart';
 import 'package:zenith_zero/game/state/meta_state.dart';
 import 'package:zenith_zero/game/state/mech_catalog.dart';
@@ -393,5 +396,53 @@ void main() {
     addTearDown(loaded.dispose);
     await loaded.load();
     expect(loaded.totalRuns, 2);
+  });
+
+  test('visual load tier thresholds are stable', () {
+    expect(
+      visualLoadTierForCounts(enemyCount: 90, componentCount: 420),
+      VisualLoadTier.normal,
+    );
+    expect(
+      visualLoadTierForCounts(enemyCount: 91, componentCount: 100),
+      VisualLoadTier.busy,
+    );
+    expect(
+      visualLoadTierForCounts(enemyCount: 100, componentCount: 421),
+      VisualLoadTier.busy,
+    );
+    expect(
+      visualLoadTierForCounts(enemyCount: 121, componentCount: 100),
+      VisualLoadTier.overloaded,
+    );
+    expect(
+      visualLoadTierForCounts(enemyCount: 100, componentCount: 621),
+      VisualLoadTier.overloaded,
+    );
+    expect(
+      visualLoadTierForCounts(enemyCount: 151, componentCount: 100),
+      VisualLoadTier.critical,
+    );
+    expect(
+      visualLoadTierForCounts(enemyCount: 100, componentCount: 761),
+      VisualLoadTier.critical,
+    );
+  });
+
+  test('selectNearestEnemies returns bounded nearest targets', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+    final game = ZenithZeroGame(state: state);
+    final far = Enemy(position: Vector2(80, 0), baseMaxHp: 10);
+    final near = Enemy(position: Vector2(5, 0), baseMaxHp: 10);
+    final mid = Enemy(position: Vector2(20, 0), baseMaxHp: 10);
+    final outsideRange = Enemy(position: Vector2(40, 0), baseMaxHp: 10);
+    game.aliveEnemies = [far, near, mid, outsideRange];
+
+    expect(game.selectNearestEnemies(Vector2.zero(), 2), [near, mid]);
+    expect(game.selectNearestEnemies(Vector2.zero(), 10, range: 25), [
+      near,
+      mid,
+    ]);
   });
 }

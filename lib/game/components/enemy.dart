@@ -24,11 +24,14 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
          position: position,
          size: _typeData[type]!.size,
          anchor: Anchor.center,
-       );
+       ) {
+    _bodyPath = _buildPathForType(type, size.x, size.y, size.x / 2, size.y / 2);
+  }
 
   final EnemyType type;
   final double maxHp;
   double hp;
+  late final Path _bodyPath;
   late Color _color = _typeData[type]!.baseColor;
   late final Paint _fillPaint = Paint()..color = _typeData[type]!.baseColor;
   late final Paint _strokePaint = Paint()
@@ -45,6 +48,13 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     ..color = _typeData[type]!.baseColor.withValues(alpha: 0.2)
     ..style = PaintingStyle.fill
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9);
+  late final Paint _corePaint = Paint()
+    ..color = _typeData[type]!.outlineColor.withValues(alpha: 0.86)
+    ..style = PaintingStyle.fill;
+  late final Paint _eliteRingPaint = Paint()
+    ..color = _typeData[type]!.outlineColor.withValues(alpha: 0.34)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
 
   double _flashTimer = 0;
   double _hitPopTimer = 0;
@@ -89,6 +99,15 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     ),
   };
 
+  static final Paint _darkCutPaint = Paint()
+    ..color = Colors.black.withValues(alpha: 0.26)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2
+    ..strokeCap = StrokeCap.round;
+  static final Paint _plateFillPaint = Paint()
+    ..color = Colors.black.withValues(alpha: 0.2)
+    ..style = PaintingStyle.fill;
+
   @override
   void onMount() {
     super.onMount();
@@ -110,73 +129,73 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     final cy = h / 2;
     final bob = math.sin(_walkPhase * 7.2) * 2.4;
 
-    final path = _getPathForType(type, w, h, cx, cy, bob);
-
     _fillPaint.color = _color;
     _glowPaint.color = _color.withValues(
       alpha: type == EnemyType.elite ? 0.3 : 0.18,
     );
-    canvas.drawPath(path, _fillPaint);
-    canvas.drawPath(path, _glowPaint);
-    canvas.drawPath(path, _fillPaint);
-    canvas.drawPath(path, _strokePaint);
-    _drawDetailsForType(canvas, type, w, h, cx, cy, bob);
+    canvas.save();
+    canvas.translate(0, bob);
+    canvas.drawPath(_bodyPath, _fillPaint);
+    canvas.drawPath(_bodyPath, _glowPaint);
+    canvas.drawPath(_bodyPath, _fillPaint);
+    canvas.drawPath(_bodyPath, _strokePaint);
+    _drawDetailsForType(canvas, type, w, h, cx, cy);
+    canvas.restore();
   }
 
-  Path _getPathForType(
+  static Path _buildPathForType(
     EnemyType type,
     double w,
     double h,
     double cx,
     double cy,
-    double bob,
   ) {
     switch (type) {
       case EnemyType.basic:
         return Path()
-          ..moveTo(cx, h * 0.08 + bob)
-          ..lineTo(w * 0.78, h * 0.34 + bob)
-          ..lineTo(w * 0.92, h * 0.58 + bob)
-          ..lineTo(w * 0.58, h * 0.52 + bob)
-          ..lineTo(cx, h * 0.9 + bob)
-          ..lineTo(w * 0.42, h * 0.52 + bob)
-          ..lineTo(w * 0.08, h * 0.58 + bob)
-          ..lineTo(w * 0.22, h * 0.34 + bob)
+          ..moveTo(cx, h * 0.08)
+          ..lineTo(w * 0.78, h * 0.34)
+          ..lineTo(w * 0.92, h * 0.58)
+          ..lineTo(w * 0.58, h * 0.52)
+          ..lineTo(cx, h * 0.9)
+          ..lineTo(w * 0.42, h * 0.52)
+          ..lineTo(w * 0.08, h * 0.58)
+          ..lineTo(w * 0.22, h * 0.34)
           ..close();
       case EnemyType.fast:
         return Path()
-          ..moveTo(cx, h * 0.02 + bob)
-          ..lineTo(w * 0.62, h * 0.54 + bob)
-          ..lineTo(w * 0.96, h * 0.92 + bob)
-          ..lineTo(cx, h * 0.72 + bob)
-          ..lineTo(w * 0.04, h * 0.92 + bob)
-          ..lineTo(w * 0.38, h * 0.54 + bob)
+          ..moveTo(cx, h * 0.02)
+          ..lineTo(w * 0.62, h * 0.54)
+          ..lineTo(w * 0.96, h * 0.92)
+          ..lineTo(cx, h * 0.72)
+          ..lineTo(w * 0.04, h * 0.92)
+          ..lineTo(w * 0.38, h * 0.54)
           ..close();
       case EnemyType.tank:
         return Path()
-          ..moveTo(w * 0.24, h * 0.1 + bob)
-          ..lineTo(w * 0.76, h * 0.1 + bob)
-          ..lineTo(w * 0.94, h * 0.3 + bob)
-          ..lineTo(w * 0.94, h * 0.72 + bob)
-          ..lineTo(w * 0.72, h * 0.92 + bob)
-          ..lineTo(w * 0.28, h * 0.92 + bob)
-          ..lineTo(w * 0.06, h * 0.72 + bob)
-          ..lineTo(w * 0.06, h * 0.3 + bob)
+          ..moveTo(w * 0.24, h * 0.1)
+          ..lineTo(w * 0.76, h * 0.1)
+          ..lineTo(w * 0.94, h * 0.3)
+          ..lineTo(w * 0.94, h * 0.72)
+          ..lineTo(w * 0.72, h * 0.92)
+          ..lineTo(w * 0.28, h * 0.92)
+          ..lineTo(w * 0.06, h * 0.72)
+          ..lineTo(w * 0.06, h * 0.3)
           ..close();
       case EnemyType.elite:
         return Path()
-          ..moveTo(cx, h * 0.02 + bob)
-          ..lineTo(w * 0.62, h * 0.16 + bob)
-          ..lineTo(w * 0.86, h * 0.14 + bob)
-          ..lineTo(w * 0.78, h * 0.38 + bob)
-          ..lineTo(w * 0.96, h * 0.56 + bob)
-          ..lineTo(w * 0.72, h * 0.86 + bob)
-          ..lineTo(cx, h * 0.98 + bob)
-          ..lineTo(w * 0.28, h * 0.86 + bob)
-          ..lineTo(w * 0.04, h * 0.56 + bob)
-          ..lineTo(w * 0.22, h * 0.38 + bob)
-          ..lineTo(w * 0.14, h * 0.14 + bob)
-          ..lineTo(w * 0.38, h * 0.16 + bob)
+          ..moveTo(cx, h * 0.02)
+          ..lineTo(w * 0.62, h * 0.16)
+          ..lineTo(w * 0.86, h * 0.14)
+          ..lineTo(w * 0.78, h * 0.38)
+          ..lineTo(w * 0.96, h * 0.56)
+          ..lineTo(w * 0.72, h * 0.86)
+          ..lineTo(cx, h * 0.98)
+          ..lineTo(w * 0.28, h * 0.86)
+          ..lineTo(w * 0.04, h * 0.56)
+          ..lineTo(w * 0.22, h * 0.38)
+          ..lineTo(w * 0.14, h * 0.14)
+          ..lineTo(w * 0.38, h * 0.16)
           ..close();
     }
   }
@@ -188,102 +207,80 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     double h,
     double cx,
     double cy,
-    double bob,
   ) {
-    final corePaint = Paint()
-      ..color = _typeData[type]!.outlineColor.withValues(alpha: 0.86)
-      ..style = PaintingStyle.fill;
-    final darkCutPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.26)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-
     switch (type) {
       case EnemyType.basic:
         canvas.drawLine(
-          Offset(cx, h * 0.18 + bob),
-          Offset(cx, h * 0.78 + bob),
+          Offset(cx, h * 0.18),
+          Offset(cx, h * 0.78),
           _detailPaint,
         );
         canvas.drawLine(
-          Offset(w * 0.28, h * 0.42 + bob),
-          Offset(w * 0.72, h * 0.42 + bob),
-          darkCutPaint,
+          Offset(w * 0.28, h * 0.42),
+          Offset(w * 0.72, h * 0.42),
+          _darkCutPaint,
         );
-        canvas.drawCircle(Offset(cx, cy + bob), w * 0.08, corePaint);
+        canvas.drawCircle(Offset(cx, cy), w * 0.08, _corePaint);
         break;
       case EnemyType.fast:
         canvas.drawLine(
-          Offset(cx, h * 0.14 + bob),
-          Offset(cx, h * 0.7 + bob),
+          Offset(cx, h * 0.14),
+          Offset(cx, h * 0.7),
           _detailPaint,
         );
         canvas.drawLine(
-          Offset(w * 0.22, h * 0.82 + bob),
-          Offset(w * 0.42, h * 0.58 + bob),
-          darkCutPaint,
+          Offset(w * 0.22, h * 0.82),
+          Offset(w * 0.42, h * 0.58),
+          _darkCutPaint,
         );
         canvas.drawLine(
-          Offset(w * 0.78, h * 0.82 + bob),
-          Offset(w * 0.58, h * 0.58 + bob),
-          darkCutPaint,
+          Offset(w * 0.78, h * 0.82),
+          Offset(w * 0.58, h * 0.58),
+          _darkCutPaint,
         );
-        canvas.drawCircle(Offset(cx, h * 0.2 + bob), w * 0.06, corePaint);
+        canvas.drawCircle(Offset(cx, h * 0.2), w * 0.06, _corePaint);
         break;
       case EnemyType.tank:
         final plate = RRect.fromRectAndRadius(
           Rect.fromCenter(
-            center: Offset(cx, cy + bob),
+            center: Offset(cx, cy),
             width: w * 0.5,
             height: h * 0.42,
           ),
           const Radius.circular(4),
         );
-        canvas.drawRRect(
-          plate,
-          Paint()
-            ..color = Colors.black.withValues(alpha: 0.2)
-            ..style = PaintingStyle.fill,
-        );
+        canvas.drawRRect(plate, _plateFillPaint);
         canvas.drawRRect(plate, _detailPaint);
         canvas.drawLine(
-          Offset(w * 0.16, h * 0.32 + bob),
-          Offset(w * 0.84, h * 0.32 + bob),
-          darkCutPaint,
+          Offset(w * 0.16, h * 0.32),
+          Offset(w * 0.84, h * 0.32),
+          _darkCutPaint,
         );
         canvas.drawLine(
-          Offset(w * 0.16, h * 0.7 + bob),
-          Offset(w * 0.84, h * 0.7 + bob),
-          darkCutPaint,
+          Offset(w * 0.16, h * 0.7),
+          Offset(w * 0.84, h * 0.7),
+          _darkCutPaint,
         );
-        canvas.drawCircle(Offset(cx, cy + bob), w * 0.08, corePaint);
+        canvas.drawCircle(Offset(cx, cy), w * 0.08, _corePaint);
         break;
       case EnemyType.elite:
         final crown = Path()
-          ..moveTo(w * 0.28, h * 0.24 + bob)
-          ..lineTo(cx, h * 0.08 + bob)
-          ..lineTo(w * 0.72, h * 0.24 + bob);
+          ..moveTo(w * 0.28, h * 0.24)
+          ..lineTo(cx, h * 0.08)
+          ..lineTo(w * 0.72, h * 0.24);
         canvas.drawPath(crown, _detailPaint);
         canvas.drawLine(
-          Offset(cx, h * 0.24 + bob),
-          Offset(cx, h * 0.82 + bob),
+          Offset(cx, h * 0.24),
+          Offset(cx, h * 0.82),
           _detailPaint,
         );
         canvas.drawLine(
-          Offset(w * 0.25, h * 0.48 + bob),
-          Offset(w * 0.75, h * 0.48 + bob),
-          darkCutPaint,
+          Offset(w * 0.25, h * 0.48),
+          Offset(w * 0.75, h * 0.48),
+          _darkCutPaint,
         );
-        canvas.drawCircle(Offset(cx, cy + bob), w * 0.12, corePaint);
-        canvas.drawCircle(
-          Offset(cx, cy + bob),
-          w * 0.19,
-          Paint()
-            ..color = _typeData[type]!.outlineColor.withValues(alpha: 0.34)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.5,
-        );
+        canvas.drawCircle(Offset(cx, cy), w * 0.12, _corePaint);
+        canvas.drawCircle(Offset(cx, cy), w * 0.19, _eliteRingPaint);
         break;
     }
   }
@@ -360,7 +357,10 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     _knockbackVelocity += pushDirection * visual.knockback;
     _hitPopTimer = 0.16;
     hp -= finalAmount;
-    if (!DamageText.atCap && game.canSpawnDamageText()) {
+    final lowPriorityFeedback =
+        type == DamageType.sentinel || type == DamageType.mothership;
+    if (!DamageText.atCap &&
+        game.canSpawnDamageText(lowPriority: lowPriorityFeedback)) {
       parent?.add(
         DamageText(
           position: position + Vector2(0, -size.y / 2),
@@ -370,7 +370,8 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         ),
       );
     }
-    if (!HitSparkEffect.atCap && game.canSpawnMinorEffect()) {
+    if (!HitSparkEffect.atCap &&
+        game.canSpawnMinorEffect(lowPriority: lowPriorityFeedback)) {
       parent?.add(
         HitSparkEffect(
           effectCenter: position.clone(),
@@ -383,13 +384,17 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
       );
     }
     if (type == DamageType.basic) {
-      game.audio.playHit();
+      if (game.canPlayBasicHitSound()) game.audio.playHit();
     } else if (type == DamageType.sentinel || type == DamageType.mothership) {
-      game.audio.playSkillDamage(SkillSound.arcane);
+      if (game.canPlaySkillHitSound(lowPriority: true)) {
+        game.audio.playSkillDamage(SkillSound.arcane);
+      }
     } else {
-      game.audio.playRandomSkillDamage();
+      if (game.canPlaySkillHitSound()) game.audio.playRandomSkillDamage();
     }
-    if (isExecute && game.state.ruptureLevel > 0) {
+    if (isExecute &&
+        game.state.ruptureLevel > 0 &&
+        game.canSpawnMinorEffect(lowPriority: lowPriorityFeedback)) {
       parent?.add(
         RuptureMarkEffect(
           effectCenter: position.clone(),
@@ -448,12 +453,14 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         }
       }
       if (nearest != null) {
-        parent?.add(
-          RuptureMarkEffect(
-            effectCenter: nearest.position.clone(),
-            level: game.state.ruptureLevel,
-          ),
-        );
+        if (game.canSpawnMinorEffect()) {
+          parent?.add(
+            RuptureMarkEffect(
+              effectCenter: nearest.position.clone(),
+              level: game.state.ruptureLevel,
+            ),
+          );
+        }
         nearest.takeDamage(
           game.state.heroDamage * 1.5,
           source: position.clone(),

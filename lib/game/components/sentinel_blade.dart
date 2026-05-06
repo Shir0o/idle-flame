@@ -452,7 +452,7 @@ class SentinelBlade extends PositionComponent
       type: DamageType.sentinel,
     );
 
-    if (!HitSparkEffect.atCap && game.canSpawnMinorEffect()) {
+    if (!HitSparkEffect.atCap && game.canSpawnMinorEffect(lowPriority: true)) {
       parent?.add(
         HitSparkEffect(
           effectCenter: t.position.clone(),

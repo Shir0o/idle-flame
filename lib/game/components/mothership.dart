@@ -211,13 +211,54 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
   Enemy? _target;
   double _age = 0;
   double _actionTimer = 0;
+  double _retargetCooldown = 0;
   final double _maxLife = 6.0;
   double _speed = 400;
   double _rotationSpeed = 0;
+  final Paint _shipFillPaint = Paint()..style = PaintingStyle.fill;
+  final Paint _shipStrokePaint = Paint()..style = PaintingStyle.stroke;
+  final Paint _shipAccentPaint = Paint()..style = PaintingStyle.fill;
   static int _reservedOrAliveCount = 0;
   static const int _maxAlive = 24;
+  static const double _noTargetRetargetInterval = 0.2;
   static int get availableSlots =>
       math.max(0, _maxAlive - _reservedOrAliveCount);
+
+  static final Path _interceptorPath = Path()
+    ..moveTo(10, 0)
+    ..lineTo(1, -4)
+    ..lineTo(-8, -8)
+    ..lineTo(-4, 0)
+    ..lineTo(-8, 8)
+    ..lineTo(1, 4)
+    ..close();
+  static final Path _kamikazePath = Path()
+    ..moveTo(11, 0)
+    ..lineTo(1, -5)
+    ..lineTo(-9, -4)
+    ..lineTo(-5, 0)
+    ..lineTo(-9, 4)
+    ..lineTo(1, 5)
+    ..close();
+  static final Path _thermalPath = Path()
+    ..moveTo(12, 0)
+    ..lineTo(3, -5)
+    ..lineTo(-5, -9)
+    ..lineTo(-10, -5)
+    ..lineTo(-8, 5)
+    ..lineTo(-5, 9)
+    ..lineTo(3, 5)
+    ..close();
+  static final List<Path> _slicerBladePaths = List.unmodifiable(
+    List.generate(6, (i) {
+      final a = i * math.pi / 3;
+      return Path()
+        ..moveTo(math.cos(a - 0.18) * 4, math.sin(a - 0.18) * 4)
+        ..lineTo(math.cos(a) * 12, math.sin(a) * 12)
+        ..lineTo(math.cos(a + 0.32) * 5, math.sin(a + 0.32) * 5)
+        ..close();
+    }),
+  );
 
   static bool reserveSpawn() {
     if (_reservedOrAliveCount >= _maxAlive) return false;
@@ -235,33 +276,17 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
   void onMount() {
     super.onMount();
     _speed = type == CrewShipType.kamikaze ? 600 : 400;
-    _findTarget();
+    if (!_findTarget()) {
+      _retargetCooldown = _noTargetRetargetInterval;
+    }
   }
 
-  void _findTarget() {
-    final enemies = game.aliveEnemies;
-    if (enemies.isEmpty) return;
-
-    Enemy? best;
-    if (type == CrewShipType.kamikaze) {
-      var bestDistance = double.infinity;
-      for (final enemy in enemies) {
-        final distance = (enemy.position - game.hero.position).length2;
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          best = enemy;
-        }
-      }
-    } else {
-      var furthestX = -double.infinity;
-      for (final enemy in enemies) {
-        if (enemy.position.x > furthestX) {
-          furthestX = enemy.position.x;
-          best = enemy;
-        }
-      }
-    }
-    _target = best;
+  bool _findTarget() {
+    final best = type == CrewShipType.kamikaze
+        ? game.nearestEnemyToHero
+        : game.rightmostEnemy;
+    _target = best != null && best.isAlive ? best : null;
+    return _target != null;
   }
 
   @override
@@ -269,14 +294,23 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
     super.update(dt);
     _age += dt;
     _actionTimer += dt;
+    _retargetCooldown = math.max(0, _retargetCooldown - dt);
 
     if (_age >= _maxLife || game.state.isRunOver) {
       removeFromParent();
       return;
     }
 
-    if (_target == null || !_target!.isAlive) {
-      _findTarget();
+    if (_target != null && !_target!.isAlive) {
+      _target = null;
+    }
+
+    if (_target == null) {
+      if (_retargetCooldown <= 0) {
+        if (!_findTarget()) {
+          _retargetCooldown = _noTargetRetargetInterval;
+        }
+      }
       if (_target == null) {
         position += Vector2(math.cos(angle), math.sin(angle)) * _speed * dt;
         return;
@@ -397,7 +431,8 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
           source: position,
           type: DamageType.mothership,
         );
-        if (!HitSparkEffect.atCap && game.canSpawnMinorEffect()) {
+        if (!HitSparkEffect.atCap &&
+            game.canSpawnMinorEffect(lowPriority: true)) {
           parent?.add(
             HitSparkEffect(
               effectCenter: e.position.clone(),
@@ -428,15 +463,18 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
   void _fireLaser() {
     if (_target == null) return;
-    parent?.add(
-      LaserBeamEffect(
-        from: position.clone(),
-        to: _target!.position.clone(),
-        color: const Color(0xFFFF2D95),
-        duration: 1.0,
-        width: 6,
-      ),
-    );
+    if (game.visualLoadTier == VisualLoadTier.normal ||
+        game.canSpawnMajorEffect()) {
+      parent?.add(
+        LaserBeamEffect(
+          from: position.clone(),
+          to: _target!.position.clone(),
+          color: const Color(0xFFFF2D95),
+          duration: 1.0,
+          width: 6,
+        ),
+      );
+    }
     _target?.takeDamage(
       damage * 4.0,
       source: position,
@@ -472,135 +510,94 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
   }
 
   void _drawInterceptor(Canvas canvas) {
-    final path = Path()
-      ..moveTo(10, 0)
-      ..lineTo(1, -4)
-      ..lineTo(-8, -8)
-      ..lineTo(-4, 0)
-      ..lineTo(-8, 8)
-      ..lineTo(1, 4)
-      ..close();
-    final hull = Paint()..color = const Color(0xFFCE93D8);
-    final edge = Paint()
+    _shipFillPaint
+      ..color = const Color(0xFFCE93D8)
+      ..style = PaintingStyle.fill;
+    _shipStrokePaint
       ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.76)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
-    canvas.drawPath(path, hull);
-    canvas.drawPath(path, edge);
-    canvas.drawLine(
-      const Offset(-2, 0),
-      const Offset(8, 0),
-      Paint()
-        ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.7)
-        ..strokeWidth = 1.1,
-    );
-    canvas.drawCircle(
-      const Offset(-6, 0),
-      2,
-      Paint()..color = const Color(0xFFE1F5FE),
-    );
+    canvas.drawPath(_interceptorPath, _shipFillPaint);
+    canvas.drawPath(_interceptorPath, _shipStrokePaint);
+    _shipAccentPaint
+      ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+    canvas.drawLine(const Offset(-2, 0), const Offset(8, 0), _shipAccentPaint);
+    _shipAccentPaint
+      ..color = const Color(0xFFE1F5FE)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(-6, 0), 2, _shipAccentPaint);
   }
 
   void _drawKamikaze(Canvas canvas) {
-    final path = Path()
-      ..moveTo(11, 0)
-      ..lineTo(1, -5)
-      ..lineTo(-9, -4)
-      ..lineTo(-5, 0)
-      ..lineTo(-9, 4)
-      ..lineTo(1, 5)
-      ..close();
-    canvas.drawPath(path, Paint()..color = const Color(0xFFFF5252));
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.72)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.1,
-    );
+    _shipFillPaint
+      ..color = const Color(0xFFFF5252)
+      ..style = PaintingStyle.fill;
+    _shipStrokePaint
+      ..color = Colors.white.withValues(alpha: 0.72)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+    canvas.drawPath(_kamikazePath, _shipFillPaint);
+    canvas.drawPath(_kamikazePath, _shipStrokePaint);
     final pulse = 0.7 + 0.3 * math.sin(_age * 15);
-    canvas.drawCircle(
-      const Offset(3, 0),
-      3 * pulse,
-      Paint()..color = Colors.white,
-    );
-    canvas.drawCircle(
-      const Offset(-7, 0),
-      2.2 + pulse,
-      Paint()..color = const Color(0xFFFFD166).withValues(alpha: 0.72),
-    );
+    _shipAccentPaint
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(3, 0), 3 * pulse, _shipAccentPaint);
+    _shipAccentPaint.color = const Color(0xFFFFD166).withValues(alpha: 0.72);
+    canvas.drawCircle(const Offset(-7, 0), 2.2 + pulse, _shipAccentPaint);
   }
 
   void _drawSlicer(Canvas canvas) {
     canvas.save();
     canvas.rotate(_rotationSpeed);
-    final bladePaint = Paint()..color = const Color(0xFFCE93D8);
-    final edgePaint = Paint()
+    _shipFillPaint
+      ..color = const Color(0xFFCE93D8)
+      ..style = PaintingStyle.fill;
+    _shipStrokePaint
       ..color = Colors.white.withValues(alpha: 0.82)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
-    for (int i = 0; i < 6; i++) {
-      final a = i * math.pi / 3;
-      final blade = Path()
-        ..moveTo(math.cos(a - 0.18) * 4, math.sin(a - 0.18) * 4)
-        ..lineTo(math.cos(a) * 12, math.sin(a) * 12)
-        ..lineTo(math.cos(a + 0.32) * 5, math.sin(a + 0.32) * 5)
-        ..close();
-      canvas.drawPath(blade, bladePaint);
-      canvas.drawPath(blade, edgePaint);
+    for (final blade in _slicerBladePaths) {
+      canvas.drawPath(blade, _shipFillPaint);
+      canvas.drawPath(blade, _shipStrokePaint);
     }
-    canvas.drawCircle(Offset.zero, 5, Paint()..color = const Color(0xFF7C4DFF));
-    canvas.drawCircle(
-      Offset.zero,
-      2.5,
-      Paint()..color = Colors.white.withValues(alpha: 0.8),
-    );
+    _shipAccentPaint
+      ..color = const Color(0xFF7C4DFF)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset.zero, 5, _shipAccentPaint);
+    _shipAccentPaint.color = Colors.white.withValues(alpha: 0.8);
+    canvas.drawCircle(Offset.zero, 2.5, _shipAccentPaint);
     canvas.restore();
   }
 
   void _drawThermal(Canvas canvas) {
-    final path = Path()
-      ..moveTo(12, 0)
-      ..lineTo(3, -5)
-      ..lineTo(-5, -9)
-      ..lineTo(-10, -5)
-      ..lineTo(-8, 5)
-      ..lineTo(-5, 9)
-      ..lineTo(3, 5)
-      ..close();
-    canvas.drawPath(path, Paint()..color = const Color(0xFFCE93D8));
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.7)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.1,
-    );
-    canvas.drawRect(
-      const Rect.fromLTWH(-5, -3, 10, 6),
-      Paint()..color = const Color(0xFF00E5FF).withValues(alpha: 0.28),
-    );
-    canvas.drawCircle(
-      const Offset(10, 0),
-      2.5,
-      Paint()..color = const Color(0xFFFF2D95).withValues(alpha: 0.68),
-    );
+    _shipFillPaint
+      ..color = const Color(0xFFCE93D8)
+      ..style = PaintingStyle.fill;
+    _shipStrokePaint
+      ..color = const Color(0xFFE1F5FE).withValues(alpha: 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+    canvas.drawPath(_thermalPath, _shipFillPaint);
+    canvas.drawPath(_thermalPath, _shipStrokePaint);
+    _shipAccentPaint
+      ..color = const Color(0xFF00E5FF).withValues(alpha: 0.28)
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(const Rect.fromLTWH(-5, -3, 10, 6), _shipAccentPaint);
+    _shipAccentPaint.color = const Color(0xFFFF2D95).withValues(alpha: 0.68);
+    canvas.drawCircle(const Offset(10, 0), 2.5, _shipAccentPaint);
     if (_actionTimer > 2.0) {
       final p = (_actionTimer - 2.0).clamp(0.0, 1.0);
-      canvas.drawCircle(
-        const Offset(14, 0),
-        5 * p,
-        Paint()..color = const Color(0xFFFF2D95).withValues(alpha: 0.8),
-      );
-      canvas.drawCircle(
-        const Offset(14, 0),
-        8 * p,
-        Paint()
-          ..color = const Color(0xFFFF2D95).withValues(alpha: 0.22)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.4,
-      );
+      _shipAccentPaint.color = const Color(0xFFFF2D95).withValues(alpha: 0.8);
+      canvas.drawCircle(const Offset(14, 0), 5 * p, _shipAccentPaint);
+      _shipStrokePaint
+        ..color = const Color(0xFFFF2D95).withValues(alpha: 0.22)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4;
+      canvas.drawCircle(const Offset(14, 0), 8 * p, _shipStrokePaint);
     }
   }
 }
@@ -612,11 +609,16 @@ class CrewShipProjectile extends PositionComponent
     required this.target,
     required this.damage,
     required this.color,
-  }) : super(position: startPos, size: Vector2.all(4), priority: 66);
+  }) : super(position: startPos, size: Vector2.all(4), priority: 66) {
+    _paint = Paint()..color = color;
+    _glowPaint = Paint()..color = color.withValues(alpha: 0.3);
+  }
 
   final Enemy target;
   final double damage;
   final Color color;
+  late final Paint _paint;
+  late final Paint _glowPaint;
   double _age = 0;
   static const double _speed = 700;
   static const double _maxLife = 2.0;
@@ -662,12 +664,7 @@ class CrewShipProjectile extends PositionComponent
 
   @override
   void render(Canvas canvas) {
-    final paint = Paint()..color = color;
-    canvas.drawCircle(Offset.zero, 3, paint);
-    canvas.drawCircle(
-      Offset.zero,
-      5,
-      paint..color = color.withValues(alpha: 0.3),
-    );
+    canvas.drawCircle(Offset.zero, 3, _paint);
+    canvas.drawCircle(Offset.zero, 5, _glowPaint);
   }
 }
