@@ -11,6 +11,7 @@ enum SkillArchetype {
   frost,
   rupture,
   sentinel,
+  mothership,
 }
 
 extension SkillArchetypeExt on SkillArchetype {
@@ -26,6 +27,7 @@ extension SkillArchetypeExt on SkillArchetype {
       SkillArchetype.frost => Icons.ac_unit,
       SkillArchetype.rupture => Icons.flash_on,
       SkillArchetype.sentinel => Icons.navigation,
+      SkillArchetype.mothership => Icons.rocket_launch_rounded,
     };
   }
 
@@ -41,6 +43,7 @@ extension SkillArchetypeExt on SkillArchetype {
       SkillArchetype.frost => const Color(0xFF80DEEA),
       SkillArchetype.rupture => const Color(0xFFFF5252),
       SkillArchetype.sentinel => const Color(0xFFE1F5FE),
+      SkillArchetype.mothership => const Color(0xFFCE93D8),
     };
   }
 
@@ -133,6 +136,13 @@ class SkillDefinition {
         3 => 'Stat: additional blades join the orbital swarm.',
         4 => 'Special: blades strike with increased impact force.',
         _ => 'Big upgrade: the swarm becomes a literal cloud of steel.',
+      },
+      SkillArchetype.mothership => switch (level) {
+        1 => 'Stat: deploy a tactical mothership to coordinate drones.',
+        2 => 'Special: drones gain seeking agility and longer flight range.',
+        3 => 'Stat: mothership launch bays expand, increasing drone count.',
+        4 => 'Special: drones explode on impact, dealing area damage.',
+        _ => 'Big upgrade: the fleet becomes a permanent swarm of hunters.',
       },
     };
   }
@@ -258,6 +268,18 @@ final List<SkillDefinition> skillCatalog = List.unmodifiable([
     'Mana Dart Volley',
     'Echo Blade Phantom',
     'Spectral Spike Array',
+  ]),
+  ..._skills(SkillArchetype.mothership, [
+    'Tactical Mothership',
+    'Carrier Command',
+    'Drone Swarm Hub',
+    'Fleet Coordinator',
+    'Void Wing Station',
+    'Hive Mind Relay',
+    'Orbital Hangar',
+    'Strike Wing Core',
+    'Battle Carrier',
+    'Fleet Nexus',
   ]),
 ]);
 

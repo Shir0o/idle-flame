@@ -1287,6 +1287,7 @@ class HeroAuraEffect extends PositionComponent with HasGameReference<ZenithZeroG
       SkillArchetype.frost => const Color(0xFF80DEEA),
       SkillArchetype.rupture => const Color(0xFFFF5252),
       SkillArchetype.sentinel => const Color(0xFFE1F5FE),
+      SkillArchetype.mothership => const Color(0xFFCE93D8),
     };
   }
 }

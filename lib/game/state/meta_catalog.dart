@@ -157,5 +157,6 @@ String archetypeLabel(SkillArchetype a) {
     SkillArchetype.frost => 'Frost',
     SkillArchetype.rupture => 'Rupture',
     SkillArchetype.sentinel => 'Sentinel',
+    SkillArchetype.mothership => 'Mothership',
   };
 }

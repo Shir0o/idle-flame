@@ -9,8 +9,10 @@ import '../state/mech_catalog.dart';
 import 'combat_effects.dart';
 import 'enemy.dart';
 import 'sentinel_blade.dart';
+import 'mothership.dart';
 
-class HeroComponent extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class HeroComponent extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   HeroComponent({this.mechType = MechType.standard})
     : super(
         size: Vector2.all(mechDefinitionFor(mechType).spriteSize),
@@ -33,6 +35,7 @@ class HeroComponent extends PositionComponent with HasGameReference<ZenithZeroGa
   int _twinShotCounter = 0;
   final math.Random _critRng = math.Random();
   final List<SentinelBlade> _sentinelBlades = [];
+  Mothership? _mothership;
 
   void setMechType(MechType nextMechType) {
     if (mechType == nextMechType) return;
@@ -205,6 +208,7 @@ class HeroComponent extends PositionComponent with HasGameReference<ZenithZeroGa
     if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
 
     _updateSentinelBlades();
+    _updateMothership();
 
     final period = 1.0 / game.state.heroAttacksPerSec;
     _attackTimer += dt;
@@ -274,6 +278,18 @@ class HeroComponent extends PositionComponent with HasGameReference<ZenithZeroGa
     }
   }
 
+  void _updateMothership() {
+    final level = game.state.mothershipLevel;
+    if (level > 0 && _mothership == null) {
+      _mothership = Mothership(level: level);
+      _mothership!.position = position.clone();
+      parent?.add(_mothership!);
+    } else if (level == 0 && _mothership != null) {
+      _mothership!.removeFromParent();
+      _mothership = null;
+    }
+  }
+
   void resetForNewRun() {
     _attackTimer = 0;
     _novaTimer = 0;
@@ -291,6 +307,8 @@ class HeroComponent extends PositionComponent with HasGameReference<ZenithZeroGa
       blade.removeFromParent();
     }
     _sentinelBlades.clear();
+    _mothership?.removeFromParent();
+    _mothership = null;
     _placeAtBottom(game.size);
   }
 

@@ -112,6 +112,15 @@ class GameState extends ChangeNotifier {
   double get sentinelDamage => heroDamage * (0.35 + sentinelLevel * 0.08);
   double get sentinelAttackCooldown => 0.8 * pow(0.92, sentinelLevel);
   double get sentinelOrbitSpeed => 2.4 * (1 + sentinelLevel * 0.1);
+
+  int get mothershipLevel => _archetypeLevel(SkillArchetype.mothership);
+  int get mothershipDroneCount =>
+      3 + (mothershipLevel >= 3 ? 2 : 0) + (mothershipLevel >= 5 ? 3 : 0);
+  double get mothershipDroneDamage =>
+      heroDamage * (0.25 + mothershipLevel * 0.1);
+  double get mothershipSpawnInterval => 4.0 * pow(0.85, mothershipLevel - 1);
+  bool get mothershipDroneExplode => mothershipLevel >= 4;
+
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
   double get flameNovaRadius => double.infinity;
   double get flameNovaDamage => heroDamage * (1 + flameNovaLevel * 0.18);
@@ -157,7 +166,11 @@ class GameState extends ChangeNotifier {
     final meteorDps = meteorMarkLevel == 0
         ? 0
         : meteorMarkDamage / meteorMarkCooldown;
-    return (directDps + novaDps + firewallDps + meteorDps) *
+    final mothershipDps = mothershipLevel == 0
+        ? 0
+        : (mothershipDroneDamage * mothershipDroneCount) /
+            mothershipSpawnInterval;
+    return (directDps + novaDps + firewallDps + meteorDps + mothershipDps) *
         executeDamageMultiplier;
   }
 

@@ -9,7 +9,7 @@ import '../zenith_zero_game.dart';
 import 'combat_effects.dart';
 import 'damage_text.dart';
 
-enum DamageType { basic, nova, firewall, meteor, sentinel }
+enum DamageType { basic, nova, firewall, meteor, sentinel, mothership }
 
 enum EnemyType {
   basic,
@@ -239,7 +239,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     }
     if (type == DamageType.basic) {
       game.audio.playHit();
-    } else if (type == DamageType.sentinel) {
+    } else if (type == DamageType.sentinel || type == DamageType.mothership) {
       game.audio.playSkillDamage(SkillSound.arcane);
     } else {
       game.audio.playRandomSkillDamage();
@@ -395,6 +395,17 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         sparkCount: 15,
         sparkSpread: 3.4,
         sparkSpeed: 210,
+      ),
+      DamageType.mothership => const _DamageVisual(
+        textColor: Color(0xFFCE93D8),
+        sparkColor: Color(0xFFCE93D8),
+        flashColor: Colors.white,
+        textScale: 1.12,
+        flashDuration: 0.08,
+        knockback: 120,
+        sparkCount: 12,
+        sparkSpread: 1.4,
+        sparkSpeed: 190,
       ),
     };
   }
