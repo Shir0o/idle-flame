@@ -240,6 +240,8 @@ void main() {
     state.cycleGameSpeed();
     expect(state.devTimeScale, 5.0);
     state.cycleGameSpeed();
+    expect(state.devTimeScale, 0.0);
+    state.cycleGameSpeed();
     expect(state.devTimeScale, 1.0);
 
     final initialPerf = state.showPerfOverlay;
@@ -255,6 +257,26 @@ void main() {
     state.devForceLevelUp();
     expect(state.hasPendingLevelUp, isTrue);
     expect(state.pendingChoices, isNotEmpty);
+  });
+
+  test('devGrantSkill cycles levels to 0 after maxLevel', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+    const skillId = 'void_edge_focus';
+
+    // Grant to max level
+    for (var i = 0; i < SkillDefinition.maxLevel; i++) {
+      state.devGrantSkill(skillId);
+    }
+    expect(state.skillLevel(skillId), SkillDefinition.maxLevel);
+
+    // Cycle to 0
+    state.devGrantSkill(skillId);
+    expect(state.skillLevel(skillId), 0);
+
+    // Cycle back to 1
+    state.devGrantSkill(skillId);
+    expect(state.skillLevel(skillId), 1);
   });
 
   test('devMaxAllSkills maxes out every skill', () {

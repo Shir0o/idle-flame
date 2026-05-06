@@ -212,8 +212,13 @@ class GameState extends ChangeNotifier {
   }
 
   void devGrantSkill(String id) {
-    if (_skillById(id) == null || _isMaxed(id)) return;
-    _skillLevels[id] = skillLevel(id) + 1;
+    if (_skillById(id) == null) return;
+    final current = skillLevel(id);
+    if (current >= SkillDefinition.maxLevel) {
+      _skillLevels[id] = 0;
+    } else {
+      _skillLevels[id] = current + 1;
+    }
     notifyListeners();
     _saveSoon();
   }
@@ -294,6 +299,8 @@ class GameState extends ChangeNotifier {
       devTimeScale = 2.0;
     } else if (devTimeScale == 2.0) {
       devTimeScale = 5.0;
+    } else if (devTimeScale == 5.0) {
+      devTimeScale = 0.0;
     } else {
       devTimeScale = 1.0;
     }

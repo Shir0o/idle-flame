@@ -324,7 +324,7 @@ class _ArsenalPanel extends StatelessWidget {
 
         return _Panel(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 240),
+            constraints: const BoxConstraints(maxWidth: 140),
             child: InkWell(
               onTap: () => _showArsenalMenu(context, state, meta),
               borderRadius: BorderRadius.circular(6),
@@ -338,15 +338,6 @@ class _ArsenalPanel extends StatelessWidget {
                       size: 16,
                     ),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Arsenal',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
                     if (byArchetype.isNotEmpty || activeKeystones.isNotEmpty)
                       Expanded(
                         child: SingleChildScrollView(
@@ -798,7 +789,7 @@ class _DevToolsState extends State<_DevTools> {
                             label:
                                 'Game Speed (${state.devTimeScale.round()}x)',
                             description:
-                                'Cycle between 1x, 2x, and 5x simulation speed.',
+                                'Cycle between 1x, 2x, 5x, and 0x (Paused).',
                             onTap: () => state.cycleGameSpeed(),
                           ),
                           _MenuItem(
@@ -1172,7 +1163,7 @@ class _AddSkillChip extends StatelessWidget {
       triggerMode: TooltipTriggerMode.tap,
       preferBelow: false,
       child: InkWell(
-        onTap: maxed ? null : () => state.devGrantSkill(def.id),
+        onTap: () => state.devGrantSkill(def.id),
         borderRadius: BorderRadius.circular(6),
         child: chip,
       ),
