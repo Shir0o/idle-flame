@@ -12,6 +12,8 @@ enum SkillArchetype {
   rupture,
   sentinel,
   mothership,
+  snake,
+  summon,
 }
 
 extension SkillArchetypeExt on SkillArchetype {
@@ -28,6 +30,8 @@ extension SkillArchetypeExt on SkillArchetype {
       SkillArchetype.rupture => Icons.flash_on,
       SkillArchetype.sentinel => Icons.navigation,
       SkillArchetype.mothership => Icons.rocket_launch_rounded,
+      SkillArchetype.snake => Icons.gesture,
+      SkillArchetype.summon => Icons.pets,
     };
   }
 
@@ -44,6 +48,8 @@ extension SkillArchetypeExt on SkillArchetype {
       SkillArchetype.rupture => const Color(0xFFFF5252),
       SkillArchetype.sentinel => const Color(0xFFE1F5FE),
       SkillArchetype.mothership => const Color(0xFFCE93D8),
+      SkillArchetype.snake => const Color(0xFFFFAB40),
+      SkillArchetype.summon => const Color(0xFFFF6D00),
     };
   }
 
@@ -84,9 +90,9 @@ class SkillDefinition {
       SkillArchetype.firewall => switch (level) {
         1 => 'Stat: project a burning rune-wall across the lane.',
         2 => 'Special: the wall aligns to threats near the nexus.',
-        3 => 'Stat: glyph burn and ward intensity increase.',
-        4 => 'Special: the ward refreshes better against dense waves.',
-        _ => 'Big upgrade: the lane becomes a full-spectrum ward gate.',
+        3 => 'Special: glyph burn applies a lingering DOT to enemies.',
+        4 => 'Special: ward intensity and cooldown-refresh improve.',
+        _ => 'Big upgrade: the lane becomes a full-spectrum dragon-gate.',
       },
       SkillArchetype.meteor => switch (level) {
         1 => 'Stat: call an orbital spellblade onto the deepest enemy.',
@@ -144,6 +150,20 @@ class SkillDefinition {
         4 => 'Special: drones explode on impact, dealing area damage.',
         _ => 'Big upgrade: the fleet becomes a permanent swarm of hunters.',
       },
+      SkillArchetype.snake => switch (level) {
+        1 => 'Stat: ignite a fire snake that chases the nearest enemy.',
+        2 => 'Special: the snake leaves a lingering damage trail.',
+        3 => 'Stat: snake speed and trail duration increase.',
+        4 => 'Special: the snake splits into two smaller serpents.',
+        _ => 'Big upgrade: the Ouroboros consumes entire waves.',
+      },
+      SkillArchetype.summon => switch (level) {
+        1 => 'Stat: summon a Fire Wolf to pounce on enemies.',
+        2 => 'Special: Fire Salamander joins, scorching nearby foes.',
+        3 => 'Stat: summon health and attack power increase.',
+        4 => 'Special: Fire Phoenix rises, sweeping the field in flames.',
+        _ => 'Big upgrade: the Great Spirit Menagerie is unleashed.',
+      },
     };
   }
 }
@@ -184,6 +204,11 @@ final List<SkillDefinition> skillCatalog = List.unmodifiable([
     'Hexgrid Barricade',
     'Firewall Sutra',
     'Circuit Dragon Wall',
+    'Void Ember Grate',
+    'Phoenix Sigil Wall',
+    'Cyber Shinto Gate',
+    'Ionized Rune Fence',
+    'Astral Dragon Rampart',
   ]),
   ..._skills(SkillArchetype.meteor, [
     'Orbital Spellblade',
@@ -280,6 +305,30 @@ final List<SkillDefinition> skillCatalog = List.unmodifiable([
     'Strike Wing Core',
     'Battle Carrier',
     'Fleet Nexus',
+  ]),
+  ..._skills(SkillArchetype.snake, [
+    'Fire Snake Ignite',
+    'Ouroboros Trail',
+    'Cinder Serpent',
+    'Magma Cobra',
+    'Neon Viper',
+    'Solar Boa',
+    'Plasma Python',
+    'Ember Krait',
+    'Volcanic Adder',
+    'Abyssal Naga',
+  ]),
+  ..._skills(SkillArchetype.summon, [
+    'Fire Wolf Spirit',
+    'Salamander Breath',
+    'Phoenix Rebirth',
+    'Spirit Menagerie',
+    'Inferno Hounds',
+    'Sun-Basking Lizard',
+    'Skyfire Raptor',
+    'Molten Beastheart',
+    'Astral Chimera',
+    'Elemental Avatar',
   ]),
 ]);
 

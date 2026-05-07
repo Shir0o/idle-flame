@@ -970,12 +970,12 @@ class FirewallEffect extends PositionComponent
       _beamPaint.color = Colors.white.withValues(alpha: alpha * 0.5);
       _beamPaint.strokeWidth = 2.5;
 
-      final beamCount = 6;
+      final beamCount = level >= 20 ? 12 : 6;
       final beamProgress = (_age * 4).clamp(0.0, 1.0);
       for (var i = 0; i < beamCount; i++) {
         final bx = rect.left + (i + 0.5) * (effectWidth / beamCount);
         final by1 = rect.center.dy - 20;
-        final by2 = by1 - 60 * beamProgress;
+        final by2 = by1 - (level >= 20 ? 120 : 60) * beamProgress;
         canvas.drawLine(Offset(bx, by1), Offset(bx, by2), _beamPaint);
 
         // Beam head glow
@@ -984,18 +984,28 @@ class FirewallEffect extends PositionComponent
     }
 
     // Floating Ancient Runes
-    final runeSpacing = level >= 5 ? 28.0 : 42.0;
+    final runeSpacing = level >= 20 ? 14.0 : (level >= 10 ? 21.0 : (level >= 5 ? 28.0 : 42.0));
     for (var x = rect.left + 20; x < rect.right; x += runeSpacing) {
       final drift = math.sin(_age * 5 + x) * 4;
       final rx = x;
       final ry = rect.center.dy + drift;
 
-      canvas.drawCircle(Offset(rx, ry), 6, _runePaint);
-      canvas.drawLine(
-        Offset(rx - 8, ry - 10),
-        Offset(rx + 8, ry + 10),
-        _runePaint,
-      );
+      if (level >= 10) {
+        // Dragon Runes
+        _runePaint.strokeWidth = 2.0;
+        canvas.drawCircle(Offset(rx, ry), 8, _runePaint);
+        canvas.drawRect(
+          Rect.fromCenter(center: Offset(rx, ry), width: 12, height: 12),
+          _runePaint,
+        );
+      } else {
+        canvas.drawCircle(Offset(rx, ry), 6, _runePaint);
+        canvas.drawLine(
+          Offset(rx - 8, ry - 10),
+          Offset(rx + 8, ry + 10),
+          _runePaint,
+        );
+      }
 
       if (level >= 3) {
         canvas.drawLine(
@@ -1004,6 +1014,22 @@ class FirewallEffect extends PositionComponent
           _runePaint,
         );
       }
+    }
+
+    // Divine Gateway (Level 20+)
+    if (level >= 20) {
+      final gatePaint = Paint()
+        ..color = Colors.white.withValues(alpha: alpha * 0.25)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4;
+      canvas.drawRect(
+        rect.inflate(40),
+        gatePaint,
+      );
+      canvas.drawRect(
+        rect.inflate(45),
+        gatePaint..strokeWidth = 1,
+      );
     }
   }
 }
@@ -1267,6 +1293,9 @@ class HeroAuraEffect extends PositionComponent
       SkillArchetype.frost: state.frostLevel,
       SkillArchetype.rupture: state.ruptureLevel,
       SkillArchetype.sentinel: state.sentinelLevel,
+      SkillArchetype.mothership: state.mothershipLevel,
+      SkillArchetype.snake: state.snakeLevel,
+      SkillArchetype.summon: state.summonLevel,
     };
 
     var maxLevel = 0;
@@ -1292,6 +1321,8 @@ class HeroAuraEffect extends PositionComponent
       SkillArchetype.rupture => const Color(0xFFFF5252),
       SkillArchetype.sentinel => const Color(0xFFE1F5FE),
       SkillArchetype.mothership => const Color(0xFFCE93D8),
+      SkillArchetype.snake => const Color(0xFFFFAB40),
+      SkillArchetype.summon => const Color(0xFFFF6D00),
     };
   }
 }

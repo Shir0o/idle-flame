@@ -9,7 +9,7 @@ import '../zenith_zero_game.dart';
 import 'combat_effects.dart';
 import 'damage_text.dart';
 
-enum DamageType { basic, nova, firewall, meteor, sentinel, mothership }
+enum DamageType { basic, nova, firewall, meteor, sentinel, mothership, rupture }
 
 enum EnemyType { basic, fast, tank, elite }
 
@@ -60,6 +60,8 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   double _hitPopTimer = 0;
   double _breachTimer = 0;
   double _walkPhase = 0;
+  double _burnTimer = 0;
+  double _burnDps = 0;
   Vector2 _knockbackVelocity = Vector2.zero();
   bool _dying = false;
   bool _lastDamageWasExecute = false;
@@ -94,7 +96,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
       baseColor: const Color(0xFFFFD166),
       outlineColor: const Color(0xFFFFF4D6),
       speed: 50,
-      hpMult: 6.0,
+      hpMult: 4.5,
       size: Vector2(96, 96),
     ),
   };
@@ -107,6 +109,10 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   static final Paint _plateFillPaint = Paint()
     ..color = Colors.black.withValues(alpha: 0.2)
     ..style = PaintingStyle.fill;
+  static final Paint _burnPaint = Paint()
+    ..color = const Color(0xFFFF8A00).withValues(alpha: 0.4)
+    ..style = PaintingStyle.fill
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
 
   @override
   void onMount() {
@@ -135,6 +141,11 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     );
     canvas.save();
     canvas.translate(0, bob);
+
+    if (_burnTimer > 0) {
+      canvas.drawPath(_bodyPath, _burnPaint);
+    }
+
     canvas.drawPath(_bodyPath, _fillPaint);
     canvas.drawPath(_bodyPath, _glowPaint);
     canvas.drawPath(_bodyPath, _fillPaint);
@@ -303,6 +314,16 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
       _knockbackVelocity *= math.pow(0.06, dt).toDouble();
     }
     if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
+
+    if (_burnTimer > 0 && !_dying) {
+      _burnTimer -= dt;
+      hp -= _burnDps * dt;
+      if (hp <= 0) {
+        _die();
+        return;
+      }
+    }
+
     if (_dying) return;
     final hero = game.hero;
     final toHero = hero.position - position;
@@ -357,6 +378,14 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     _knockbackVelocity += pushDirection * visual.knockback;
     _hitPopTimer = 0.16;
     hp -= finalAmount;
+
+    if (type == DamageType.firewall && game.state.firewallLevel >= 3) {
+      _applyBurn(
+        duration: 3.0,
+        dps: game.state.firewallBurnDps,
+      );
+    }
+
     final lowPriorityFeedback =
         type == DamageType.sentinel || type == DamageType.mothership;
     if (!DamageText.atCap &&
@@ -407,12 +436,18 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     if (hp <= 0) _die();
   }
 
+  void _applyBurn({required double duration, required double dps}) {
+    _burnTimer = math.max(_burnTimer, duration);
+    _burnDps = math.max(_burnDps, dps);
+  }
+
   Iterable<Enemy> _otherAliveEnemies() {
     return game.aliveEnemies.where((e) => e != this);
   }
 
   void _die() {
     _dying = true;
+    game.state.registerKill();
     game.audio.playEnemyDeath();
     if (game.state.bountyLevel > 0 && !game.effectsConstrained) {
       parent?.add(CoinBurstEffect(effectCenter: position.clone()));
@@ -453,142 +488,110 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         }
       }
       if (nearest != null) {
-        if (game.canSpawnMinorEffect()) {
-          parent?.add(
-            RuptureMarkEffect(
-              effectCenter: nearest.position.clone(),
-              level: game.state.ruptureLevel,
-            ),
-          );
-        }
         nearest.takeDamage(
           game.state.heroDamage * 1.5,
           source: position.clone(),
-          type: DamageType.basic,
+          type: DamageType.rupture,
         );
       }
     }
-    game.state.registerKill();
-    if (game.canSpawnMajorEffect()) {
-      parent?.add(DeathBurstEffect(effectCenter: position.clone()));
-    }
-    add(
-      ScaleEffect.to(
-        Vector2.zero(),
-        EffectController(duration: 0.18, curve: Curves.easeIn),
-        onComplete: removeFromParent,
-      ),
-    );
+    removeFromParent();
   }
 
   _DamageVisual _visualFor(DamageType type, bool isExecute) {
     if (isExecute) {
       return const _DamageVisual(
-        textColor: Color(0xFFFF6B35),
-        sparkColor: Color(0xFFFF2D2D),
-        flashColor: Color(0xFFFFF1E8),
-        textScale: 1.2,
-        flashDuration: 0.1,
-        knockback: 58,
-        sparkCount: 12,
-        sparkSpread: 1.35,
+        textColor: Color(0xFFFF5252),
+        textScale: 1.4,
+        sparkColor: Color(0xFFFF5252),
+        sparkCount: 15,
+        sparkSpread: 2.5,
         sparkSpeed: 180,
+        flashColor: Colors.white,
+        flashDuration: 0.15,
+        knockback: 65,
       );
     }
     return switch (type) {
       DamageType.basic => const _DamageVisual(
-        textColor: Color(0xFFFFEB3B),
-        sparkColor: Color(0xFF00E5FF),
-        flashColor: Colors.white,
-        textScale: 1,
-        flashDuration: 0.08,
-        knockback: 120,
-        sparkCount: 7,
-        sparkSpread: 0.95,
-        sparkSpeed: 160,
-      ),
-      DamageType.sentinel => _DamageVisual(
-        textColor: const Color(0xFFE1F5FE),
-        sparkColor: const Color(0xFF00B0FF),
-        flashColor: Colors.white,
-        textScale: 1.05,
-        flashDuration: 0.1,
-        // Level 4 Special: Increased impact force
-        knockback: game.state.sentinelLevel >= 4 ? 240.0 : 150.0,
-        sparkCount: 10,
+        textColor: Colors.white,
+        textScale: 1.0,
+        sparkColor: Colors.white,
+        sparkCount: 5,
         sparkSpread: 1.2,
-        sparkSpeed: 180,
+        sparkSpeed: 100,
+        flashColor: Color(0x60FFFFFF),
+        flashDuration: 0.08,
+        knockback: 15,
       ),
       DamageType.nova => const _DamageVisual(
-        textColor: Color(0xFFFF77C8),
+        textColor: Color(0xFFFF2D95),
+        textScale: 1.2,
         sparkColor: Color(0xFFFF2D95),
-        flashColor: Color(0xFFFFD8F0),
-        textScale: 1.08,
-        flashDuration: 0.1,
-        knockback: 52,
-        sparkCount: 11,
-        sparkSpread: 2.6,
-        sparkSpeed: 150,
+        sparkCount: 12,
+        sparkSpread: 2.0,
+        sparkSpeed: 140,
+        flashColor: Color(0xFFFFB3DC),
+        flashDuration: 0.12,
+        knockback: 35,
       ),
       DamageType.firewall => const _DamageVisual(
         textColor: Color(0xFFFFD166),
-        sparkColor: Color(0xFFFF8A00),
-        flashColor: Color(0xFFFFF4D6),
-        textScale: 0.96,
-        flashDuration: 0.07,
-        knockback: 24,
+        textScale: 1.1,
+        sparkColor: Color(0xFFFFD166),
         sparkCount: 8,
-        sparkSpread: 1.8,
-        sparkSpeed: 125,
+        sparkSpread: 1.5,
+        sparkSpeed: 120,
+        flashColor: Color(0xFFFFF4D6),
+        flashDuration: 0.1,
+        knockback: 5,
       ),
       DamageType.meteor => const _DamageVisual(
-        textColor: Color(0xFFD8C7FF),
+        textColor: Color(0xFF7C4DFF),
+        textScale: 1.5,
         sparkColor: Color(0xFF7C4DFF),
-        flashColor: Color(0xFFF0EBFF),
-        textScale: 1.28,
-        flashDuration: 0.12,
-        knockback: 76,
-        sparkCount: 15,
-        sparkSpread: 3.4,
-        sparkSpeed: 210,
+        sparkCount: 20,
+        sparkSpread: 3.0,
+        sparkSpeed: 220,
+        flashColor: Color(0xFFD1C4E9),
+        flashDuration: 0.2,
+        knockback: 120,
+      ),
+      DamageType.sentinel => const _DamageVisual(
+        textColor: Color(0xFFE1F5FE),
+        textScale: 0.9,
+        sparkColor: Color(0xFFE1F5FE),
+        sparkCount: 4,
+        sparkSpread: 1.0,
+        sparkSpeed: 90,
+        flashColor: Color(0x40E1F5FE),
+        flashDuration: 0.05,
+        knockback: 8,
       ),
       DamageType.mothership => const _DamageVisual(
         textColor: Color(0xFFCE93D8),
+        textScale: 0.95,
         sparkColor: Color(0xFFCE93D8),
-        flashColor: Colors.white,
-        textScale: 1.12,
-        flashDuration: 0.08,
-        knockback: 120,
-        sparkCount: 12,
-        sparkSpread: 1.4,
-        sparkSpeed: 190,
+        sparkCount: 6,
+        sparkSpread: 1.3,
+        sparkSpeed: 110,
+        flashColor: Color(0x40CE93D8),
+        flashDuration: 0.06,
+        knockback: 12,
+      ),
+      DamageType.rupture => const _DamageVisual(
+        textColor: Color(0xFFFF5252),
+        textScale: 1.3,
+        sparkColor: Color(0xFFFF5252),
+        sparkCount: 10,
+        sparkSpread: 1.8,
+        sparkSpeed: 150,
+        flashColor: Color(0xFFFF8A80),
+        flashDuration: 0.12,
+        knockback: 45,
       ),
     };
   }
-}
-
-class _DamageVisual {
-  const _DamageVisual({
-    required this.textColor,
-    required this.sparkColor,
-    required this.flashColor,
-    required this.textScale,
-    required this.flashDuration,
-    required this.knockback,
-    required this.sparkCount,
-    required this.sparkSpread,
-    required this.sparkSpeed,
-  });
-
-  final Color textColor;
-  final Color sparkColor;
-  final Color flashColor;
-  final double textScale;
-  final double flashDuration;
-  final double knockback;
-  final int sparkCount;
-  final double sparkSpread;
-  final double sparkSpeed;
 }
 
 class _EnemyTypeData {
@@ -605,20 +608,28 @@ class _EnemyTypeData {
   final double speed;
   final double hpMult;
   final Vector2 size;
+}
 
-  _EnemyTypeData copyWith({
-    Color? baseColor,
-    Color? outlineColor,
-    double? speed,
-    double? hpMult,
-    Vector2? size,
-  }) {
-    return _EnemyTypeData(
-      baseColor: baseColor ?? this.baseColor,
-      outlineColor: outlineColor ?? this.outlineColor,
-      speed: speed ?? this.speed,
-      hpMult: hpMult ?? this.hpMult,
-      size: size ?? this.size,
-    );
-  }
+class _DamageVisual {
+  const _DamageVisual({
+    required this.textColor,
+    required this.textScale,
+    required this.sparkColor,
+    required this.sparkCount,
+    required this.sparkSpread,
+    required this.sparkSpeed,
+    required this.flashColor,
+    required this.flashDuration,
+    required this.knockback,
+  });
+
+  final Color textColor;
+  final double textScale;
+  final Color sparkColor;
+  final int sparkCount;
+  final double sparkSpread;
+  final double sparkSpeed;
+  final Color flashColor;
+  final double flashDuration;
+  final double knockback;
 }

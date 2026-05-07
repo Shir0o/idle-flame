@@ -9,7 +9,7 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
   final Random _rng = Random();
   double _timer = 0;
 
-  static const double _spawnInterval = 1.5;
+  static const double _spawnInterval = 1.8;
   static const double _offscreenPad = 40;
 
   @override
@@ -35,16 +35,19 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
     final size = game.size;
     final pos = Vector2(_rng.nextDouble() * size.x, -_offscreenPad);
 
+    final floor = game.state.floor;
     final roll = _rng.nextDouble();
     EnemyType type;
-    if (roll < 0.70) {
-      type = EnemyType.basic;
-    } else if (roll < 0.85) {
-      type = EnemyType.fast;
-    } else if (roll < 0.95) {
-      type = EnemyType.tank;
-    } else {
+
+    // Gradual introduction based on floor
+    if (floor >= 8 && roll < 0.08) {
       type = EnemyType.elite;
+    } else if (floor >= 5 && roll < 0.15) {
+      type = EnemyType.tank;
+    } else if (floor >= 3 && roll < 0.25) {
+      type = EnemyType.fast;
+    } else {
+      type = EnemyType.basic;
     }
 
     parent?.add(Enemy(

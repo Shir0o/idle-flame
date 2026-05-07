@@ -85,9 +85,11 @@ class GameState extends ChangeNotifier {
   static const double flameNovaCooldown = 5;
   static const double firewallCooldown = 3.5;
   static const double meteorMarkCooldown = 4.5;
-  static const double _enemyHpGrowth = 1.12;
+  static const double snakeCooldown = 6.0;
+  static const double summonCooldown = 8.0;
+  static const double _enemyHpGrowth = 1.09;
   static const double _goldGrowth = 1.15;
-  static const double _baseEnemyHp = 6;
+  static const double _baseEnemyHp = 5.0;
   static const int _baseGoldPerKill = 1;
   static const double _idleEfficiency = 0.5;
   static const int _idleCapSeconds = 8 * 3600;
@@ -128,10 +130,20 @@ class GameState extends ChangeNotifier {
   double get flameNovaDamage => heroDamage * (1 + flameNovaLevel * 0.18);
   int get firewallLevel => _archetypeLevel(SkillArchetype.firewall);
   double get firewallWidth => double.infinity;
-  double get firewallDamage => heroDamage * (0.8 + firewallLevel * 0.12);
+  double get firewallDamage => heroDamage * (1.0 + firewallLevel * 0.15);
+  double get firewallBurnDps => firewallDamage * (0.2 + (firewallLevel / 10) * 0.1);
   int get meteorMarkLevel => _archetypeLevel(SkillArchetype.meteor);
   double get meteorMarkRadius => double.infinity;
   double get meteorMarkDamage => heroDamage * (1.7 + meteorMarkLevel * 0.14);
+
+  int get snakeLevel => _archetypeLevel(SkillArchetype.snake);
+  double get snakeDamage => heroDamage * (0.8 + snakeLevel * 0.2);
+  double get snakeSpeed => 180.0 * (1 + snakeLevel * 0.12);
+  double get snakeTrailDuration => 0.8 + snakeLevel * 0.2;
+
+  int get summonLevel => _archetypeLevel(SkillArchetype.summon);
+  double get summonDamage => heroDamage * (1.2 + summonLevel * 0.25);
+
   double get enemySpeedMultiplier => max(0.45, 1 - frostLevel * 0.025);
   double get executeDamageMultiplier => 1 + ruptureLevel * 0.035;
   bool get isRunOver => nexusHp <= 0;
@@ -140,7 +152,7 @@ class GameState extends ChangeNotifier {
       _pendingUpgradeIds.map(_choiceFor).nonNulls.toList(growable: false);
   double get enemyMaxHp =>
       _baseEnemyHp * pow(_enemyHpGrowth, floor - 1) * devEnemyStrength;
-  double get enemyBreachDamage => (4 + floor * 0.8) * devEnemyStrength;
+  double get enemyBreachDamage => (3 + floor * 0.5) * devEnemyStrength;
   int get goldPerKill {
     final base = _baseGoldPerKill * pow(_goldGrowth, floor - 1);
     final bountyMultiplier = 1 + bountyLevel * 0.08;

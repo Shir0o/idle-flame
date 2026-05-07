@@ -158,5 +158,7 @@ String archetypeLabel(SkillArchetype a) {
     SkillArchetype.rupture => 'Rupture',
     SkillArchetype.sentinel => 'Sentinel',
     SkillArchetype.mothership => 'Mothership',
+    SkillArchetype.snake => 'Snake',
+    SkillArchetype.summon => 'Summon',
   };
 }

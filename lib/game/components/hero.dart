@@ -10,6 +10,8 @@ import 'combat_effects.dart';
 import 'enemy.dart';
 import 'sentinel_blade.dart';
 import 'mothership.dart';
+import 'fire_snake.dart';
+import 'fire_summons.dart';
 
 class HeroComponent extends PositionComponent
     with HasGameReference<ZenithZeroGame> {
@@ -25,6 +27,8 @@ class HeroComponent extends PositionComponent
   double _novaTimer = 0;
   double _firewallTimer = 0;
   double _meteorTimer = 0;
+  double _snakeTimer = 0;
+  double _summonTimer = 0;
   double _frostFieldTimer = 0;
   double _pulseTimer = 0;
   double _pulseDuration = 0.18;
@@ -233,6 +237,16 @@ class HeroComponent extends PositionComponent
         _meteorTimer >= GameState.meteorMarkCooldown) {
       _meteorTimer = 0;
       _castMeteorMark();
+    }
+    _snakeTimer += dt;
+    if (game.state.snakeLevel > 0 && _snakeTimer >= GameState.snakeCooldown) {
+      _snakeTimer = 0;
+      _castSnake();
+    }
+    _summonTimer += dt;
+    if (game.state.summonLevel > 0 && _summonTimer >= GameState.summonCooldown) {
+      _summonTimer = 0;
+      _castSummon();
     }
     if (_aftershockTimer > 0) {
       _aftershockTimer -= dt;
@@ -494,22 +508,35 @@ class HeroComponent extends PositionComponent
   void _castFirewall({bool isBackdraft = false}) {
     if (!isBackdraft) _pulse(0.16);
     game.audio.playSkillCast();
-    final wallY = position.y - 165;
+
+    final firewallLevel = game.state.firewallLevel;
+    Vector2 targetPos;
+
+    // Level 2+ Special: Adaptive Targeting (spawns on deepest enemy if exists)
+    if (firewallLevel >= 2 && game.deepestEnemy != null) {
+      targetPos = game.deepestEnemy!.position.clone();
+    } else {
+      targetPos = Vector2(position.x, position.y - 165);
+    }
+
+    final wallY = targetPos.y;
+    final wallX = targetPos.x;
     final width = game.state.firewallWidth;
     final effectWidth = width.isFinite ? width : game.size.x;
     final halfWidth = effectWidth / 2;
-    final wallCenter = Vector2(position.x, wallY);
+    final wallCenter = Vector2(wallX, wallY);
+
     if (game.canSpawnMajorEffect()) {
       parent?.add(
         FirewallEffect(
           effectCenter: wallCenter,
           effectWidth: effectWidth,
-          level: game.state.firewallLevel,
+          level: firewallLevel,
         ),
       );
     }
     final enemies = _aliveEnemies().where((enemy) {
-      final insideWidth = (enemy.position.x - position.x).abs() <= halfWidth;
+      final insideWidth = (enemy.position.x - wallX).abs() <= halfWidth;
       final nearWall = (enemy.position.y - wallY).abs() <= 28;
       return insideWidth && nearWall;
     }).toList();
@@ -523,13 +550,66 @@ class HeroComponent extends PositionComponent
     }
 
     // Level 4 Special: Ward Refresh
-    if (game.state.firewallLevel >= 4 && enemies.length >= 4) {
-      // Refresh the timer significantly
+    if (firewallLevel >= 4 && enemies.length >= 4) {
       _firewallTimer = GameState.firewallCooldown * 0.4;
     }
 
     if (!isBackdraft && game.state.meta.hasKeystone('backdraft')) {
       _backdraftTimer = 0.4;
+    }
+  }
+
+  void _castSnake() {
+    _pulse(0.12);
+    game.audio.playSkillCast();
+    parent?.add(
+      FireSnake(
+        startPos: position.clone(),
+        level: game.state.snakeLevel,
+        damage: game.state.snakeDamage,
+        speed: game.state.snakeSpeed,
+        trailDuration: game.state.snakeTrailDuration,
+      ),
+    );
+  }
+
+  void _castSummon() {
+    _pulse(0.18);
+    game.audio.playSkillCast();
+    final level = game.state.summonLevel;
+
+    // Wolf at L1
+    parent?.add(
+      FireSummon(
+        startPos: position.clone(),
+        type: SummonType.wolf,
+        level: level,
+        damage: game.state.summonDamage,
+      ),
+    );
+
+    // Salamander at L2
+    if (level >= 2) {
+      parent?.add(
+        FireSummon(
+          startPos: position.clone(),
+          type: SummonType.salamander,
+          level: level,
+          damage: game.state.summonDamage,
+        ),
+      );
+    }
+
+    // Phoenix at L4
+    if (level >= 4) {
+      parent?.add(
+        FireSummon(
+          startPos: position.clone(),
+          type: SummonType.phoenix,
+          level: level,
+          damage: game.state.summonDamage,
+        ),
+      );
     }
   }
 
