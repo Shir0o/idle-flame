@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flame/components.dart';
-import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 
 import '../audio/game_audio.dart';

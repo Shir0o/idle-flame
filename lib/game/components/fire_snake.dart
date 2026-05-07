@@ -26,7 +26,6 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
   
   Enemy? _target;
   double _totalTime = 0;
-  final math.Random _rng = math.Random();
 
   @override
   void update(double dt) {

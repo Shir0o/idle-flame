@@ -23,7 +23,6 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
   static const double _maxLife = 5.0;
   
   Enemy? _target;
-  final math.Random _rng = math.Random();
 
   @override
   void update(double dt) {
