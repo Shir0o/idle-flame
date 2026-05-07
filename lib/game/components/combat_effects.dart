@@ -161,7 +161,7 @@ class DeathBurstEffect extends PositionComponent
   void render(Canvas canvas) {
     super.render(canvas);
     final t = (_age / _duration).clamp(0.0, 1.0);
-    final alpha = 1 - t;
+    final alpha = 1.0 - math.pow(t, 2).toDouble();
     final center = Offset(effectCenter.x, effectCenter.y);
     final eased = Curves.easeOutCubic.transform(t);
     _flashPaint.color = Colors.white.withValues(alpha: alpha * 0.45);
@@ -659,7 +659,7 @@ class RuptureMarkEffect extends PositionComponent
   void render(Canvas canvas) {
     super.render(canvas);
     final t = (_age / _duration).clamp(0.0, 1.0);
-    final alpha = 1 - t;
+    final alpha = 1.0 - math.pow(t, 2).toDouble();
     _strokePaint.color = const Color(0xFFFF5252).withValues(alpha: alpha);
     _glowPaint.color = const Color(0xFFFF5252).withValues(alpha: alpha * 0.24);
 
@@ -748,7 +748,7 @@ class NovaPulseEffect extends PositionComponent
   final Color color;
   final int level;
   double _age = 0;
-  static const double _duration = 0.42;
+  static const double _duration = 0.8;
 
   late final Paint _warmPaint = Paint()
     ..style = PaintingStyle.stroke
@@ -780,7 +780,7 @@ class NovaPulseEffect extends PositionComponent
     super.render(canvas);
     final t = (_age / _duration).clamp(0.0, 1.0);
     final eased = Curves.easeOutCubic.transform(t);
-    final alpha = 1 - t;
+    final alpha = 1.0 - math.pow(t, 2).toDouble();
     final offset = Offset(effectCenter.x, effectCenter.y);
 
     _warmPaint.color = const Color(0xFFFFD166).withValues(alpha: alpha * 0.15);
@@ -868,7 +868,7 @@ class FirewallEffect extends PositionComponent
   final Color color;
   final int level;
   double _age = 0;
-  static const double _duration = 0.5;
+  static const double _duration = 1.4;
 
   final Paint _glowPaint = Paint()..style = PaintingStyle.fill;
   final Paint _heatPaint = Paint()..style = PaintingStyle.fill;
@@ -896,7 +896,7 @@ class FirewallEffect extends PositionComponent
   void render(Canvas canvas) {
     super.render(canvas);
     final t = (_age / _duration).clamp(0.0, 1.0);
-    final alpha = math.sin(t * math.pi).clamp(0.0, 1.0);
+    final alpha = 1.0 - math.pow(t, 1.5).toDouble();
 
     final wallHeight = 42 * (level >= 3 ? 1.4 : 1.0);
     final rect = Rect.fromCenter(
@@ -1048,7 +1048,7 @@ class MeteorImpactEffect extends PositionComponent
   final Color color;
   final int level;
   double _age = 0;
-  static const double _duration = 0.45;
+  static const double _duration = 0.75;
 
   late final Paint _skyGlowPaint = Paint()
     ..strokeWidth = 26 * (level >= 3 ? 1.5 : 1.0)
@@ -1082,7 +1082,7 @@ class MeteorImpactEffect extends PositionComponent
   void render(Canvas canvas) {
     super.render(canvas);
     final t = (_age / _duration).clamp(0.0, 1.0);
-    final alpha = 1 - t;
+    final alpha = 1.0 - math.pow(t, 2).toDouble();
     final impact = Offset(target.x, target.y);
 
     // Blade entry phase (top to bottom)

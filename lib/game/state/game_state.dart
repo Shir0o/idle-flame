@@ -127,22 +127,22 @@ class GameState extends ChangeNotifier {
 
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
   double get flameNovaRadius => double.infinity;
-  double get flameNovaDamage => heroDamage * (1 + flameNovaLevel * 0.18);
+  double get flameNovaDamage => heroDamage * (1.2 + flameNovaLevel * 0.3);
   int get firewallLevel => _archetypeLevel(SkillArchetype.firewall);
   double get firewallWidth => double.infinity;
-  double get firewallDamage => heroDamage * (1.0 + firewallLevel * 0.15);
-  double get firewallBurnDps => firewallDamage * (0.2 + (firewallLevel / 10) * 0.1);
+  double get firewallDamage => heroDamage * (1.1 + firewallLevel * 0.25);
+  double get firewallBurnDps => firewallDamage * (0.3 + (firewallLevel / 10) * 0.2);
   int get meteorMarkLevel => _archetypeLevel(SkillArchetype.meteor);
   double get meteorMarkRadius => double.infinity;
-  double get meteorMarkDamage => heroDamage * (1.7 + meteorMarkLevel * 0.14);
+  double get meteorMarkDamage => heroDamage * (2.2 + meteorMarkLevel * 0.35);
 
   int get snakeLevel => _archetypeLevel(SkillArchetype.snake);
-  double get snakeDamage => heroDamage * (0.8 + snakeLevel * 0.2);
-  double get snakeSpeed => 180.0 * (1 + snakeLevel * 0.12);
-  double get snakeTrailDuration => 0.8 + snakeLevel * 0.2;
+  double get snakeDamage => heroDamage * (1.0 + snakeLevel * 0.4);
+  double get snakeSpeed => 190.0 * (1 + snakeLevel * 0.15);
+  double get snakeTrailDuration => 0.8 + snakeLevel * 0.3;
 
   int get summonLevel => _archetypeLevel(SkillArchetype.summon);
-  double get summonDamage => heroDamage * (1.2 + summonLevel * 0.25);
+  double get summonDamage => heroDamage * (1.4 + summonLevel * 0.45);
 
   double get enemySpeedMultiplier => max(0.45, 1 - frostLevel * 0.025);
   double get executeDamageMultiplier => 1 + ruptureLevel * 0.035;

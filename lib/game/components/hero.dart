@@ -484,21 +484,56 @@ class HeroComponent extends PositionComponent
     game.shakeCamera(intensity: finalShake, duration: 0.16);
 
     final effectRadius = radius.isFinite ? radius : game.size.length;
+    final finalRadius = effectRadius * (novaLevel >= 5 ? 1.5 : 1.0);
+
     if (game.canSpawnMajorEffect()) {
       parent?.add(
         NovaPulseEffect(
           effectCenter: position.clone(),
-          radius: effectRadius * (isAftershock ? 0.7 : 1.0),
+          radius: finalRadius * (isAftershock ? 0.7 : 1.0),
           level: novaLevel,
         ),
       );
+      // Level 5 Mastery: Echo pulse
+      if (novaLevel >= 5 && !isAftershock) {
+        parent?.add(
+          TimerComponent(
+            period: 0.25,
+            removeOnFinish: true,
+            onTick: () {
+              if (game.state.isRunOver) return;
+              parent?.add(
+                NovaPulseEffect(
+                  effectCenter: position.clone(),
+                  radius: finalRadius * 0.6,
+                  level: novaLevel,
+                ),
+              );
+              for (final enemy in _aliveEnemies()) {
+                if ((enemy.position - position).length2 <=
+                    (finalRadius * 0.6) * (finalRadius * 0.6)) {
+                  enemy.takeDamage(
+                    game.state.flameNovaDamage * 0.4,
+                    source: position.clone(),
+                    type: DamageType.nova,
+                  );
+                }
+              }
+            },
+          ),
+        );
+      }
     }
     for (final enemy in targets) {
-      enemy.takeDamage(
-        game.state.flameNovaDamage * finalDamageScale,
-        source: position.clone(),
-        type: DamageType.nova,
-      );
+      if (!targets.contains(enemy)) continue; // redundant check but safe
+      if (novaLevel < 5 ||
+          (enemy.position - position).length2 <= finalRadius * finalRadius) {
+        enemy.takeDamage(
+          game.state.flameNovaDamage * finalDamageScale,
+          source: position.clone(),
+          type: DamageType.nova,
+        );
+      }
     }
     if (!isAftershock && game.state.meta.hasKeystone('aftershock')) {
       _aftershockTimer = 0.5;
@@ -526,32 +561,45 @@ class HeroComponent extends PositionComponent
     final halfWidth = effectWidth / 2;
     final wallCenter = Vector2(wallX, wallY);
 
-    if (game.canSpawnMajorEffect()) {
-      parent?.add(
-        FirewallEffect(
-          effectCenter: wallCenter,
-          effectWidth: effectWidth,
-          level: firewallLevel,
-        ),
-      );
-    }
-    final enemies = _aliveEnemies().where((enemy) {
-      final insideWidth = (enemy.position.x - wallX).abs() <= halfWidth;
-      final nearWall = (enemy.position.y - wallY).abs() <= 28;
-      return insideWidth && nearWall;
-    }).toList();
+    void addWall(Vector2 center, double w, int lvl) {
+      if (game.canSpawnMajorEffect()) {
+        parent?.add(
+          FirewallEffect(
+            effectCenter: center,
+            effectWidth: w,
+            level: lvl,
+          ),
+        );
+      }
+      final hitEnemies = _aliveEnemies().where((enemy) {
+        final insideWidth = (enemy.position.x - center.x).abs() <= w / 2;
+        final nearWall = (enemy.position.y - center.y).abs() <= 28;
+        return insideWidth && nearWall;
+      }).toList();
 
-    for (final enemy in enemies) {
-      enemy.takeDamage(
-        game.state.firewallDamage,
-        source: wallCenter,
-        type: DamageType.firewall,
-      );
+      for (final enemy in hitEnemies) {
+        enemy.takeDamage(
+          game.state.firewallDamage,
+          source: center,
+          type: DamageType.firewall,
+        );
+      }
+
+      // Level 4 Special: Ward Refresh (only for first wall)
+      if (firewallLevel >= 4 && hitEnemies.length >= 4) {
+        _firewallTimer = GameState.firewallCooldown * 0.4;
+      }
     }
 
-    // Level 4 Special: Ward Refresh
-    if (firewallLevel >= 4 && enemies.length >= 4) {
-      _firewallTimer = GameState.firewallCooldown * 0.4;
+    addWall(wallCenter, effectWidth, firewallLevel);
+
+    // Level 5 Mastery: Dragon Gate (Secondary wall slightly ahead)
+    if (firewallLevel >= 5) {
+      addWall(
+        Vector2(wallX, wallY - 100),
+        effectWidth * 0.8,
+        firewallLevel,
+      );
     }
 
     if (!isBackdraft && game.state.meta.hasKeystone('backdraft')) {
@@ -562,15 +610,30 @@ class HeroComponent extends PositionComponent
   void _castSnake() {
     _pulse(0.12);
     game.audio.playSkillCast();
+    final level = game.state.snakeLevel;
+    
     parent?.add(
       FireSnake(
         startPos: position.clone(),
-        level: game.state.snakeLevel,
+        level: level,
         damage: game.state.snakeDamage,
         speed: game.state.snakeSpeed,
         trailDuration: game.state.snakeTrailDuration,
       ),
     );
+
+    // Level 4 Special: Serpent Split
+    if (level >= 4) {
+      parent?.add(
+        FireSnake(
+          startPos: position.clone(),
+          level: level,
+          damage: game.state.snakeDamage * 0.7,
+          speed: game.state.snakeSpeed * 1.2,
+          trailDuration: game.state.snakeTrailDuration * 0.8,
+        ),
+      );
+    }
   }
 
   void _castSummon() {
@@ -610,6 +673,20 @@ class HeroComponent extends PositionComponent
           damage: game.state.summonDamage,
         ),
       );
+    }
+
+    // Level 5 Mastery: Great Spirit Menagerie (Bonus burst of all summons)
+    if (level >= 5) {
+      for (final type in SummonType.values) {
+        parent?.add(
+          FireSummon(
+            startPos: position.clone(),
+            type: type,
+            level: level,
+            damage: game.state.summonDamage * 0.5,
+          ),
+        );
+      }
     }
   }
 
@@ -741,7 +818,7 @@ class HeroComponent extends PositionComponent
   }
 
   List<Enemy> _aliveEnemies() {
-    return game.aliveEnemies;
+    return game.targetableEnemies;
   }
 
   void _placeAtBottom(Vector2 size) {

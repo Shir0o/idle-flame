@@ -38,6 +38,7 @@ class ZenithZeroGame extends FlameGame {
   late final EnemySpawner spawner;
   final Set<Enemy> activeEnemies = {};
   List<Enemy> aliveEnemies = [];
+  List<Enemy> targetableEnemies = [];
   final math.Random _rng = math.Random();
   double _shakeTime = 0;
   double _shakeDuration = 0;
@@ -158,13 +159,13 @@ class ZenithZeroGame extends FlameGame {
     int limit, {
     double range = double.infinity,
   }) {
-    if (limit <= 0 || aliveEnemies.isEmpty) return const <Enemy>[];
+    if (limit <= 0 || targetableEnemies.isEmpty) return const <Enemy>[];
 
     final selected = <Enemy>[];
     final distances = <double>[];
     final rangeSquared = range * range;
 
-    for (final enemy in aliveEnemies) {
+    for (final enemy in targetableEnemies) {
       final distance = (enemy.position - origin).length2;
       if (distance > rangeSquared) continue;
 
@@ -186,9 +187,9 @@ class ZenithZeroGame extends FlameGame {
   }
 
   bool hasEnemyWithin(Vector2 origin, double range) {
-    if (aliveEnemies.isEmpty) return false;
+    if (targetableEnemies.isEmpty) return false;
     final rangeSquared = range * range;
-    for (final enemy in aliveEnemies) {
+    for (final enemy in targetableEnemies) {
       if ((enemy.position - origin).length2 <= rangeSquared) return true;
     }
     return false;
@@ -275,6 +276,7 @@ class ZenithZeroGame extends FlameGame {
 
   void _refreshCombatSummary() {
     aliveEnemies.clear();
+    targetableEnemies.clear();
     nearestEnemyToHero = null;
     deepestEnemy = null;
     rightmostEnemy = null;
@@ -287,6 +289,12 @@ class ZenithZeroGame extends FlameGame {
     for (final enemy in activeEnemies) {
       if (!enemy.isAlive) continue;
       aliveEnemies.add(enemy);
+
+      // Only target enemies in the bottom 2/3 of the screen above the hero.
+      // This gives the player time to see enemies before they are engaged.
+      if (enemy.position.y < hero.position.y / 3) continue;
+
+      targetableEnemies.add(enemy);
 
       final distance = (enemy.position - heroPos).length2;
       if (distance < nearestDistance) {
@@ -306,7 +314,7 @@ class ZenithZeroGame extends FlameGame {
     }
 
     visualLoadTier = visualLoadTierForCounts(
-      enemyCount: aliveEnemies.length,
+      enemyCount: targetableEnemies.length,
       componentCount: world.children.length,
     );
   }

@@ -26,6 +26,8 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
   
   Enemy? _target;
   double _totalTime = 0;
+  double _lifeTime = 0;
+  static const double _maxLife = 6.0;
 
   @override
   void update(double dt) {
@@ -35,9 +37,14 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
       return;
     }
     _totalTime += dt;
+    _lifeTime += dt;
+
+    if (_lifeTime >= _maxLife) {
+      _target = null;
+    }
 
     // Target acquisition
-    if (_target == null || !_target!.isAlive) {
+    if (_lifeTime < _maxLife && (_target == null || !_target!.isAlive)) {
       final targets = game.selectNearestEnemies(position, 1);
       if (targets.isNotEmpty) {
         _target = targets.first;
@@ -64,7 +71,7 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
     angle = math.atan2(moveDir.y, moveDir.x);
 
     // Trail management
-    if (_trail.isEmpty || (_trail.first - position).length > _pointSpacing) {
+    if (_lifeTime < _maxLife && (_trail.isEmpty || (_trail.first - position).length > _pointSpacing)) {
       _trail.insert(0, position.clone());
       _trailAges.insert(0, 0);
     }
@@ -77,14 +84,15 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
       }
     }
 
-    if (_trail.isEmpty && _target == null) {
+    if (_trail.isEmpty && (_target == null || _lifeTime >= _maxLife)) {
       removeFromParent();
+      return;
     }
 
     // Damage logic
     const hitRadius = 24.0;
     const hitRadius2 = hitRadius * hitRadius;
-    for (final enemy in game.aliveEnemies) {
+    for (final enemy in game.targetableEnemies) {
       bool hit = false;
       // Check head
       if ((enemy.position - position).length2 < hitRadius2) {
@@ -112,6 +120,9 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
   @override
   void render(Canvas canvas) {
     if (_trail.length < 2) return;
+
+    final lifeT = (_lifeTime / _maxLife).clamp(0.0, 1.0);
+    final globalAlpha = 1.0 - math.pow(lifeT, 4).toDouble();
 
     // Undo component transform to draw trail in world space
     canvas.save();
@@ -147,7 +158,7 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
         const Color(0xFFFFAB40), // Orange
         const Color(0xFFFF3D00), // Deep Red-Orange
         i / n,
-      )!.withValues(alpha: 0.8 * lifeFactor);
+      )!.withValues(alpha: 0.8 * lifeFactor * globalAlpha);
 
       vertices.add(Offset(p.x + normal.x * width, p.y + normal.y * width));
       vertices.add(Offset(p.x - normal.x * width, p.y - normal.y * width));
@@ -165,7 +176,7 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
 
       // Glow pass
       final glowPaint = Paint()
-        ..color = const Color(0xFFFFD166).withValues(alpha: 0.2)
+        ..color = const Color(0xFFFFD166).withValues(alpha: 0.2 * globalAlpha)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
       
       final glowPath = Path();
@@ -181,11 +192,13 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
     }
 
     // Render head
-    final headPos = _trail.first;
-    final headPaint = Paint()
-      ..color = Colors.white
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    canvas.drawCircle(Offset(headPos.x, headPos.y), 6, headPaint);
+    if (_lifeTime < _maxLife) {
+      final headPos = _trail.first;
+      final headPaint = Paint()
+        ..color = Colors.white.withValues(alpha: globalAlpha)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+      canvas.drawCircle(Offset(headPos.x, headPos.y), 6, headPaint);
+    }
 
     canvas.restore();
   }

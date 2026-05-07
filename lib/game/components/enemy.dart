@@ -441,7 +441,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   }
 
   Iterable<Enemy> _otherAliveEnemies() {
-    return game.aliveEnemies.where((e) => e != this);
+    return game.targetableEnemies.where((e) => e != this);
   }
 
   void _die() {

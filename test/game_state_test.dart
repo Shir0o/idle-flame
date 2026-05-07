@@ -438,6 +438,7 @@ void main() {
     final mid = Enemy(position: Vector2(20, 0), baseMaxHp: 10);
     final outsideRange = Enemy(position: Vector2(40, 0), baseMaxHp: 10);
     game.aliveEnemies = [far, near, mid, outsideRange];
+    game.targetableEnemies = [far, near, mid, outsideRange];
 
     expect(game.selectNearestEnemies(Vector2.zero(), 2), [near, mid]);
     expect(game.selectNearestEnemies(Vector2.zero(), 10, range: 25), [

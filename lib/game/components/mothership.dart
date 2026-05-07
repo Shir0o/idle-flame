@@ -396,7 +396,7 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
       );
     }
 
-    for (final e in game.aliveEnemies) {
+    for (final e in game.targetableEnemies) {
       if ((e.position - position).length2 < blastRadius2) {
         e.takeDamage(
           damage * 2.5,
@@ -424,7 +424,7 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
   void _meleeAoe() {
     const range = 42.0;
     const range2 = range * range;
-    for (final e in game.aliveEnemies) {
+    for (final e in game.targetableEnemies) {
       if ((e.position - position).length2 < range2) {
         e.takeDamage(
           damage * 0.4,

@@ -169,7 +169,7 @@ class SentinelBlade extends PositionComponent
   }
 
   void _findTarget(Vector2 refPos, {bool useNearest = false}) {
-    final enemies = game.aliveEnemies;
+    final enemies = game.targetableEnemies;
     if (enemies.isEmpty) return;
 
     Enemy? best;
@@ -296,7 +296,7 @@ class SentinelBlade extends PositionComponent
     // Aggressive waypoint logic: find the closest enemy that is NOT the target.
     Enemy? waypoint;
     double minWayDist2 = double.infinity;
-    for (final e in game.aliveEnemies) {
+    for (final e in game.targetableEnemies) {
       if (e == t) continue;
       final d2 = (e.position - _dashStart).length2;
       if (d2 < minWayDist2) {
@@ -389,7 +389,7 @@ class SentinelBlade extends PositionComponent
     // happens to lie along the slice path.
     const hitRadius = 16.0;
     const hitRadius2 = hitRadius * hitRadius;
-    for (final e in game.aliveEnemies) {
+    for (final e in game.targetableEnemies) {
       if (_hitThisDash.contains(e)) continue;
       if ((e.position - position).length2 < hitRadius2) {
         _applySliceDamage(motion, e);
@@ -413,7 +413,7 @@ class SentinelBlade extends PositionComponent
   }
 
   void _findTargetDirectional(Vector2 refPos, Vector2 currentDir) {
-    final enemies = game.aliveEnemies;
+    final enemies = game.targetableEnemies;
     if (enemies.isEmpty) {
       _target = null;
       return;
@@ -509,7 +509,7 @@ class SentinelBlade extends PositionComponent
   List<Enemy> _nearestShardTargets(Enemy primary) {
     final selected = <Enemy>[];
     final distances = <double>[];
-    for (final enemy in game.aliveEnemies) {
+    for (final enemy in game.targetableEnemies) {
       if (enemy == primary) continue;
       final distance = (enemy.position - position).length2;
       var insertAt = 0;

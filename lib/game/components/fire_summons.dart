@@ -106,7 +106,7 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
     final hitRadius = type == SummonType.salamander ? 60.0 : 30.0;
     final hitRadiusSq = hitRadius * hitRadius;
 
-    for (final enemy in game.aliveEnemies) {
+    for (final enemy in game.targetableEnemies) {
       if ((enemy.position - position).length2 < hitRadiusSq) {
         enemy.takeDamage(
           damage * dt * (type == SummonType.salamander ? 0.6 : 1.5),
