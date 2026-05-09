@@ -74,7 +74,8 @@ class ZenithZeroGame extends FlameGame {
     world.add(spawner);
 
     _fpsText = FpsTextComponent(
-      position: Vector2(8, 8),
+      position: Vector2(size.x - 8, 8),
+      anchor: Anchor.topRight,
       textRenderer: TextPaint(
         style: const TextStyle(
           color: Color(0xFF80FF80),
@@ -84,6 +85,8 @@ class ZenithZeroGame extends FlameGame {
       ),
     );
     _perfStats = _PerfStatsComponent(this);
+    _perfStats.position = Vector2(size.x - 8, 24);
+    _perfStats.anchor = Anchor.topRight;
     _lastShowPerfOverlay = state.showPerfOverlay;
     if (_lastShowPerfOverlay) {
       camera.viewport.add(_fpsText);
