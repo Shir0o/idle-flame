@@ -30,7 +30,9 @@ VisualLoadTier visualLoadTierForCounts({
 }
 
 class ZenithZeroGame extends FlameGame {
-  ZenithZeroGame({required this.state});
+  ZenithZeroGame({required this.state}) {
+    audio.muted = state.muted;
+  }
 
   final GameState state;
   final GameAudio audio = GameAudio();
