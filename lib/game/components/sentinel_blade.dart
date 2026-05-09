@@ -508,6 +508,35 @@ class SentinelBlade extends PositionComponent
       );
     }
 
+    // Phantom Frost: first hit chills, second shatters
+    if (game.state.phantomFrost && t.isAlive) {
+      t.phantomFrostHitCount++;
+      if (t.phantomFrostHitCount % 2 == 0) {
+        // Shatter
+        t.takeDamage(
+          game.state.sentinelDamage * 3.0,
+          source: position,
+          type: DamageType.nova,
+        );
+        if (game.canSpawnMinorEffect()) {
+          parent?.add(
+            NovaPulseEffect(
+              effectCenter: t.position.clone(),
+              radius: 40,
+              level: 1,
+              color: const Color(0xFF80DEEA),
+            ),
+          );
+        }
+      } else {
+        // Chill
+        t.applyBurn(
+          duration: 2.0,
+          dps: game.state.sentinelDamage * 0.2,
+        ); // Using burn as a placeholder for DOT/Slow
+      }
+    }
+
     _attackTimer = game.state.sentinelAttackCooldown;
     if (game.state.hasSentinelBarrageSynergy) {
       _attackTimer /= (1 + game.state.barrageLevel * 0.06);

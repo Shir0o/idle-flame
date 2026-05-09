@@ -118,6 +118,7 @@ class ZenithZeroGame extends FlameGame {
     }
 
     super.update(scaledDt);
+    state.update(scaledDt);
     if (state.hasPendingLevelUp || state.isRunOver) return;
 
     audio.update(scaledDt);

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,6 +12,57 @@ class MetaState extends ChangeNotifier {
   int lastEmbersEarned = 0;
   final Map<String, int> _upgradeTiers = {};
   final Set<String> _keystones = {};
+  final Set<String> _discoveredIds = {};
+  final Map<SkillArchetype, int> _sutras = {};
+  final Map<SkillPath, bool> _awakenings = {};
+
+  Set<String> get discoveredIds => Set.unmodifiable(_discoveredIds);
+
+  int sutraCount(SkillArchetype archetype) => _sutras[archetype] ?? 0;
+  bool isAwakened(SkillPath path) => _awakenings[path] ?? false;
+
+  void recordDiscovery(String id) {
+    if (!_discoveredIds.contains(id)) {
+      _discoveredIds.add(id);
+      embers += 50; // Bonus for new discovery
+      notifyListeners();
+      _save();
+    }
+  }
+
+  void incrementSutra(SkillArchetype archetype) {
+    final current = sutraCount(archetype);
+    if (current < 25) {
+      _sutras[archetype] = current + 1;
+      notifyListeners();
+      _save();
+    }
+  }
+
+  void awakenPath(SkillPath path) {
+    if (isAwakened(path)) return;
+
+    // Verify all archetypes in path are at Sutra 25
+    bool eligible = true;
+    for (final archetype in SkillArchetype.values) {
+      if (archetype.path == path && sutraCount(archetype) < 25) {
+        eligible = false;
+        break;
+      }
+    }
+
+    if (eligible) {
+      _awakenings[path] = true;
+      // Reset Sutras for this path
+      for (final archetype in SkillArchetype.values) {
+        if (archetype.path == path) {
+          _sutras[archetype] = 0;
+        }
+      }
+      notifyListeners();
+      _save();
+    }
+  }
 
   int upgradeTier(String id) => _upgradeTiers[id] ?? 0;
   bool hasKeystone(String id) => _keystones.contains(id);
@@ -116,6 +169,15 @@ class MetaState extends ChangeNotifier {
     _keystones
       ..clear()
       ..addAll(prefs.getStringList(_kKeystones) ?? const []);
+    _discoveredIds
+      ..clear()
+      ..addAll(prefs.getStringList(_kDiscovered) ?? const []);
+    _sutras
+      ..clear()
+      ..addAll(_decodeSutras(prefs.getStringList(_kSutras)));
+    _awakenings
+      ..clear()
+      ..addAll(_decodeAwakenings(prefs.getStringList(_kAwakenings)));
     notifyListeners();
   }
 
@@ -131,6 +193,15 @@ class MetaState extends ChangeNotifier {
           .toList(),
     );
     await prefs.setStringList(_kKeystones, _keystones.toList());
+    await prefs.setStringList(_kDiscovered, _discoveredIds.toList());
+    await prefs.setStringList(
+      _kSutras,
+      _sutras.entries.map((e) => '${e.key.name}:${e.value}').toList(),
+    );
+    await prefs.setStringList(
+      _kAwakenings,
+      _awakenings.entries.where((e) => e.value).map((e) => e.key.name).toList(),
+    );
   }
 
   Future<void> wipe() async {
@@ -138,11 +209,40 @@ class MetaState extends ChangeNotifier {
     lastEmbersEarned = 0;
     _upgradeTiers.clear();
     _keystones.clear();
+    _discoveredIds.clear();
+    _sutras.clear();
+    _awakenings.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kEmbers);
     await prefs.remove(_kUpgrades);
     await prefs.remove(_kKeystones);
+    await prefs.remove(_kDiscovered);
+    await prefs.remove(_kSutras);
+    await prefs.remove(_kAwakenings);
     notifyListeners();
+  }
+
+  Map<SkillArchetype, int> _decodeSutras(List<String>? encoded) {
+    final map = <SkillArchetype, int>{};
+    for (final item in encoded ?? const <String>[]) {
+      final i = item.lastIndexOf(':');
+      if (i <= 0) continue;
+      final name = item.substring(0, i);
+      final count = int.tryParse(item.substring(i + 1));
+      if (count == null) continue;
+      final archetype = SkillArchetype.values.firstWhereOrNull((a) => a.name == name);
+      if (archetype != null) map[archetype] = count;
+    }
+    return map;
+  }
+
+  Map<SkillPath, bool> _decodeAwakenings(List<String>? encoded) {
+    final map = <SkillPath, bool>{};
+    for (final name in encoded ?? const <String>[]) {
+      final path = SkillPath.values.firstWhereOrNull((p) => p.name == name);
+      if (path != null) map[path] = true;
+    }
+    return map;
   }
 
   Map<String, int> _decode(List<String>? encoded) {
@@ -162,4 +262,7 @@ class MetaState extends ChangeNotifier {
   static const _kLifetimeEmbers = 'meta_lifetime_embers';
   static const _kUpgrades = 'meta_upgrades';
   static const _kKeystones = 'meta_keystones';
+  static const _kDiscovered = 'meta_discovered';
+  static const _kSutras = 'meta_sutras';
+  static const _kAwakenings = 'meta_awakenings';
 }

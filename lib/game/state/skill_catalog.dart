@@ -1,5 +1,39 @@
 import 'package:flutter/material.dart';
 
+enum SkillPath {
+  edge,
+  daemon,
+  hex,
+}
+
+enum PathTier { none, initiate, adept, master, apex }
+
+extension PathTierExt on PathTier {
+  String get label => name.toUpperCase();
+
+  int get requiredLevels {
+    return switch (this) {
+      PathTier.none => 0,
+      PathTier.initiate => 3,
+      PathTier.adept => 7,
+      PathTier.master => 12,
+      PathTier.apex => 18,
+    };
+  }
+}
+
+extension SkillPathExt on SkillPath {
+  String get label => name.toUpperCase();
+
+  Color get color {
+    return switch (this) {
+      SkillPath.edge => const Color(0xFFE0F7FA), // Chrome white-cyan
+      SkillPath.daemon => const Color(0xFFE040FB), // Magenta-violet
+      SkillPath.hex => const Color(0xFFFFD700), // Gold-violet (Primary: Gold)
+    };
+  }
+}
+
 enum SkillArchetype {
   chain,
   nova,
@@ -17,6 +51,26 @@ enum SkillArchetype {
 }
 
 extension SkillArchetypeExt on SkillArchetype {
+  SkillPath get path {
+    return switch (this) {
+      SkillArchetype.chain ||
+      SkillArchetype.barrage ||
+      SkillArchetype.sentinel ||
+      SkillArchetype.focus ||
+      SkillArchetype.rupture =>
+        SkillPath.edge,
+      SkillArchetype.mothership ||
+      SkillArchetype.firewall ||
+      SkillArchetype.meteor ||
+      SkillArchetype.bounty =>
+        SkillPath.daemon,
+      SkillArchetype.nova ||
+      SkillArchetype.frost ||
+      SkillArchetype.snake ||
+      SkillArchetype.summon =>
+        SkillPath.hex,
+    };
+  }
   IconData get icon {
     return switch (this) {
       SkillArchetype.chain => Icons.call_split,
@@ -216,6 +270,122 @@ class SkillEvolution {
   final String name;
   final String description;
 }
+
+class FusionDefinition {
+  const FusionDefinition({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.paths,
+  });
+
+  final String id;
+  final String name;
+  final String description;
+  final Set<SkillPath> paths;
+}
+
+final List<FusionDefinition> fusionCatalog = [
+  // EDGE x DAEMON: Cyber-Saber
+  const FusionDefinition(
+    id: 'monowire_cascade',
+    name: 'Monowire Cascade',
+    description: 'Chain hops shred drone armor — chains gain +1 jump per active mothership drone.',
+    paths: {SkillPath.edge, SkillPath.daemon},
+  ),
+  const FusionDefinition(
+    id: 'chrome_iaido',
+    name: 'Chrome Iaido',
+    description: 'Barrage attack rate scales with current drone count.',
+    paths: {SkillPath.edge, SkillPath.daemon},
+  ),
+  const FusionDefinition(
+    id: 'killcode_edge',
+    name: 'Killcode Edge',
+    description: 'Rupture executes inscribe binary — next blade strike crits and refunds 1 mana.',
+    paths: {SkillPath.edge, SkillPath.daemon},
+  ),
+
+  // EDGE x HEX: Runeblade
+  const FusionDefinition(
+    id: 'glyphblade_cant',
+    name: 'Glyphblade Cant',
+    description: 'Each chain hop inscribes a sigil node; closing the loop triggers a small nova.',
+    paths: {SkillPath.edge, SkillPath.hex},
+  ),
+  const FusionDefinition(
+    id: 'phantom_frost',
+    name: 'Phantom Frost',
+    description: 'Sentinel blades carry a frost charge — first hit chills, second shatters.',
+    paths: {SkillPath.edge, SkillPath.hex},
+  ),
+  const FusionDefinition(
+    id: 'hexcut_mantra',
+    name: 'Hexcut Mantra',
+    description: 'Every 3rd barrage hit applies a Snake-burn DOT for 3s.',
+    paths: {SkillPath.edge, SkillPath.hex},
+  ),
+
+  // DAEMON x HEX: Magitech
+  const FusionDefinition(
+    id: 'sigil_reactor',
+    name: 'Sigil Reactor',
+    description: 'Firewall lanes double Nova radius for any pulse cast inside them.',
+    paths: {SkillPath.daemon, SkillPath.hex},
+  ),
+  const FusionDefinition(
+    id: 'hexnet_drones',
+    name: 'Hexnet Drones',
+    description: 'Mothership drones inherit your active Summon spirit\'s aura.',
+    paths: {SkillPath.daemon, SkillPath.hex},
+  ),
+  const FusionDefinition(
+    id: 'bountysoul_ledger',
+    name: 'Bountysoul Ledger',
+    description: 'Frost kills inscribe gold sigils — stepping on one doubles gold for 3s.',
+    paths: {SkillPath.daemon, SkillPath.hex},
+  ),
+];
+
+class CantDefinition {
+  const CantDefinition({
+    required this.id,
+    required this.name,
+    required this.description,
+  });
+
+  final String id;
+  final String name;
+  final String description;
+}
+
+final List<CantDefinition> hereticCantCatalog = [
+  const CantDefinition(
+    id: 'bloodprice',
+    name: 'Bloodprice',
+    description: 'Stats: +50% Enemy Damage, +50% Gold Drop.',
+  ),
+  const CantDefinition(
+    id: 'devotion',
+    name: 'Devotion',
+    description: 'Picks restricted to one path, but Tier-up twice as fast.',
+  ),
+  const CantDefinition(
+    id: 'diaspora',
+    name: 'Diaspora',
+    description: 'Picks must rotate paths; weight bonus to unowned archetypes.',
+  ),
+  const CantDefinition(
+    id: 'greedglyph',
+    name: 'Greedglyph',
+    description: 'Skip this reward, double the next two floors.',
+  ),
+  const CantDefinition(
+    id: 'heretic_bargain',
+    name: 'Heretic\'s Bargain',
+    description: 'Lose 20% Nexus HP now; gain a Fusion offer at next level-up.',
+  ),
+];
 
 final Map<SkillArchetype, (SkillEvolution, SkillEvolution)> evolutionCatalog = {
   SkillArchetype.chain: (

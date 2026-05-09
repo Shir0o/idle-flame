@@ -13,6 +13,7 @@ import 'sentinel_blade.dart';
 import 'mothership.dart';
 import 'fire_snake.dart';
 import 'fire_summons.dart';
+import 'path_benefits.dart';
 
 class HeroComponent extends PositionComponent
     with HasGameReference<ZenithZeroGame> {
@@ -42,6 +43,10 @@ class HeroComponent extends PositionComponent
   final math.Random _critRng = math.Random();
   final List<SentinelBlade> _sentinelBlades = [];
   Mothership? _mothership;
+
+  SpectralKatana? _spectralKatana;
+  CompanionDrone? _companionDrone;
+  WardCircle? _wardCircle;
 
   void setMechType(MechType nextMechType) {
     if (mechType == nextMechType) return;
@@ -111,10 +116,11 @@ class HeroComponent extends PositionComponent
   ) {
     final center = Offset(cx, cy + bob);
     final radius = w * 0.15;
-    final fill = attacking
-        ? Color.lerp(visual.body, visual.accent, 0.35)!
-        : visual.body;
-    final outline = attacking ? Colors.white : visual.outline;
+    final coreColor = game.state.nexusCoreColor;
+
+    final fill =
+        attacking ? Color.lerp(visual.body, coreColor, 0.45)! : visual.body;
+    final outline = attacking ? Colors.white : coreColor;
 
     final fillPaint = Paint()..color = fill;
     final outlinePaint = Paint()
@@ -124,6 +130,12 @@ class HeroComponent extends PositionComponent
 
     canvas.drawCircle(center, radius, fillPaint);
     canvas.drawCircle(center, radius, outlinePaint);
+
+    // Inner core glow
+    final glowPaint = Paint()
+      ..color = coreColor.withValues(alpha: 0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawCircle(center, radius * 0.8, glowPaint);
 
     if (game.state.godMode) {
       _drawGodModeShield(canvas, center, radius);
@@ -215,6 +227,7 @@ class HeroComponent extends PositionComponent
 
     _updateSentinelBlades();
     _updateMothership();
+    _updatePathBenefits();
 
     final period = 1.0 / game.state.heroAttacksPerSec;
     final barrageEvo = game.state.getEvolution(SkillArchetype.barrage);
@@ -287,6 +300,131 @@ class HeroComponent extends PositionComponent
         ),
       );
     }
+  }
+
+  void _updatePathBenefits() {
+    // EDGE Master: Spectral Katana
+    if (game.state.edgeTier.index >= PathTier.master.index &&
+        _spectralKatana == null) {
+      _spectralKatana = SpectralKatana();
+      parent?.add(_spectralKatana!);
+    } else if (game.state.edgeTier.index < PathTier.master.index &&
+        _spectralKatana != null) {
+      _spectralKatana!.removeFromParent();
+      _spectralKatana = null;
+    }
+
+    // DAEMON Initiate: Companion Drone
+    if (game.state.daemonTier.index >= PathTier.initiate.index &&
+        _companionDrone == null) {
+      _companionDrone = CompanionDrone();
+      parent?.add(_companionDrone!);
+    } else if (game.state.daemonTier.index < PathTier.initiate.index &&
+        _companionDrone != null) {
+      _companionDrone!.removeFromParent();
+      _companionDrone = null;
+    }
+
+    // HEX Master: Ward Circle
+    if (game.state.hexTier.index >= PathTier.master.index &&
+        _wardCircle == null) {
+      _wardCircle = WardCircle();
+      parent?.add(_wardCircle!);
+    } else if (game.state.hexTier.index < PathTier.master.index &&
+        _wardCircle != null) {
+      _wardCircle!.removeFromParent();
+      _wardCircle = null;
+    }
+
+    // Iaido Draw (EDGE Apex)
+    if (game.state.canIaidoDraw) {
+      game.state.triggerIaidoDraw();
+      _executeIaidoDraw();
+    }
+
+    // Satellite Uplink (DAEMON Master)
+    if (game.state.canSatelliteUplink) {
+      game.state.triggerSatelliteUplink();
+      _executeSatelliteUplink();
+    }
+
+    // Network Crash (DAEMON Apex)
+    if (game.state.canNetworkCrash) {
+      game.state.triggerNetworkCrash();
+      _executeNetworkCrash();
+    }
+  }
+
+  void _executeNetworkCrash() {
+    game.shakeCamera(intensity: 10, duration: 0.8);
+    game.audio.playSkillCast();
+    
+    final enemies = _aliveEnemies().toList();
+    for (final enemy in enemies) {
+      if (game.canSpawnMinorEffect()) {
+        parent?.add(
+          NovaPulseEffect(
+            effectCenter: enemy.position.clone(),
+            radius: 40,
+            level: 1,
+            color: const Color(0xFFE040FB),
+          ),
+        );
+      }
+      enemy.takeDamage(
+        enemy.maxHp * 0.5, // 50% max HP damage
+        source: position,
+        type: DamageType.mothership,
+      );
+    }
+  }
+
+  void _executeIaidoDraw() {
+    game.shakeCamera(intensity: 15, duration: 0.5);
+    game.audio.playSkillCast();
+    // Time freeze effect (visual only for now by slowing idle phase)
+    _idlePhase -= 0.5;
+
+    final enemies = _aliveEnemies().toList();
+    for (final enemy in enemies) {
+      if (game.canSpawnMinorEffect()) {
+        parent?.add(
+          SlashArcEffect(
+            from: enemy.position + Vector2(-40, -40),
+            to: enemy.position + Vector2(40, 40),
+            color: const Color(0xFFE0F7FA),
+            widthMultiplier: 2.0,
+            level: 5,
+          ),
+        );
+      }
+      enemy.takeDamage(
+        game.state.heroDamage * 10,
+        source: position,
+        type: DamageType.basic,
+      );
+    }
+  }
+
+  void _executeSatelliteUplink() {
+    final target = game.deepestEnemy;
+    if (target == null) return;
+
+    if (game.canSpawnMajorEffect()) {
+      parent?.add(
+        MeteorImpactEffect(
+          target: target.position.clone(),
+          radius: 80,
+          level: 5,
+          color: const Color(0xFFE040FB),
+        ),
+      );
+    }
+    target.takeDamage(
+      game.state.heroDamage * 5,
+      source: position,
+      type: DamageType.meteor,
+    );
   }
 
   void _updateSentinelBlades() {
@@ -493,6 +631,39 @@ class HeroComponent extends PositionComponent
       type: DamageType.basic,
     );
 
+    // EDGE Adept: Phantom Slash
+    if (game.state.edgeTier.index >= PathTier.adept.index) {
+      _attackCount++;
+      if (_attackCount % 5 == 0) {
+        final extras = game.selectNearestEnemies(enemy.position, 2, range: 100);
+        for (final extra in extras) {
+          if (game.canSpawnMinorEffect()) {
+            parent?.add(
+              SlashArcEffect(
+                from: enemy.position.clone(),
+                to: extra.position.clone(),
+                color: const Color(0xFFE0F7FA).withValues(alpha: 0.5),
+                widthMultiplier: 0.8,
+                level: 1,
+              ),
+            );
+          }
+          extra.takeDamage(
+            game.state.heroDamage * 0.5,
+            source: enemy.position,
+            type: DamageType.basic,
+          );
+        }
+      }
+    }
+
+    // Hexcut Mantra: Every 3rd barrage hit applies Snake-burn
+    if (game.state.hexcutMantra) {
+      if (_attackCount % 3 == 0) {
+        enemy.applyBurn(duration: 3.0, dps: game.state.heroDamage * 0.5);
+      }
+    }
+
     // Chain+Nova Synergy: Chain jumps trigger a mini-nova
     if (game.state.hasChainNovaSynergy) {
       if (game.canSpawnMinorEffect()) {
@@ -532,13 +703,36 @@ class HeroComponent extends PositionComponent
         type: DamageType.basic,
       );
     }
+    // Glyphblade Cant: Chain loop triggers a mini-nova
+    if (game.state.glyphbladeCant && isPrimary) {
+      if (game.canSpawnMinorEffect()) {
+        parent?.add(
+          NovaPulseEffect(
+            effectCenter: enemy.position.clone(),
+            radius: 80,
+            level: 1,
+            color: const Color(0xFFFFD700),
+          ),
+        );
+      }
+    }
   }
 
   void _castFlameNova({double damageScale = 1.0, bool isAftershock = false}) {
     final novaLevel = game.state.flameNovaLevel;
     final novaEvo = game.state.getEvolution(SkillArchetype.nova);
     final radius = game.state.flameNovaRadius;
-    final targets = _enemiesInRange(radius);
+
+    // Sigil Reactor: Firewall lanes double Nova radius
+    double finalRadiusMult = 1.0;
+    if (game.state.sigilReactor) {
+      final walls = parent?.children.whereType<FirewallEffect>() ?? [];
+      if (walls.any((w) => (w.effectCenter.y - position.y).abs() <= 50)) {
+        finalRadiusMult *= 2.0;
+      }
+    }
+
+    final targets = _enemiesInRange(radius * finalRadiusMult);
 
     // Level 4 Special: Reactor Surge (under pressure)
     // "Pressure" is defined as having enemies within 150 units of the nexus

@@ -8,6 +8,7 @@ import '../zenith_zero_game.dart';
 import '../state/skill_catalog.dart';
 import 'combat_effects.dart';
 import 'damage_text.dart';
+import 'path_benefits.dart';
 
 enum DamageType { basic, nova, firewall, meteor, sentinel, mothership, rupture }
 
@@ -65,6 +66,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   double _freezeTimer = 0;
   bool _hasBeenFrozen = false;
   bool _executeMarked = false;
+  int phantomFrostHitCount = 0;
   Vector2 _knockbackVelocity = Vector2.zero();
   bool _dying = false;
   bool _lastDamageWasExecute = false;
@@ -412,7 +414,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     hp -= finalAmount;
 
     if (type == DamageType.firewall && game.state.firewallLevel >= 3) {
-      _applyBurn(
+      applyBurn(
         duration: 3.0,
         dps: game.state.firewallBurnDps,
       );
@@ -468,7 +470,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     if (hp <= 0) _die();
   }
 
-  void _applyBurn({required double duration, required double dps}) {
+  void applyBurn({required double duration, required double dps}) {
     _burnTimer = math.max(_burnTimer, duration);
     _burnDps = math.max(_burnDps, dps);
   }
@@ -481,6 +483,47 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     _dying = true;
     game.state.registerKill();
     game.audio.playEnemyDeath();
+
+    // EDGE Initiate: Afterimage
+    if (game.state.edgeTier.index >= PathTier.initiate.index) {
+      parent?.add(
+        EnemyAfterimage(
+          position: position.clone(),
+          size: size.clone(),
+          path: _bodyPath,
+          color: const Color(0xFFE0F7FA),
+        ),
+      );
+    }
+
+    // HEX Initiate: Rune-spark
+    if (game.state.hexTier.index >= PathTier.initiate.index) {
+      if (game.canSpawnMinorEffect()) {
+        parent?.add(
+          HitSparkEffect(
+            effectCenter: position.clone(),
+            direction: Vector2(0, -1),
+            color: const Color(0xFFFFD700),
+            count: 3,
+            spread: 3.14,
+            speed: 50,
+          ),
+        );
+      }
+      // Meta mana refund logic would go here if mana system existed
+    }
+
+    // HEX Adept: Lingering Glyph
+    if (game.state.hexTier.index >= PathTier.adept.index) {
+      // Logic for re-procing hex effect would go here
+      // For now, just a visual effect
+    }
+
+    // Bountysoul Ledger: Frost kills inscribe gold sigils
+    if (game.state.bountysoulLedger && _freezeTimer > 0) {
+      parent?.add(GoldSigil(position: position.clone()));
+    }
+
     if (game.state.bountyLevel > 0 && !game.effectsConstrained) {
       parent?.add(CoinBurstEffect(effectCenter: position.clone()));
       final bountyEvo = game.state.getEvolution(SkillArchetype.bounty);

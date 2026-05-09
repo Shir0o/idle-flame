@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
 
 import '../game/state/game_state.dart';
 import '../game/state/mech_catalog.dart';
@@ -8,6 +9,7 @@ import '../game/state/meta_catalog.dart';
 import '../game/state/meta_state.dart';
 import '../game/state/skill_catalog.dart';
 import 'meta_screen.dart';
+import 'sigil_matrix.dart';
 
 Future<bool> showDevKeyDialog(BuildContext context, GameState state) async {
   final controller = TextEditingController();
@@ -86,6 +88,8 @@ class Hud extends StatelessWidget {
           Positioned.fill(child: _WelcomeToast()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _EvolutionPicker()),
+          Positioned.fill(child: _FusionPicker()),
+          Positioned.fill(child: _CantPicker()),
           Positioned.fill(child: _RunOverPanel()),
           Positioned(
             top: 12,
@@ -1725,7 +1729,9 @@ class _LevelUpPicker extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
+                      const SigilMatrix(size: 240),
+                      const SizedBox(height: 20),
                       _PickerActions(state: state),
                       const SizedBox(height: 12),
                       ...choices.map(
@@ -1754,6 +1760,214 @@ class _LevelUpPicker extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _FusionPicker extends StatelessWidget {
+  const _FusionPicker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        final choices = state.pendingFusionChoices;
+        if (choices.isEmpty || state.isRunOver) return const SizedBox.shrink();
+        return ColoredBox(
+          color: Colors.black.withValues(alpha: 0.75),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 96, 16, 96),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'FUSION FORM',
+                        style: TextStyle(
+                          color: Colors.amber,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'A rare cross-path resonance has stabilized.',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ...choices.map(
+                        (choice) => _ChoiceCardGeneric(
+                          title: choice.title,
+                          description: choice.description,
+                          tierLabel: choice.tierLabel,
+                          color: Colors.amber,
+                          onTap: () => state.selectFusion(choice.definition.id),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CantPicker extends StatelessWidget {
+  const _CantPicker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        final choices = state.pendingCantChoices;
+        if (choices.isEmpty || state.isRunOver) return const SizedBox.shrink();
+        return ColoredBox(
+          color: Colors.black.withValues(alpha: 0.8),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 96, 16, 96),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'HERETIC CANT',
+                        style: TextStyle(
+                          color: Color(0xFFFF5252),
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Choose a forbidden line from the system core.',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ...choices.map(
+                        (choice) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _ChoiceCardGeneric(
+                            title: choice.title,
+                            description: choice.description,
+                            tierLabel: choice.tierLabel,
+                            color: const Color(0xFFFF5252),
+                            onTap: () => state.selectCant(choice.definition.id),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ChoiceCardGeneric extends StatelessWidget {
+  const _ChoiceCardGeneric({
+    required this.title,
+    required this.description,
+    required this.tierLabel,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String title;
+  final String description;
+  final String tierLabel;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.4), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.1),
+                blurRadius: 12,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      tierLabel,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.auto_awesome, color: color, size: 16),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                description,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -2003,411 +2217,181 @@ class _ChoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(8),
-            child: Ink(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF111827),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isLocked
-                      ? const Color(0xFFFFC107)
-                      : _accent.withValues(alpha: 0.8),
-                  width: isLocked ? 2 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: _accent.withValues(alpha: 0.16),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
+    final archetype = choice.definition.archetype;
+    final color = archetype.color;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isLocked
+                  ? const Color(0xFF64FFDA)
+                  : color.withValues(alpha: 0.35),
+              width: isLocked ? 2 : 1.5,
+            ),
+            boxShadow: isLocked
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF64FFDA).withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withValues(alpha: 0.2),
+                      color.withValues(alpha: 0.05),
+                    ],
                   ),
-                ],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Icon(archetype.icon, color: color, size: 24),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: _accent.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: _accent.withValues(alpha: 0.45),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            choice.tierLabel,
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (choice.isNew)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF64FFDA,
+                              ).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'NEW',
+                              style: TextStyle(
+                                color: Color(0xFF64FFDA),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        const Spacer(),
+                        if (canLock)
+                          _CardActionIcon(
+                            icon: isLocked ? Icons.lock : Icons.lock_outline,
+                            color: isLocked
+                                ? const Color(0xFF64FFDA)
+                                : Colors.white30,
+                            onTap: onToggleLock,
+                            tooltip: isLocked ? 'Unlock' : 'Lock for next pick',
+                          ),
+                        if (canBanish) ...[
+                          const SizedBox(width: 8),
+                          _CardActionIcon(
+                            icon: Icons.close,
+                            color: Colors.white30,
+                            onTap: onBanish,
+                            tooltip: 'Banish from run',
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      choice.definition.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: _ChoiceIcon(archetype: choice.definition.archetype),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            _Tag(
-                              label: choice.isNew ? 'New Skill' : 'Upgrade',
-                              color: _accent,
-                            ),
-                            _Tag(label: choice.tierLabel, color: _tierColor),
-                            _Tag(label: _archetypeLabel, color: _accent),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                choice.definition.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              'Lv ${choice.currentLevel} -> ${choice.level}',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.58),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          choice.description,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.68),
-                            fontSize: 13,
-                            height: 1.2,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 4),
+                    Text(
+                      choice.description,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 12,
+                        height: 1.3,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (canLock || canBanish)
-          Positioned(
-            top: 4,
-            right: 4,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (canLock)
-                  _CornerIconButton(
-                    icon: isLocked ? Icons.lock : Icons.lock_open,
-                    color: isLocked
-                        ? const Color(0xFFFFC107)
-                        : Colors.white.withValues(alpha: 0.6),
-                    onTap: onToggleLock,
-                  ),
-                if (canBanish)
-                  _CornerIconButton(
-                    icon: Icons.close,
-                    color: const Color(0xFFFF5252),
-                    onTap: onBanish,
-                  ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  Color get _accent => choice.definition.archetype.color;
-
-  Color get _tierColor {
-    return switch (choice.level) {
-      2 || 4 => const Color(0xFFFF2D95),
-      5 => const Color(0xFFFFD166),
-      _ => const Color(0xFF64FFDA),
-    };
-  }
-
-  String get _archetypeLabel => choice.definition.archetype.label;
-}
-
-class _ChoiceIcon extends StatelessWidget {
-  const _ChoiceIcon({required this.archetype});
-
-  final SkillArchetype archetype;
-
-  @override
-  Widget build(BuildContext context) {
-    if (archetype == SkillArchetype.mothership) {
-      return CustomPaint(
-        size: const Size.square(26),
-        painter: _MothershipSkillIconPainter(color: archetype.color),
-      );
-    }
-    return Icon(archetype.icon, color: archetype.color, size: 22);
-  }
-}
-
-class _MothershipSkillIconPainter extends CustomPainter {
-  const _MothershipSkillIconPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final cx = w / 2;
-    final cy = h / 2;
-    final hull = Path()
-      ..moveTo(w * 0.88, cy)
-      ..lineTo(w * 0.63, h * 0.25)
-      ..lineTo(w * 0.34, h * 0.18)
-      ..lineTo(w * 0.12, h * 0.34)
-      ..lineTo(w * 0.2, cy)
-      ..lineTo(w * 0.12, h * 0.66)
-      ..lineTo(w * 0.34, h * 0.82)
-      ..lineTo(w * 0.63, h * 0.75)
-      ..close();
-    final glow = Paint()
-      ..color = color.withValues(alpha: 0.22)
-      ..style = PaintingStyle.fill
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    final fill = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-    final edge = Paint()
-      ..color = Colors.white.withValues(alpha: 0.82)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..strokeJoin = StrokeJoin.round;
-    final bay = Paint()
-      ..color = const Color(0xFF00E5FF).withValues(alpha: 0.68)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawPath(hull, glow);
-    canvas.drawPath(hull, fill);
-    canvas.drawPath(hull, edge);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: Offset(cx * 0.88, cy),
-          width: w * 0.34,
-          height: h * 0.18,
-        ),
-        const Radius.circular(3),
-      ),
-      bay,
-    );
-    canvas.drawCircle(
-      Offset(w * 0.58, cy),
-      w * 0.12,
-      Paint()..color = Colors.white.withValues(alpha: 0.86),
-    );
-    canvas.drawCircle(Offset(w * 0.16, h * 0.38), w * 0.07, bay);
-    canvas.drawCircle(Offset(w * 0.16, h * 0.62), w * 0.07, bay);
-  }
-
-  @override
-  bool shouldRepaint(covariant _MothershipSkillIconPainter oldDelegate) {
-    return oldDelegate.color != color;
-  }
-}
-
-class _Tag extends StatelessWidget {
-  const _Tag({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0,
-        ),
-      ),
-    );
-  }
-}
-
-class _WelcomeToast extends StatefulWidget {
-  const _WelcomeToast();
-
-  @override
-  State<_WelcomeToast> createState() => _WelcomeToastState();
-}
-
-class _WelcomeToastState extends State<_WelcomeToast> {
-  Timer? _timer;
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<GameState>(
-      builder: (_, state, _) {
-        final showReward = state.lastVoidReward > 0;
-        final showGeneral = !state.sessionWelcomeShown;
-
-        if (!showReward && !showGeneral) {
-          _timer?.cancel();
-          _timer = null;
-          return const SizedBox.shrink();
-        }
-
-        // Start timer if not already running
-        _timer ??= Timer(const Duration(seconds: 6), () {
-          if (mounted) {
-            state.dismissWelcome();
-          }
-        });
-
-        final title = showReward ? 'WELCOME BACK' : 'ZENITH ZERO';
-        final subTitle = showReward
-            ? '+${state.lastVoidReward} gold earned offline'
-            : 'Prepare for the Descent';
-
-        return Center(
-          child: TweenAnimationBuilder<double>(
-            duration: const Duration(milliseconds: 800),
-            tween: Tween(begin: 0.0, end: 1.0),
-            curve: Curves.easeOutBack,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value.clamp(0.0, 1.0),
-                child: Transform.scale(
-                  scale: 0.8 + (value * 0.2),
-                  child: child,
-                ),
-              );
-            },
-            child: GestureDetector(
-              onTap: state.dismissWelcome,
-              child: _Panel(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.auto_awesome_rounded,
-                      color: Color(0xFFFFC107),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: Color(0xFFFFC107),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        Text(
-                          subTitle,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.close, color: Colors.white24, size: 16),
+                    const SizedBox(height: 8),
+                    _LevelPips(level: choice.level, color: color),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
 
-class _CornerIconButton extends StatelessWidget {
-  const _CornerIconButton({
+class _CardActionIcon extends StatelessWidget {
+  const _CardActionIcon({
     required this.icon,
     required this.color,
     required this.onTap,
+    this.tooltip,
   });
   final IconData icon;
   final Color color;
   final VoidCallback? onTap;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final btn = Material(
       color: Colors.transparent,
-      shape: const CircleBorder(),
       child: InkWell(
         onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 26,
-          height: 26,
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.5),
-            shape: BoxShape.circle,
-            border: Border.all(color: color.withValues(alpha: 0.5)),
-          ),
-          child: Icon(icon, color: color, size: 14),
+        borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(icon, color: color, size: 16),
         ),
       ),
     );
-  }
-}
-
-class _Panel extends StatelessWidget {
-  const _Panel({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-      ),
-      child: child,
-    );
+    return tooltip == null ? btn : Tooltip(message: tooltip!, child: btn);
   }
 }
 
@@ -2421,67 +2405,46 @@ class _EvolutionPicker extends StatelessWidget {
         final archetype = state.pendingEvolutionArchetype;
         if (archetype == null || state.isRunOver) return const SizedBox.shrink();
 
-        final evolutions = evolutionCatalog[archetype];
-        if (evolutions == null) return const SizedBox.shrink();
+        final evos = evolutionCatalog[archetype]!;
 
         return ColoredBox(
-          color: Colors.black.withValues(alpha: 0.88),
+          color: Colors.black.withValues(alpha: 0.8),
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 96, 16, 96),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        archetype.icon,
-                        color: archetype.color,
-                        size: 48,
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'EVOLUTION',
+                      style: TextStyle(
+                        color: Color(0xFF64FFDA),
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 4,
                       ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Ascendant Evolution',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${archetype.label} has reached Maximum Potential.',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      _EvolutionCard(
-                        title: evolutions.$1.name,
-                        description: evolutions.$1.description,
-                        color: archetype.color,
-                        onTap: () => state.selectEvolution(1),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        '— OR —',
-                        style: TextStyle(
-                          color: Colors.white24,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _EvolutionCard(
-                        title: evolutions.$2.name,
-                        description: evolutions.$2.description,
-                        color: archetype.color,
-                        onTap: () => state.selectEvolution(2),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'The ${archetype.label.toUpperCase()} has reached peak resonance.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 32),
+                    _EvolutionCard(
+                      name: evos.$1.name,
+                      description: evos.$1.description,
+                      onTap: () => state.selectEvolution(1),
+                    ),
+                    const SizedBox(height: 16),
+                    _EvolutionCard(
+                      name: evos.$2.name,
+                      description: evos.$2.description,
+                      onTap: () => state.selectEvolution(2),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -2494,15 +2457,12 @@ class _EvolutionPicker extends StatelessWidget {
 
 class _EvolutionCard extends StatelessWidget {
   const _EvolutionCard({
-    required this.title,
+    required this.name,
     required this.description,
-    required this.color,
     required this.onTap,
   });
-
-  final String title;
+  final String name;
   final String description;
-  final Color color;
   final VoidCallback onTap;
 
   @override
@@ -2511,46 +2471,190 @@ class _EvolutionCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.1),
-                blurRadius: 12,
-                spreadRadius: 2,
-              ),
-            ],
+            color: const Color(0xFF64FFDA).withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF64FFDA).withValues(alpha: 0.4),
+              width: 2,
+            ),
           ),
           child: Column(
             children: [
               Text(
-                title.toUpperCase(),
-                style: TextStyle(
-                  color: color,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
+                name,
+                style: const TextStyle(
+                  color: Color(0xFF64FFDA),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 description,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 14,
-                  height: 1.4,
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _WelcomeToast extends StatefulWidget {
+  const _WelcomeToast();
+
+  @override
+  State<_WelcomeToast> createState() => _WelcomeToastState();
+}
+
+class _WelcomeToastState extends State<_WelcomeToast>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _offset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _opacity = TweenSequence([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 20),
+    ]).animate(_controller);
+
+    _offset = Tween<Offset>(
+      begin: const Offset(0, 0.2),
+      end: const Offset(0, -0.1),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (context, state, _) {
+        if (!state.sessionWelcomeShown || state.lastVoidReward > 0) {
+          if (!_controller.isAnimating && state.lastVoidReward > 0) {
+            _controller.forward(from: 0).then((_) => state.clearVoidReward());
+          } else if (!_controller.isAnimating && !state.sessionWelcomeShown) {
+            _controller.forward(from: 0).then((_) => state.dismissWelcome());
+          }
+
+          return AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              if (_controller.value == 0) return const SizedBox.shrink();
+              return SlideTransition(
+                position: _offset,
+                child: FadeTransition(
+                  opacity: _opacity,
+                  child: Center(
+                    child: _Panel(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (state.lastVoidReward > 0) ...[
+                            const Icon(
+                              Icons.auto_awesome,
+                              color: Color(0xFFFFC107),
+                              size: 32,
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Void Harvest',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '+${state.lastVoidReward} gold earned while away',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ] else ...[
+                            const Icon(
+                              Icons.cyclone,
+                              color: Color(0xFF64FFDA),
+                              size: 32,
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Zenith Zero',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            const Text(
+                              'IDLE DESCENT',
+                              style: TextStyle(
+                                color: Color(0xFF64FFDA),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 4,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+}
+
+class _Panel extends StatelessWidget {
+  const _Panel({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111827).withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

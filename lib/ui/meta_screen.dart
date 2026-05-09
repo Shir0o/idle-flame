@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
 
 import '../game/state/game_state.dart';
 import '../game/state/meta_catalog.dart';
@@ -49,8 +50,10 @@ class _MetaShopScreenState extends State<MetaShopScreen> {
                         const SizedBox(height: 12),
                         if (_tab == 0)
                           _BoonsList(meta: meta)
+                        else if (_tab == 1)
+                          _KeystonesList(meta: meta)
                         else
-                          _KeystonesList(meta: meta),
+                          _CodexList(meta: meta),
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
@@ -187,6 +190,8 @@ class _TabBar extends StatelessWidget {
         Expanded(child: _tab('Boons', 0)),
         const SizedBox(width: 8),
         Expanded(child: _tab('Keystones', 1)),
+        const SizedBox(width: 8),
+        Expanded(child: _tab('Codex', 2)),
       ],
     );
   }
@@ -398,6 +403,151 @@ class _KeystoneRow extends StatelessWidget {
             onTap: canBuy ? () => meta.purchaseKeystone(def) : null,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CodexList extends StatelessWidget {
+  const _CodexList({required this.meta});
+  final MetaState meta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'NEXUS MEMORY-CORE',
+          style: TextStyle(
+            color: Color(0xFFFF8A00),
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Skills
+        const _CodexHeader(title: 'ARCHETYPES'),
+        _CodexGrid(
+          items: skillCatalog.map((s) => _CodexItem(
+            id: s.id,
+            name: s.title,
+            icon: s.archetype.icon,
+            color: s.archetype.color,
+            discovered: meta.discoveredIds.contains(s.id),
+          )).toList(),
+        ),
+        const SizedBox(height: 16),
+        // Fusions
+        const _CodexHeader(title: 'FUSIONS'),
+        _CodexGrid(
+          items: fusionCatalog.map((f) => _CodexItem(
+            id: f.id,
+            name: f.name,
+            icon: Icons.auto_awesome,
+            color: Colors.amber,
+            discovered: meta.discoveredIds.contains(f.id),
+          )).toList(),
+        ),
+        const SizedBox(height: 16),
+        // Evolutions
+        const _CodexHeader(title: 'EVOLUTIONS'),
+        _CodexGrid(
+          items: _allEvolutions().map((e) => _CodexItem(
+            id: e.id,
+            name: e.name,
+            icon: Icons.keyboard_double_arrow_up,
+            color: Colors.white,
+            discovered: meta.discoveredIds.contains(e.id),
+          )).toList(),
+        ),
+      ],
+    );
+  }
+
+  List<({String id, String name})> _allEvolutions() {
+    final list = <({String id, String name})>[];
+    evolutionCatalog.forEach((archetype, evos) {
+      list.add((id: '${archetype.name}:1', name: evos.$1.name));
+      list.add((id: '${archetype.name}:2', name: evos.$2.name));
+    });
+    return list;
+  }
+}
+
+class _CodexHeader extends StatelessWidget {
+  const _CodexHeader({required this.title});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.5),
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _CodexGrid extends StatelessWidget {
+  const _CodexGrid({required this.items});
+  final List<_CodexItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items,
+    );
+  }
+}
+
+class _CodexItem extends StatelessWidget {
+  const _CodexItem({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.color,
+    required this.discovered,
+  });
+
+  final String id;
+  final String name;
+  final IconData icon;
+  final Color color;
+  final bool discovered;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: discovered ? name : '???',
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: discovered 
+            ? color.withValues(alpha: 0.15)
+            : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: discovered 
+              ? color.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Icon(
+          icon,
+          color: discovered ? color : Colors.white.withValues(alpha: 0.1),
+          size: 20,
+        ),
       ),
     );
   }

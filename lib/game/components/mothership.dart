@@ -102,6 +102,7 @@ class Mothership extends PositionComponent
       double dmgMult = 1.0;
       if (mothershipEvo == 2) dmgMult = 4.0; // Dreadnought: Massive DMG
       if (game.state.hasMothershipSummonSynergy) dmgMult *= 1.35;
+      if (game.state.hexnetDrones) dmgMult *= 1.5; // Hexnet bonus
 
       world.add(
         CrewShip(
