@@ -288,14 +288,10 @@ class _ArsenalPanel extends StatelessWidget {
                           else
                             for (final entry in byArchetype.entries)
                               for (final s in entry.value)
-                                _MenuItem(
-                                  icon: entry.key.icon,
-                                  color: entry.key.color,
-                                  label: '${s.def.title} (Lv ${s.level})',
-                                  description: s.def.descriptionForLevel(
-                                    s.level,
-                                  ),
-                                  onTap: () {},
+                                _ActiveSkillRow(
+                                  archetype: entry.key,
+                                  def: s.def,
+                                  level: s.level,
                                 ),
                           const SizedBox(height: 20),
                         ],
@@ -919,145 +915,168 @@ class _DevToolsState extends State<_DevTools> {
 
   Future<void> _pickSkill(BuildContext context) async {
     final state = context.read<GameState>();
-    bool showDetails = false;
+    bool showDescriptions = true;
+    final expanded = <SkillArchetype, bool>{
+      for (final a in SkillArchetype.values) a: true,
+    };
 
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: const Color(0xFF111827),
-            title: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Add skill',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () =>
-                      setDialogState(() => showDetails = !showDetails),
-                  icon: Icon(
-                    showDetails ? Icons.visibility : Icons.visibility_off,
-                    size: 16,
-                  ),
-                  label: Text(
-                    showDetails ? 'Hide Details' : 'Show Details',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
+          return Dialog(
+            backgroundColor: const Color(0xFF0B1220),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(
+                color: const Color(0xFF64FFDA).withValues(alpha: 0.18),
+              ),
             ),
-            content: SizedBox(
-              width: 420,
-              height: 520,
-              child: AnimatedBuilder(
-                animation: state,
-                builder: (_, _) {
-                  final byArchetype = <SkillArchetype, List<SkillDefinition>>{};
-                  for (final def in skillCatalog) {
-                    byArchetype.putIfAbsent(def.archetype, () => []).add(def);
-                  }
-                  return ListView(
-                    children: [
-                      for (final archetype in SkillArchetype.values) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12, bottom: 4),
-                          child: Text(
-                            archetype.label.toUpperCase(),
-                            style: TextStyle(
-                              color: archetype.color.withValues(alpha: 0.8),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.2,
-                            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 24,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520, maxHeight: 640),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF64FFDA,
+                            ).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.science_rounded,
+                            color: Color(0xFF64FFDA),
+                            size: 20,
                           ),
                         ),
-                        if (showDetails)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: archetype.color.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: archetype.color.withValues(alpha: 0.2),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Skill Selector',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                for (
-                                  var i = 1;
-                                  i <= SkillDefinition.maxLevel;
-                                  i++
-                                )
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 2),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Lv $i: ',
-                                          style: TextStyle(
-                                            color: archetype.color.withValues(
-                                              alpha: 0.7,
-                                            ),
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Text(
-                                            _archetypeDescription(archetype, i),
-                                            style: const TextStyle(
-                                              color: Colors.white70,
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Tune any in-run skill instantly.',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            for (final def
-                                in byArchetype[archetype] ?? const [])
-                              _AddSkillChip(def: def, state: state),
-                          ],
+                        ),
+                        IconButton(
+                          tooltip: showDescriptions
+                              ? 'Hide descriptions'
+                              : 'Show descriptions',
+                          onPressed: () => setDialogState(
+                            () => showDescriptions = !showDescriptions,
+                          ),
+                          icon: Icon(
+                            showDescriptions
+                                ? Icons.notes_rounded
+                                : Icons.notes_outlined,
+                            color: Colors.white70,
+                            size: 18,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Close',
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          icon: const Icon(
+                            Icons.close,
+                            color: Colors.white54,
+                            size: 18,
+                          ),
                         ),
                       ],
-                    ],
-                  );
-                },
+                    ),
+                  ),
+                  const Divider(color: Colors.white10, height: 1),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                    child: Row(
+                      children: [
+                        _BulkActionButton(
+                          icon: Icons.auto_awesome_rounded,
+                          label: 'Max All',
+                          color: const Color(0xFF64FFDA),
+                          onTap: () => state.devMaxAllSkills(),
+                        ),
+                        const SizedBox(width: 8),
+                        _BulkActionButton(
+                          icon: Icons.restart_alt_rounded,
+                          label: 'Reset All',
+                          color: const Color(0xFFFF8A80),
+                          onTap: () {
+                            for (final def in skillCatalog) {
+                              state.devSetSkillLevel(def.id, 0);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: AnimatedBuilder(
+                      animation: state,
+                      builder: (_, _) {
+                        final byArchetype =
+                            <SkillArchetype, List<SkillDefinition>>{};
+                        for (final def in skillCatalog) {
+                          byArchetype
+                              .putIfAbsent(def.archetype, () => [])
+                              .add(def);
+                        }
+                        return ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                          children: [
+                            for (final archetype in SkillArchetype.values) ...[
+                              _ArchetypeSection(
+                                archetype: archetype,
+                                skills: byArchetype[archetype] ?? const [],
+                                state: state,
+                                showDescriptions: showDescriptions,
+                                expanded: expanded[archetype] ?? true,
+                                onToggle: () => setDialogState(
+                                  () => expanded[archetype] =
+                                      !(expanded[archetype] ?? true),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Done'),
-              ),
-            ],
           );
         },
       ),
     );
-  }
-
-  String _archetypeDescription(SkillArchetype arch, int level) {
-    // Helper to get description from any skill of this archetype
-    final first = skillCatalog.firstWhere((d) => d.archetype == arch);
-    return first.descriptionForLevel(level);
   }
 }
 
@@ -1067,16 +1086,37 @@ class _MenuHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const color = Color(0xFF64FFDA);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.4),
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.2,
-        ),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 12,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.55),
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Container(
+              height: 1,
+              color: Colors.white.withValues(alpha: 0.06),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1146,8 +1186,336 @@ class _MenuItem extends StatelessWidget {
   }
 }
 
-class _AddSkillChip extends StatelessWidget {
-  const _AddSkillChip({required this.def, required this.state});
+class _ActiveSkillRow extends StatelessWidget {
+  const _ActiveSkillRow({
+    required this.archetype,
+    required this.def,
+    required this.level,
+  });
+
+  final SkillArchetype archetype;
+  final SkillDefinition def;
+  final int level;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = archetype.color;
+    final maxed = level >= SkillDefinition.maxLevel;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  color.withValues(alpha: 0.22),
+                  color.withValues(alpha: 0.08),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: color.withValues(alpha: 0.3)),
+            ),
+            child: Icon(archetype.icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        def.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _LevelPips(level: level, color: color),
+                    if (maxed) ...[
+                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 12,
+                        color: color,
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  def.descriptionForLevel(level),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BulkActionButton extends StatelessWidget {
+  const _BulkActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 14),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LevelPips extends StatelessWidget {
+  const _LevelPips({required this.level, required this.color});
+
+  final int level;
+  final Color color;
+
+  static const double size = 7;
+  static const double spacing = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 1; i <= SkillDefinition.maxLevel; i++) ...[
+          if (i > 1) SizedBox(width: spacing),
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: i <= level
+                  ? color
+                  : Colors.white.withValues(alpha: 0.12),
+              border: Border.all(
+                color: i <= level
+                    ? color
+                    : Colors.white.withValues(alpha: 0.25),
+                width: 1,
+              ),
+              boxShadow: i <= level
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.5),
+                        blurRadius: 4,
+                      ),
+                    ]
+                  : null,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ArchetypeSection extends StatelessWidget {
+  const _ArchetypeSection({
+    required this.archetype,
+    required this.skills,
+    required this.state,
+    required this.showDescriptions,
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  final SkillArchetype archetype;
+  final List<SkillDefinition> skills;
+  final GameState state;
+  final bool showDescriptions;
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = archetype.color;
+    final ownedCount = skills
+        .where((s) => state.skillLevel(s.id) > 0)
+        .length;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: onToggle,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(archetype.icon, color: color, size: 16),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          archetype.label.toUpperCase(),
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$ownedCount/${skills.length}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    expanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    color: Colors.white54,
+                    size: 18,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (expanded) ...[
+            if (showDescriptions && skills.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border(
+                    left: BorderSide(
+                      color: color.withValues(alpha: 0.6),
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = 1; i <= SkillDefinition.maxLevel; i++)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 1),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.only(top: 2, right: 6),
+                              width: 18,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'L$i',
+                                style: TextStyle(
+                                  color: color.withValues(alpha: 0.85),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                skills.first.descriptionForLevel(i),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            for (final def in skills)
+              _AddSkillRow(def: def, state: state),
+            const SizedBox(height: 6),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AddSkillRow extends StatelessWidget {
+  const _AddSkillRow({required this.def, required this.state});
 
   final SkillDefinition def;
   final GameState state;
@@ -1156,44 +1524,104 @@ class _AddSkillChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final level = state.skillLevel(def.id);
     final maxed = level >= SkillDefinition.maxLevel;
-    final color = maxed
-        ? Colors.white.withValues(alpha: 0.32)
-        : def.archetype.color;
-    final chip = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.32)),
-      ),
-      child: Text(
-        '${def.title}  $level/${SkillDefinition.maxLevel}',
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-        ),
+    final color = def.archetype.color;
+    final dim = level == 0;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 2, 8, 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  def.title,
+                  style: TextStyle(
+                    color: dim
+                        ? Colors.white.withValues(alpha: 0.65)
+                        : Colors.white,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                _LevelPips(level: level, color: color),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          _SkillStepButton(
+            icon: Icons.first_page_rounded,
+            tooltip: 'Set to 0',
+            color: const Color(0xFFFF8A80),
+            enabled: level > 0,
+            onTap: () => state.devSetSkillLevel(def.id, 0),
+          ),
+          _SkillStepButton(
+            icon: Icons.remove_rounded,
+            tooltip: 'Decrease',
+            color: Colors.white70,
+            enabled: level > 0,
+            onTap: () => state.devSetSkillLevel(def.id, level - 1),
+          ),
+          _SkillStepButton(
+            icon: Icons.add_rounded,
+            tooltip: 'Increase',
+            color: color,
+            enabled: !maxed,
+            onTap: () => state.devSetSkillLevel(def.id, level + 1),
+          ),
+          _SkillStepButton(
+            icon: Icons.last_page_rounded,
+            tooltip: 'Max out',
+            color: color,
+            enabled: !maxed,
+            onTap: () =>
+                state.devSetSkillLevel(def.id, SkillDefinition.maxLevel),
+          ),
+        ],
       ),
     );
+  }
+}
 
-    final tooltipBuffer = StringBuffer();
-    tooltipBuffer.writeln(def.title);
-    tooltipBuffer.writeln('---');
-    for (var i = 1; i <= SkillDefinition.maxLevel; i++) {
-      final isCurrent = i == level;
-      final isNext = i == level + 1;
-      final marker = isCurrent ? '● ' : (isNext ? '○ ' : '  ');
-      tooltipBuffer.writeln('$marker Lv $i: ${def.descriptionForLevel(i)}');
-    }
+class _SkillStepButton extends StatelessWidget {
+  const _SkillStepButton({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.enabled,
+    required this.onTap,
+  });
 
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = enabled ? color : Colors.white.withValues(alpha: 0.18);
     return Tooltip(
-      message: tooltipBuffer.toString(),
-      triggerMode: TooltipTriggerMode.tap,
-      preferBelow: false,
+      message: tooltip,
       child: InkWell(
-        onTap: () => state.devGrantSkill(def.id),
+        onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(6),
-        child: chip,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: c.withValues(alpha: enabled ? 0.12 : 0.04),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: c.withValues(alpha: 0.35)),
+          ),
+          child: Icon(icon, color: c, size: 16),
+        ),
       ),
     );
   }

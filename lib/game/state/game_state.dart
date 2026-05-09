@@ -238,6 +238,18 @@ class GameState extends ChangeNotifier {
     _saveSoon();
   }
 
+  void devSetSkillLevel(String id, int level) {
+    if (_skillById(id) == null) return;
+    final clamped = level.clamp(0, SkillDefinition.maxLevel);
+    if (clamped == 0) {
+      _skillLevels.remove(id);
+    } else {
+      _skillLevels[id] = clamped;
+    }
+    notifyListeners();
+    _saveSoon();
+  }
+
   void devGrantGold(int amount) {
     gold += amount;
     notifyListeners();
