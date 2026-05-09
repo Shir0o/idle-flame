@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../zenith_zero_game.dart';
+import '../state/skill_catalog.dart';
 import 'enemy.dart';
 import 'combat_effects.dart';
 
@@ -75,11 +76,16 @@ class Mothership extends PositionComponent
     final world = parent;
     if (world == null) return;
 
-    final count = game.state.mothershipDroneCount;
+    final currentLevel = game.state.mothershipLevel;
+    final mothershipEvo = game.state.getEvolution(SkillArchetype.mothership);
+
+    int count = game.state.mothershipDroneCount;
+    if (mothershipEvo == 1) count += 2; // Armada
+    if (mothershipEvo == 2) count = 1; // Dreadnought
+
     if (CrewShip.availableSlots <= 0) return;
     game.audio.playSkillCast();
 
-    final currentLevel = game.state.mothershipLevel;
     final availableTypes = <CrewShipType>[CrewShipType.interceptor];
     if (currentLevel >= 2) availableTypes.add(CrewShipType.kamikaze);
     if (currentLevel >= 3) availableTypes.add(CrewShipType.slicer);
@@ -92,12 +98,18 @@ class Mothership extends PositionComponent
         (_rng.nextDouble() - 0.5) * 30,
         (_rng.nextDouble() - 0.5) * 30,
       );
+
+      double dmgMult = 1.0;
+      if (mothershipEvo == 2) dmgMult = 4.0; // Dreadnought: Massive DMG
+      if (game.state.hasMothershipSummonSynergy) dmgMult *= 1.35;
+
       world.add(
         CrewShip(
           startPos: position + offset,
           level: currentLevel,
-          damage: game.state.mothershipDroneDamage,
+          damage: game.state.mothershipDroneDamage * dmgMult,
           type: type,
+          isDreadnought: mothershipEvo == 2,
         ),
       );
     }
@@ -202,11 +214,17 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
     required this.level,
     required this.damage,
     required this.type,
-  }) : super(position: startPos, size: Vector2.all(12), priority: 64);
+    this.isDreadnought = false,
+  }) : super(
+         position: startPos,
+         size: Vector2.all(isDreadnought ? 28 : 12),
+         priority: 64,
+       );
 
   final int level;
   final double damage;
   final CrewShipType type;
+  final bool isDreadnought;
 
   Enemy? _target;
   double _age = 0;
@@ -492,6 +510,7 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+    if (isDreadnought) canvas.scale(2.2);
 
     switch (type) {
       case CrewShipType.interceptor:

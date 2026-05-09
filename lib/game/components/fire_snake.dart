@@ -13,12 +13,14 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
     required this.damage,
     required this.speed,
     required this.trailDuration,
+    this.isWorldEater = false,
   }) : super(position: startPos, priority: 60);
 
   final int level;
   final double damage;
   final double speed;
   final double trailDuration;
+  final bool isWorldEater;
 
   final List<Vector2> _trail = [];
   final List<double> _trailAges = [];
@@ -90,8 +92,8 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
     }
 
     // Damage logic
-    const hitRadius = 24.0;
-    const hitRadius2 = hitRadius * hitRadius;
+    final hitRadius = isWorldEater ? 48.0 : 24.0;
+    final hitRadius2 = hitRadius * hitRadius;
     for (final enemy in game.targetableEnemies) {
       bool hit = false;
       // Check head
@@ -152,7 +154,10 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
       final t = tangent.normalized();
       final normal = Vector2(-t.y, t.x);
 
-      final width = (12.0 + math.sin(i * 0.5 - _totalTime * 5) * 4.0) * lifeFactor;
+      final width =
+          (12.0 + math.sin(i * 0.5 - _totalTime * 5) * 4.0) *
+          lifeFactor *
+          (isWorldEater ? 2.5 : 1.0);
       
       final color = Color.lerp(
         const Color(0xFFFFAB40), // Orange
@@ -197,7 +202,11 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
       final headPaint = Paint()
         ..color = Colors.white.withValues(alpha: globalAlpha)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-      canvas.drawCircle(Offset(headPos.x, headPos.y), 6, headPaint);
+      canvas.drawCircle(
+        Offset(headPos.x, headPos.y),
+        isWorldEater ? 12 : 6,
+        headPaint,
+      );
     }
 
     canvas.restore();

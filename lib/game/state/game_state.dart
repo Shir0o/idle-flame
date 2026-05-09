@@ -66,13 +66,39 @@ class GameState extends ChangeNotifier {
   int devKillAllRequest = 0;
 
   final Map<String, int> _skillLevels = {};
+  final Map<SkillArchetype, int> _evolutions = {};
   List<String> _pendingUpgradeIds = [];
   int? autoSelectSecondsRemaining;
+  SkillArchetype? pendingEvolutionArchetype;
 
   int rerollsRemaining = 0;
   int banishesRemaining = 0;
   final Set<String> _bannedIds = {};
+  final Set<String> _recentlyOfferedIds = {};
   String? lockedUpgradeId;
+
+  static const _starterArchetypes = {
+    SkillArchetype.chain,
+    SkillArchetype.nova,
+    SkillArchetype.barrage,
+    SkillArchetype.focus,
+  };
+
+  static const _specialistArchetypes = {
+    SkillArchetype.frost,
+    SkillArchetype.rupture,
+    SkillArchetype.sentinel,
+    SkillArchetype.firewall,
+    SkillArchetype.bounty,
+  };
+
+  static const _capstoneArchetypes = {
+    SkillArchetype.meteor,
+    SkillArchetype.mothership,
+    SkillArchetype.snake,
+    SkillArchetype.summon,
+  };
+
   int levelUpCount = 0;
   int _streakStacks = 0;
   DateTime? _lastKillAt;
@@ -112,7 +138,12 @@ class GameState extends ChangeNotifier {
   int get frostLevel => _archetypeLevel(SkillArchetype.frost);
   int get ruptureLevel => _archetypeLevel(SkillArchetype.rupture);
   int get sentinelLevel => _archetypeLevel(SkillArchetype.sentinel);
-  int get sentinelCount => sentinelLevel.clamp(0, 8);
+
+  int getEvolution(SkillArchetype archetype) => _evolutions[archetype] ?? 0;
+
+  int get sentinelCount =>
+      sentinelLevel.clamp(0, 8) +
+      (getEvolution(SkillArchetype.sentinel) == 1 ? 2 : 0);
   double get sentinelDamage => heroDamage * (0.35 + sentinelLevel * 0.08);
   double get sentinelAttackCooldown => 0.8 * pow(0.92, sentinelLevel);
   double get sentinelOrbitSpeed => 2.4 * (1 + sentinelLevel * 0.1);
@@ -146,6 +177,14 @@ class GameState extends ChangeNotifier {
 
   double get enemySpeedMultiplier => max(0.45, 1 - frostLevel * 0.025);
   double get executeDamageMultiplier => 1 + ruptureLevel * 0.035;
+
+  bool get hasFrostRuptureSynergy => frostLevel >= 1 && ruptureLevel >= 1;
+  bool get hasChainNovaSynergy => chainLevel >= 1 && flameNovaLevel >= 1;
+  bool get hasMeteorFirewallSynergy => meteorMarkLevel >= 1 && firewallLevel >= 1;
+  bool get hasSentinelBarrageSynergy => sentinelLevel >= 1 && barrageLevel >= 1;
+  bool get hasBountyExecuteSynergy => bountyLevel >= 1 && (ruptureLevel >= 1 || mothershipLevel >= 1 || snakeLevel >= 1);
+  bool get hasMothershipSummonSynergy => mothershipLevel >= 1 && summonLevel >= 1;
+
   bool get isRunOver => nexusHp <= 0;
   bool get hasPendingLevelUp => _pendingUpgradeIds.isNotEmpty;
   List<SkillChoice> get pendingChoices =>
@@ -155,7 +194,9 @@ class GameState extends ChangeNotifier {
   double get enemyBreachDamage => (3 + floor * 0.5) * devEnemyStrength;
   int get goldPerKill {
     final base = _baseGoldPerKill * pow(_goldGrowth, floor - 1);
-    final bountyMultiplier = 1 + bountyLevel * 0.08;
+    final bountyEvo = getEvolution(SkillArchetype.bounty);
+    final bountyMultiplier =
+        (1 + bountyLevel * 0.08) * (bountyEvo == 1 ? 1.5 : 1.0);
     final streakMultiplier = 1 + _streakStacks * 0.1;
     return (base * bountyMultiplier * streakMultiplier).round();
   }
@@ -218,10 +259,27 @@ class GameState extends ChangeNotifier {
 
   void selectUpgrade(String id) {
     if (isRunOver || !_pendingUpgradeIds.contains(id) || _isMaxed(id)) return;
-    _skillLevels[id] = skillLevel(id) + 1;
+    final nextLevel = skillLevel(id) + 1;
+    _skillLevels[id] = nextLevel;
     levelUpCount += 1;
+
+    if (nextLevel == 5) {
+      final definition = _skillById(id);
+      if (definition != null) {
+        pendingEvolutionArchetype = definition.archetype;
+      }
+    }
+
     if (lockedUpgradeId == id) lockedUpgradeId = null;
     _clearPending();
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void selectEvolution(int path) {
+    if (pendingEvolutionArchetype == null) return;
+    _evolutions[pendingEvolutionArchetype!] = path;
+    pendingEvolutionArchetype = null;
     notifyListeners();
     _saveSoon();
   }
@@ -273,6 +331,8 @@ class GameState extends ChangeNotifier {
 
   void devResetAllSkills() {
     _skillLevels.clear();
+    _evolutions.clear();
+    pendingEvolutionArchetype = null;
     notifyListeners();
     _saveSoon();
   }
@@ -528,6 +588,7 @@ class GameState extends ChangeNotifier {
     rerollsRemaining = meta.rerollsPerRun;
     banishesRemaining = meta.banishesPerRun;
     _bannedIds.clear();
+    _recentlyOfferedIds.clear();
     lockedUpgradeId = null;
     levelUpCount = 0;
     _streakStacks = 0;
@@ -556,6 +617,9 @@ class GameState extends ChangeNotifier {
     _skillLevels
       ..clear()
       ..addAll(_decodeSkillLevels(prefs.getStringList(_kSkillLevels)));
+    _evolutions
+      ..clear()
+      ..addAll(_decodeEvolutions(prefs.getStringList(_kEvolutions)));
     _migrateOldSkillLevels(prefs);
     _pendingUpgradeIds =
         prefs
@@ -600,6 +664,7 @@ class GameState extends ChangeNotifier {
     await prefs.setDouble(_kDevTimeScale, devTimeScale);
     await prefs.setDouble(_kDevEnemyStrength, devEnemyStrength);
     await prefs.setStringList(_kSkillLevels, _encodeSkillLevels());
+    await prefs.setStringList(_kEvolutions, _encodeEvolutions());
     await prefs.setStringList(_kPendingUpgrades, _pendingUpgradeIds);
     await _writeLastSeen(prefs);
   }
@@ -614,8 +679,39 @@ class GameState extends ChangeNotifier {
 
   void _rollUpgradeChoices({String? forceLockedId}) {
     final offerCount = meta.widerPick ? 4 : 3;
+
+    // Determine unlocked archetypes based on tiers
+    final unlockedArchetypes = <SkillArchetype>{..._starterArchetypes};
+
+    // Specialist unlock: any archetype >= 5
+    bool specialistUnlocked = false;
+    for (final a in SkillArchetype.values) {
+      if (_archetypeLevel(a) >= 5) {
+        specialistUnlocked = true;
+        break;
+      }
+    }
+    if (specialistUnlocked) {
+      unlockedArchetypes.addAll(_specialistArchetypes);
+    }
+
+    // Capstone unlock: any specialist >= 5
+    bool capstoneUnlocked = false;
+    for (final a in _specialistArchetypes) {
+      if (_archetypeLevel(a) >= 5) {
+        capstoneUnlocked = true;
+        break;
+      }
+    }
+    if (capstoneUnlocked) {
+      unlockedArchetypes.addAll(_capstoneArchetypes);
+    }
+
     final available = skillCatalog
-        .where((d) => !_isMaxed(d.id) && !_bannedIds.contains(d.id))
+        .where((d) =>
+            unlockedArchetypes.contains(d.archetype) &&
+            !_isMaxed(d.id) &&
+            !_bannedIds.contains(d.id))
         .toList();
 
     final ids = <String>[];
@@ -624,8 +720,9 @@ class GameState extends ChangeNotifier {
       ids.add(lockId);
     }
 
-    final guaranteeNew =
-        meta.rareCadence && levelUpCount > 0 && (levelUpCount + 1) % 5 == 0;
+    // New skill guarantee: improves with rareCadence meta-upgrade
+    final cadence = meta.rareCadence ? 3 : 5;
+    final guaranteeNew = (levelUpCount + 1) % cadence == 0;
     if (guaranteeNew) {
       final fresh = available
           .where((d) => skillLevel(d.id) == 0 && !ids.contains(d.id))
@@ -640,6 +737,11 @@ class GameState extends ChangeNotifier {
     ids.addAll(extra);
 
     _pendingUpgradeIds = ids;
+
+    // Refresh recently offered tracking
+    _recentlyOfferedIds.clear();
+    _recentlyOfferedIds.addAll(ids);
+
     lockedUpgradeId = null;
     if (hasPendingLevelUp) {
       _startAutoSelectTimer();
@@ -676,8 +778,8 @@ class GameState extends ChangeNotifier {
     final pool = available.toList();
     final selected = <String>[];
     while (pool.isNotEmpty && selected.length < count) {
-      final totalWeight = pool.fold<int>(
-        0,
+      final totalWeight = pool.fold<double>(
+        0.0,
         (total, definition) => total + _offerWeight(definition.id),
       );
       if (totalWeight <= 0) break;
@@ -693,19 +795,23 @@ class GameState extends ChangeNotifier {
     return selected;
   }
 
-  int _offerWeight(String id) {
-    return skillLevel(id) > 0 ? _ownedSkillOfferWeight : _newSkillOfferWeight;
+  double _offerWeight(String id) {
+    final level = skillLevel(id);
+    // 1 + 3 * exp(-level / 4) - Rewards early investment but decays
+    double weight = 1.0 + 3.0 * exp(-level / 4.0);
+
+    // Cooldown on recently offered
+    if (_recentlyOfferedIds.contains(id)) {
+      weight *= 0.5;
+    }
+
+    return weight;
   }
 
   bool _isMaxed(String id) => skillLevel(id) >= SkillDefinition.maxLevel;
 
   int _archetypeLevel(SkillArchetype archetype) {
-    var total = 0;
-    for (final entry in _skillLevels.entries) {
-      final definition = _skillById(entry.key);
-      if (definition?.archetype == archetype) total += entry.value;
-    }
-    return total;
+    return _skillLevels[archetype.name] ?? 0;
   }
 
   SkillChoice? _choiceFor(String id) {
@@ -736,6 +842,12 @@ class GameState extends ChangeNotifier {
         .toList();
   }
 
+  List<String> _encodeEvolutions() {
+    return _evolutions.entries
+        .map((entry) => '${entry.key.name}:${entry.value}')
+        .toList();
+  }
+
   Map<String, int> _decodeSkillLevels(List<String>? encoded) {
     final levels = <String, int>{};
     for (final item in encoded ?? const <String>[]) {
@@ -743,18 +855,58 @@ class GameState extends ChangeNotifier {
       if (separator <= 0) continue;
       final id = item.substring(0, separator);
       final level = int.tryParse(item.substring(separator + 1));
-      if (level == null || level <= 0 || _skillById(id) == null) continue;
+      if (level == null || level <= 0) continue;
       levels[id] = level.clamp(0, SkillDefinition.maxLevel);
     }
     return levels;
   }
 
+  Map<SkillArchetype, int> _decodeEvolutions(List<String>? encoded) {
+    final evos = <SkillArchetype, int>{};
+    for (final item in encoded ?? const <String>[]) {
+      final separator = item.lastIndexOf(':');
+      if (separator <= 0) continue;
+      final name = item.substring(0, separator);
+      final path = int.tryParse(item.substring(separator + 1));
+      if (path == null) continue;
+      try {
+        final archetype = SkillArchetype.values.byName(name);
+        evos[archetype] = path;
+      } catch (_) {}
+    }
+    return evos;
+  }
+
   void _migrateOldSkillLevels(SharedPreferences prefs) {
-    _migrateSkill(prefs, _kOldEmberChainLevel, 'neon_katana_chain');
-    _migrateSkill(prefs, _kOldFlameNovaLevel, 'mana_reactor_nova');
-    _migrateSkill(prefs, _kOldFirewallLevel, 'rune_firewall');
-    _migrateSkill(prefs, _kOldMeteorMarkLevel, 'orbital_spellblade');
-    _migrateSkill(prefs, _kOldDamageLevel, 'void_edge_focus');
+    _migrateSkill(prefs, _kOldEmberChainLevel, 'chain');
+    _migrateSkill(prefs, _kOldFlameNovaLevel, 'nova');
+    _migrateSkill(prefs, _kOldFirewallLevel, 'firewall');
+    _migrateSkill(prefs, _kOldMeteorMarkLevel, 'meteor');
+    _migrateSkill(prefs, _kOldDamageLevel, 'focus');
+
+    // Migrate from the cosmetic slugs to the new archetype IDs
+    final oldSlugs = {
+      'neon_katana_chain': 'chain',
+      'mana_reactor_nova': 'nova',
+      'rune_firewall': 'firewall',
+      'orbital_spellblade': 'meteor',
+      'void_edge_focus': 'focus',
+      'overclocked_iaido': 'barrage',
+      'soulcoin_brand': 'bounty',
+      'cryo_hex_ash': 'frost',
+      'rupture_hex': 'rupture',
+      'ghost_blade_sentinel': 'sentinel',
+      'tactical_mothership': 'mothership',
+      'fire_snake_ignite': 'snake',
+      'fire_wolf_spirit': 'summon',
+    };
+
+    for (final entry in oldSlugs.entries) {
+      if (_skillLevels.containsKey(entry.key)) {
+        final level = _skillLevels.remove(entry.key)!;
+        _skillLevels[entry.value] = max(_skillLevels[entry.value] ?? 0, level);
+      }
+    }
   }
 
   void _migrateSkill(SharedPreferences prefs, String oldKey, String newId) {
@@ -800,6 +952,7 @@ class GameState extends ChangeNotifier {
   static const _kDevTimeScale = 'devTimeScale';
   static const _kDevEnemyStrength = 'devEnemyStrength';
   static const _kSkillLevels = 'skillLevels';
+  static const _kEvolutions = 'skillEvolutions';
   static const _kPendingUpgrades = 'pendingUpgrades';
   static const _kOldEmberChainLevel = 'emberChainLevel';
   static const _kOldFlameNovaLevel = 'flameNovaLevel';

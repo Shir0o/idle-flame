@@ -74,274 +74,219 @@ class SkillDefinition {
   String descriptionForLevel(int level) {
     return switch (archetype) {
       SkillArchetype.chain => switch (level) {
-        1 => 'Stat: slashes jump to +1 target (2 total).',
-        2 => 'Special: chained slashes seek enemies nearest the nexus.',
-        3 => 'Stat: arc potency and jump efficiency increase.',
-        4 => 'Special: chains snap faster through clustered drones.',
-        _ => 'Big upgrade: the spellblade cuts through whole packs.',
-      },
+          1 => 'Stats: +1 chain target (2 total).',
+          2 => 'Special: Seek enemies nearest the nexus.',
+          3 => 'Stats: +1 chain target (3 total).',
+          4 => 'Special: Chains snap 20% faster.',
+          _ => 'Big upgrade: +2 chain targets (5 total) and massive arc damage.',
+        },
       SkillArchetype.nova => switch (level) {
-        1 => 'Stat: mana-reactor pulse deals 150% base damage.',
-        2 => 'Special: the pulse clips enemies outside the ward ring.',
-        3 => 'Stat: arcane voltage and surge pressure increase.',
-        4 => 'Special: the reactor surges harder under pressure.',
-        _ => 'Big upgrade: nova becomes a city-block shockwave.',
-      },
+          1 => 'Stats: Pulse deals 150% base damage.',
+          2 => 'Special: Clips enemies outside the ward ring.',
+          3 => 'Stats: Damage increases to 210%.',
+          4 => 'Special: Pulse frequency increases under pressure.',
+          _ => 'Big upgrade: Screen-wide shockwave (300% damage).',
+        },
       SkillArchetype.firewall => switch (level) {
-        1 => 'Stat: burning rune-wall deals 135% base damage.',
-        2 => 'Special: the wall aligns to threats near the nexus.',
-        3 => 'Special: glyph burn applies a lingering DOT to enemies.',
-        4 => 'Special: ward intensity and cooldown-refresh improve.',
-        _ => 'Big upgrade: the lane becomes a full-spectrum dragon-gate.',
-      },
+          1 => 'Stats: Deals 135% base damage.',
+          2 => 'Special: Aligns to threats near the nexus.',
+          3 => 'Special: Applies 30% DPS lingering burn.',
+          4 => 'Special: Cooldown reduced by 15%.',
+          _ => 'Big upgrade: Full-spectrum dragon-gate (235% damage).',
+        },
       SkillArchetype.meteor => switch (level) {
-        1 => 'Stat: falling-blade strike deals 255% base damage.',
-        2 => 'Special: impact splash punishes clustered invaders.',
-        3 => 'Stat: falling-blade damage and impact force increase.',
-        4 => 'Special: targeting sigils lock faster onto priority threats.',
-        _ => 'Big upgrade: the strike becomes a rain of chrome comets.',
-      },
+          1 => 'Stats: Strike deals 255% base damage.',
+          2 => 'Special: Impact splash punishes clustered invaders.',
+          3 => 'Stats: Damage increases to 360%.',
+          4 => 'Special: Targeting sigils lock 20% faster.',
+          _ => 'Big upgrade: Rain of chrome comets (500% damage).',
+        },
       SkillArchetype.barrage => switch (level) {
-        1 => 'Stat: attack speed increases by 6%.',
-        2 => 'Special: the auto-ward recovers faster after pauses.',
-        3 => 'Stat: cadence improves again.',
-        4 => 'Special: rapid slashes hold pressure on crowded lanes.',
-        _ => 'Big upgrade: the nexus enters overclocked sword-chant.',
-      },
+          1 => 'Stats: +6% attack speed.',
+          2 => 'Special: Recovery speed increases.',
+          3 => 'Stats: +12% total attack speed.',
+          4 => 'Special: Rapid slashes hold pressure.',
+          _ => 'Big upgrade: +30% attack speed surge.',
+        },
       SkillArchetype.focus => switch (level) {
-        1 => 'Stat: direct damage increases by 8%.',
-        2 => 'Special: priority targets take sharper mana cuts.',
-        3 => 'Stat: direct damage increases again.',
-        4 => 'Special: close threats are punished by overloaded wards.',
-        _ => 'Big upgrade: all blade magic gains a major damage surge.',
-      },
+          1 => 'Stats: +8% direct damage.',
+          2 => 'Special: Priority targets take sharper cuts.',
+          3 => 'Stats: +16% total direct damage.',
+          4 => 'Special: Close threats take double damage.',
+          _ => 'Big upgrade: +40% major damage surge.',
+        },
       SkillArchetype.bounty => switch (level) {
-        1 => 'Stat: gold from kills increases by 8%.',
-        2 => 'Special: soul-coded marks improve payout spikes.',
-        3 => 'Stat: kill rewards increase again.',
-        4 => 'Special: floor clears preserve more economy momentum.',
-        _ => 'Big upgrade: data-soul bounties pay out massively.',
-      },
+          1 => 'Stats: +8% gold from kills.',
+          2 => 'Special: Soul-coded marks improve payout spikes.',
+          3 => 'Stats: +16% total gold rewards.',
+          4 => 'Special: Floor clears preserve economy momentum.',
+          _ => 'Big upgrade: Massive data-soul bounty payouts (+40%).',
+        },
       SkillArchetype.frost => switch (level) {
-        1 => 'Stat: enemies move 2.5% slower under cryo-hex.',
-        2 => 'Special: chilled enemies stay exposed longer.',
-        3 => 'Stat: enemy movement slows again.',
-        4 => 'Special: pressure waves lose momentum near the nexus.',
-        _ => 'Big upgrade: the lane is locked in glacial stasis.',
-      },
+          1 => 'Stats: -2.5% enemy movement speed.',
+          2 => 'Special: Chilled enemies stay exposed 20% longer.',
+          3 => 'Stats: -7.5% total enemy movement speed.',
+          4 => 'Special: Pressure waves lose momentum.',
+          _ => 'Big upgrade: Glacial stasis (-15% speed floor).',
+        },
       SkillArchetype.rupture => switch (level) {
-        1 => 'Stat: damage against wounded enemies increases by 3.5%.',
-        2 => 'Special: low-health armor is easier to sever.',
-        3 => 'Stat: execute pressure increases.',
-        4 => 'Special: finishers stabilize crowded breach points.',
-        _ => 'Big upgrade: hexed enemies collapse under final cuts.',
-      },
+          1 => 'Stats: +3.5% damage against wounded enemies.',
+          2 => 'Special: Execute threshold increases by 5%.',
+          3 => 'Stats: +10.5% total execute damage.',
+          4 => 'Special: Finishers stabilize breach points.',
+          _ => 'Big upgrade: Hexed enemies collapse (+25% damage).',
+        },
       SkillArchetype.sentinel => switch (level) {
-        1 => 'Stat: summon 1 auto-seeking ghost blade (43% damage).',
-        2 => 'Special: blades prioritize enemies near the nexus.',
-        3 => 'Stat: additional blades join the orbital swarm.',
-        4 => 'Special: blades strike with increased impact force.',
-        _ => 'Big upgrade: the swarm becomes a literal cloud of steel.',
-      },
+          1 => 'Stats: 1 auto-seeking blade (43% damage).',
+          2 => 'Special: Prioritize enemies near the nexus.',
+          3 => 'Stats: +1 blade (2 total).',
+          4 => 'Special: Blades strike with 20% more impact.',
+          _ => 'Big upgrade: Cloud of steel (4 blades, 75% damage).',
+        },
       SkillArchetype.mothership => switch (level) {
-        1 => 'Stat: deploy a hub with 3 seeker drones (35% damage).',
-        2 => 'Special: drones gain seeking agility and longer flight range.',
-        3 => 'Stat: mothership launch bays expand, increasing drone count.',
-        4 => 'Special: drones explode on impact, dealing area damage.',
-        _ => 'Big upgrade: the fleet becomes a permanent swarm of hunters.',
-      },
+          1 => 'Stats: 3 seeker drones (35% damage).',
+          2 => 'Special: Improved seeking and flight range.',
+          3 => 'Stats: +1 drone (4 total).',
+          4 => 'Special: Drones explode on impact (Area damage).',
+          _ => 'Big upgrade: Permanent hunter swarm (6 drones).',
+        },
       SkillArchetype.snake => switch (level) {
-        1 => 'Stat: ignite a fire snake (140% dmg) that chases targets.',
-        2 => 'Special: the snake leaves a lingering damage trail.',
-        3 => 'Stat: snake speed and trail duration increase.',
-        4 => 'Special: the snake splits into two smaller serpents.',
-        _ => 'Big upgrade: the Ouroboros consumes entire waves.',
-      },
+          1 => 'Stats: Fire snake (140% dmg) that chases targets.',
+          2 => 'Special: Leaves a lingering damage trail (30% dmg).',
+          3 => 'Stats: Speed +20%, trail duration +25%.',
+          4 => 'Special: Splits into two smaller serpents.',
+          _ => 'Big upgrade: Ouroboros (300% dmg, double trail).',
+        },
       SkillArchetype.summon => switch (level) {
-        1 => 'Stat: summon a Fire Wolf (185% dmg) to pounce on foes.',
-        2 => 'Special: Fire Salamander joins, scorching nearby foes.',
-        3 => 'Stat: summon health and attack power increase.',
-        4 => 'Special: Fire Phoenix rises, sweeping the field in flames.',
-        _ => 'Big upgrade: the Great Spirit Menagerie is unleashed.',
-      },
+          1 => 'Stats: Fire Wolf (185% dmg) pounces on foes.',
+          2 => 'Special: Fire Salamander joins (Aura damage).',
+          3 => 'Stats: Health +25%, Attack power +20%.',
+          4 => 'Special: Fire Phoenix rises (Sweep damage).',
+          _ => 'Big upgrade: Great Spirit Menagerie (All 3 active).',
+        },
     };
   }
 }
 
 final List<SkillDefinition> skillCatalog = List.unmodifiable([
-  ..._skills(SkillArchetype.chain, [
-    'Neon Katana Chain',
-    'Monowire Arcana',
-    'Chrome Saber Link',
-    'Runeblade Relay',
-    'Plasma Wakizashi',
-    'Glyphwire Cleave',
-    'Holo Edge Jump',
-    'Circuit Scimitar',
-    'Arc Lash Protocol',
-    'Prism Blade Thread',
-  ]),
-  ..._skills(SkillArchetype.nova, [
-    'Mana Reactor Nova',
-    'Neon Shrine Pulse',
-    'Arcane EMP Bloom',
-    'Chrome Halo Burst',
-    'Sigil Core Detonation',
-    'Magenta Ward Surge',
-    'Bluefire Shock Ring',
-    'Cyber Lotus Pulse',
-    'Hex Reactor Wave',
-    'Astral Battery Flare',
-  ]),
-  ..._skills(SkillArchetype.firewall, [
-    'Rune Firewall',
-    'Dragon Gate Barrier',
-    'Neon Torii Ward',
-    'Hardlight Sigil Wall',
-    'Plasma Glyph Fence',
-    'Chrome Pyre Rampart',
-    'Blade Ward Lane',
-    'Hexgrid Barricade',
-    'Firewall Sutra',
-    'Circuit Dragon Wall',
-    'Void Ember Grate',
-    'Phoenix Sigil Wall',
-    'Cyber Shinto Gate',
-    'Ionized Rune Fence',
-    'Astral Dragon Rampart',
-  ]),
-  ..._skills(SkillArchetype.meteor, [
-    'Orbital Spellblade',
-    'Chrome Comet Rite',
-    'Satellite Oni Fang',
-    'Falling Rune Spear',
-    'Starfall Katana',
-    'Meteor Hex Brand',
-    'Skyblade Invocation',
-    'Railgun Familiar',
-    'Moonsteel Impact',
-    'Astral Bombardment',
-  ]),
-  ..._skills(SkillArchetype.barrage, [
-    'Overclocked Iaido',
-    'Quickdraw Hex',
-    'Blade Drone Flurry',
-    'Rapid Mantra Cut',
-    'Neon Duelist Loop',
-    'Sparkstep Barrage',
-    'Chrome Tempo',
-    'Auto-Saber Chant',
-    'Reflex Rune Engine',
-    'Zero-Lag Slash',
-  ]),
-  ..._skills(SkillArchetype.focus, [
-    'Void Edge Focus',
-    'Dragonblood Compiler',
-    'Mana Core Overdrive',
-    'White-Hot Monoblade',
-    'Pressure Hex Cut',
-    'Deep Rune Ignition',
-    'Searing Logic Point',
-    'Needleblade Cant',
-    'Core Shrine Pressure',
-    'Bright Edge Algorithm',
-  ]),
-  ..._skills(SkillArchetype.bounty, [
-    'Soulcoin Brand',
-    'Credstick Hex',
-    'Treasure Daemon',
-    'Minted Mana Spark',
-    'Bounty Oni Seal',
-    'Taxing Curse',
-    'Rich Data Cinder',
-    'Spoils Sigil',
-    'Vault Familiar',
-    'Coin Lotus Bloom',
-  ]),
-  ..._skills(SkillArchetype.frost, [
-    'Cryo Hex Ash',
-    'Cold Neon Cinder',
-    'Blue Lotus Chill',
-    'Rimewire Spark',
-    'Winterblade Wick',
-    'Slow-Burn Glitch',
-    'Frozen Flare Rune',
-    'Ashen Sleet Program',
-    'Cold Front Charm',
-    'Ice Lantern Familiar',
-  ]),
-  ..._skills(SkillArchetype.rupture, [
-    'Rupture Hex',
-    'Crackling Wound Code',
-    'Splinterblade Heat',
-    'Breakpoint Curse',
-    'Scarlet Edge Brand',
-    'Weakspot Mandala',
-    'Final Spark Cut',
-    'Shatter Seal',
-    'Execution Rune',
-    'Last Light Sever',
-  ]),
-  ..._skills(SkillArchetype.sentinel, [
-    'Ghost Blade Sentinel',
-    'Spirit Needle Drone',
-    'Void Dagger Swarm',
-    'Phase Kunai Orbit',
-    'Astral Stiletto',
-    'Neon Shard Seeker',
-    'Chrome Talon Dart',
-    'Mana Dart Volley',
-    'Echo Blade Phantom',
-    'Spectral Spike Array',
-  ]),
-  ..._skills(SkillArchetype.mothership, [
-    'Tactical Mothership',
-    'Carrier Command',
-    'Drone Swarm Hub',
-    'Fleet Coordinator',
-    'Void Wing Station',
-    'Hive Mind Relay',
-    'Orbital Hangar',
-    'Strike Wing Core',
-    'Battle Carrier',
-    'Fleet Nexus',
-  ]),
-  ..._skills(SkillArchetype.snake, [
-    'Fire Snake Ignite',
-    'Ouroboros Trail',
-    'Cinder Serpent',
-    'Magma Cobra',
-    'Neon Viper',
-    'Solar Boa',
-    'Plasma Python',
-    'Ember Krait',
-    'Volcanic Adder',
-    'Abyssal Naga',
-  ]),
-  ..._skills(SkillArchetype.summon, [
-    'Fire Wolf Spirit',
-    'Salamander Breath',
-    'Phoenix Rebirth',
-    'Spirit Menagerie',
-    'Inferno Hounds',
-    'Sun-Basking Lizard',
-    'Skyfire Raptor',
-    'Molten Beastheart',
-    'Astral Chimera',
-    'Elemental Avatar',
-  ]),
+  SkillDefinition(
+      id: 'chain', title: 'Neon Katana Chain', archetype: SkillArchetype.chain),
+  SkillDefinition(
+      id: 'nova', title: 'Mana Reactor Nova', archetype: SkillArchetype.nova),
+  SkillDefinition(
+      id: 'firewall', title: 'Rune Firewall', archetype: SkillArchetype.firewall),
+  SkillDefinition(
+      id: 'meteor', title: 'Orbital Spellblade', archetype: SkillArchetype.meteor),
+  SkillDefinition(
+      id: 'barrage', title: 'Overclocked Iaido', archetype: SkillArchetype.barrage),
+  SkillDefinition(
+      id: 'focus', title: 'Void Edge Focus', archetype: SkillArchetype.focus),
+  SkillDefinition(
+      id: 'bounty', title: 'Soulcoin Brand', archetype: SkillArchetype.bounty),
+  SkillDefinition(
+      id: 'frost', title: 'Cryo Hex Ash', archetype: SkillArchetype.frost),
+  SkillDefinition(
+      id: 'rupture', title: 'Rupture Hex', archetype: SkillArchetype.rupture),
+  SkillDefinition(
+      id: 'sentinel',
+      title: 'Ghost Blade Sentinel',
+      archetype: SkillArchetype.sentinel),
+  SkillDefinition(
+      id: 'mothership',
+      title: 'Tactical Mothership',
+      archetype: SkillArchetype.mothership),
+  SkillDefinition(
+      id: 'snake', title: 'Fire Snake Ignite', archetype: SkillArchetype.snake),
+  SkillDefinition(
+      id: 'summon', title: 'Fire Wolf Spirit', archetype: SkillArchetype.summon),
 ]);
 
-List<SkillDefinition> _skills(SkillArchetype archetype, List<String> titles) {
-  return [
-    for (final title in titles)
-      SkillDefinition(id: _slug(title), title: title, archetype: archetype),
-  ];
+class SkillEvolution {
+  const SkillEvolution({
+    required this.name,
+    required this.description,
+  });
+  final String name;
+  final String description;
 }
 
-String _slug(String title) {
-  return title
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
-      .replaceAll(RegExp(r'_+$'), '');
-}
+final Map<SkillArchetype, (SkillEvolution, SkillEvolution)> evolutionCatalog = {
+  SkillArchetype.chain: (
+    const SkillEvolution(
+        name: 'Chainstorm', description: 'Stats: +2 jumps, 30% faster snaps.'),
+    const SkillEvolution(
+        name: 'Tetherblade', description: 'Stats: Massive single target damage.'),
+  ),
+  SkillArchetype.nova: (
+    const SkillEvolution(
+        name: 'Pulse Reactor', description: 'Stats: 40% faster pulse frequency.'),
+    const SkillEvolution(
+        name: 'Singularity', description: 'Special: Novas pull enemies inward.'),
+  ),
+  SkillArchetype.firewall: (
+    const SkillEvolution(
+        name: 'Magma Lane', description: 'Stats: Deploys 2 walls, double burn.'),
+    const SkillEvolution(
+        name: 'Dragon Gate', description: 'Special: Massive width and knockback.'),
+  ),
+  SkillArchetype.meteor: (
+    const SkillEvolution(
+        name: 'Starfall', description: 'Stats: 3 extra meteors, faster lock.'),
+    const SkillEvolution(
+        name: 'Chrome Impact', description: 'Stats: 500% DMG, stuns enemies.'),
+  ),
+  SkillArchetype.barrage: (
+    const SkillEvolution(
+        name: 'Overdrive', description: 'Stats: 40% total attack speed surge.'),
+    const SkillEvolution(
+        name: 'Blade Waltz', description: 'Special: Critical strikes every 3rd hit.'),
+  ),
+  SkillArchetype.focus: (
+    const SkillEvolution(
+        name: 'Precision', description: 'Stats: Major direct damage surge (+50%).'),
+    const SkillEvolution(
+        name: 'Overload', description: 'Special: Splash damage on every hit.'),
+  ),
+  SkillArchetype.bounty: (
+    const SkillEvolution(
+        name: 'Soul Harvest', description: 'Stats: +50% gold from all sources.'),
+    const SkillEvolution(
+        name: 'Jackpot', description: 'Special: Chance for massive elite payout.'),
+  ),
+  SkillArchetype.frost: (
+    const SkillEvolution(
+        name: 'Glacier', description: 'Special: Freeze enemies solid for 1s.'),
+    const SkillEvolution(
+        name: 'Shatter Bloom', description: 'Special: Fold Shatter into base skill.'),
+  ),
+  SkillArchetype.rupture: (
+    const SkillEvolution(
+        name: 'Executioner', description: 'Stats: +15% execute threshold.'),
+    const SkillEvolution(
+        name: 'Vulnerability', description: 'Special: Wounded take 30% more DMG.'),
+  ),
+  SkillArchetype.sentinel: (
+    const SkillEvolution(
+        name: 'Cloud of Steel', description: 'Stats: +2 additional blades.'),
+    const SkillEvolution(
+        name: 'Phantom Edge', description: 'Stats: Blades dash 40% faster.'),
+  ),
+  SkillArchetype.mothership: (
+    const SkillEvolution(
+        name: 'Armada', description: 'Stats: +2 additional seeker drones.'),
+    const SkillEvolution(
+        name: 'Dreadnought', description: 'Stats: One massive 400% DMG drone.'),
+  ),
+  SkillArchetype.snake: (
+    const SkillEvolution(
+        name: 'Hydra', description: 'Special: Splits into 4 smaller serpents.'),
+    const SkillEvolution(
+        name: 'World Eater', description: 'Stats: One massive double-burn snake.'),
+  ),
+  SkillArchetype.summon: (
+    const SkillEvolution(
+        name: 'Spirit Horde', description: 'Stats: Summons spawn twice as often.'),
+    const SkillEvolution(
+        name: 'Avatar', description: 'Stats: One massive spirit with all auras.'),
+  ),
+};

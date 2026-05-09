@@ -61,7 +61,7 @@ const List<MetaUpgradeDef> metaUpgradeCatalog = [
   MetaUpgradeDef(
     id: 'rare_cadence',
     title: 'Rare Cadence',
-    description: 'Every 5th level-up guarantees a brand-new skill.',
+    description: 'Guarantees a brand-new skill every 3rd level-up (instead of 5th).',
     tierCosts: [120],
   ),
   MetaUpgradeDef(

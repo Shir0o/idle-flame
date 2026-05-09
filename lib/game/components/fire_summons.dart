@@ -4,15 +4,20 @@ import 'package:flutter/material.dart';
 import '../zenith_zero_game.dart';
 import 'enemy.dart';
 
-enum SummonType { wolf, salamander, phoenix }
+enum SummonType { wolf, salamander, phoenix, avatar }
 
-class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class FireSummon extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   FireSummon({
     required Vector2 startPos,
     required this.type,
     required this.level,
     required this.damage,
-  }) : super(position: startPos, priority: 61);
+  }) : super(
+          position: startPos,
+          priority: 61,
+          size: Vector2.all(type == SummonType.avatar ? 40 : 20),
+        );
 
   final SummonType type;
   final int level;
@@ -21,7 +26,7 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
   double _totalTime = 0;
   double _lifeTime = 0;
   static const double _maxLife = 5.0;
-  
+
   Enemy? _target;
 
   @override
@@ -61,6 +66,9 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
       case SummonType.phoenix:
         _movePhoenix(dt);
         break;
+      case SummonType.avatar:
+        _moveAvatar(dt);
+        break;
     }
   }
 
@@ -94,22 +102,42 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
     if (_target != null) {
       forward.setFrom((_target!.position - position).normalized());
     }
-    
+
     final side = Vector2(-forward.y, forward.x);
     final wave = math.sin(_totalTime * 8) * 150.0;
-    
+
     position += forward * speed * dt + side * wave * dt;
     angle = math.atan2(forward.y, forward.x);
   }
 
+  void _moveAvatar(double dt) {
+    // Avatar: Faster crawl with occasional dash
+    if (_target != null) {
+      final toTarget = _target!.position - position;
+      final speed = 180.0 + (math.sin(_totalTime * 4).abs() * 200.0);
+      position += toTarget.normalized() * speed * dt;
+      angle = math.atan2(toTarget.y, toTarget.x);
+    }
+  }
+
   void _applyDamage(double dt) {
-    final hitRadius = type == SummonType.salamander ? 60.0 : 30.0;
+    final hitRadius = switch (type) {
+      SummonType.salamander => 60.0,
+      SummonType.avatar => 90.0,
+      _ => 30.0,
+    };
     final hitRadiusSq = hitRadius * hitRadius;
+
+    final dmgMult = switch (type) {
+      SummonType.salamander => 0.6,
+      SummonType.avatar => 2.5,
+      _ => 1.5,
+    };
 
     for (final enemy in game.targetableEnemies) {
       if ((enemy.position - position).length2 < hitRadiusSq) {
         enemy.takeDamage(
-          damage * dt * (type == SummonType.salamander ? 0.6 : 1.5),
+          damage * dt * dmgMult,
           source: position,
           type: DamageType.firewall,
         );
@@ -121,7 +149,7 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
   void render(Canvas canvas) {
     final t = (_lifeTime / _maxLife).clamp(0.0, 1.0);
     final alpha = 1.0 - math.pow(t, 4).toDouble();
-    
+
     switch (type) {
       case SummonType.wolf:
         _renderWolf(canvas, alpha);
@@ -132,6 +160,9 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
       case SummonType.phoenix:
         _renderPhoenix(canvas, alpha);
         break;
+      case SummonType.avatar:
+        _renderAvatar(canvas, alpha);
+        break;
     }
   }
 
@@ -139,16 +170,16 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
     final paint = Paint()
       ..color = const Color(0xFFFF6D00).withValues(alpha: alpha)
       ..style = PaintingStyle.fill;
-    
+
     final body = Path()
       ..moveTo(12, 0)
       ..lineTo(-8, -8)
       ..lineTo(-12, 0)
       ..lineTo(-8, 8)
       ..close();
-    
+
     canvas.drawPath(body, paint);
-    
+
     // Eyes
     final eyePaint = Paint()..color = Colors.white.withValues(alpha: alpha);
     canvas.drawCircle(const Offset(6, -3), 1.5, eyePaint);
@@ -159,16 +190,16 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
     final paint = Paint()
       ..color = const Color(0xFFFFAB40).withValues(alpha: alpha)
       ..style = PaintingStyle.fill;
-    
+
     final body = Path()
       ..moveTo(15, 0)
       ..lineTo(0, -10)
       ..lineTo(-15, 0)
       ..lineTo(0, 10)
       ..close();
-    
+
     canvas.drawPath(body, paint);
-    
+
     // Aura
     final auraPaint = Paint()
       ..color = const Color(0xFFFF3D00).withValues(alpha: alpha * 0.2)
@@ -180,13 +211,13 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
     final paint = Paint()
       ..color = const Color(0xFFFFD166).withValues(alpha: alpha)
       ..style = PaintingStyle.fill;
-    
+
     final body = Path()
       ..moveTo(18, 0)
       ..lineTo(-10, -15)
       ..lineTo(-10, 15)
       ..close();
-    
+
     // Wings
     final wingT = math.sin(_totalTime * 12);
     final wing = Path()
@@ -194,18 +225,51 @@ class FireSummon extends PositionComponent with HasGameReference<ZenithZeroGame>
       ..lineTo(-5, -25 * wingT.abs())
       ..lineTo(-15, 0)
       ..close();
-    
+
     canvas.drawPath(body, paint);
     canvas.save();
     canvas.drawPath(wing, paint);
     canvas.scale(1, -1);
     canvas.drawPath(wing, paint);
     canvas.restore();
-    
+
     // Tail trail
     final tailPaint = Paint()
       ..color = const Color(0xFFFF3D00).withValues(alpha: alpha * 0.4)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     canvas.drawCircle(const Offset(-15, 0), 10, tailPaint);
+  }
+
+  void _renderAvatar(Canvas canvas, double alpha) {
+    // Avatar: Combination of all colors/shapes, but bigger
+    final paint = Paint()
+      ..color = const Color(0xFFFF6D00).withValues(alpha: alpha)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(Offset.zero, 15, paint);
+
+    final auraPaint = Paint()
+      ..color = const Color(0xFFFF3D00).withValues(alpha: alpha * 0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+    canvas.drawCircle(Offset.zero, 60, auraPaint);
+
+    // Tech detail
+    final eyePaint = Paint()..color = Colors.white.withValues(alpha: alpha);
+    canvas.drawCircle(const Offset(8, -5), 3, eyePaint);
+    canvas.drawCircle(const Offset(8, 5), 3, eyePaint);
+
+    // Wings (faint)
+    final wing = Path()
+      ..moveTo(0, 0)
+      ..lineTo(-10, -40)
+      ..lineTo(-30, 0)
+      ..close();
+    final wingPaint = Paint()
+      ..color = const Color(0xFFFFD166).withValues(alpha: alpha * 0.4);
+    canvas.drawPath(wing, wingPaint);
+    canvas.save();
+    canvas.scale(1, -1);
+    canvas.drawPath(wing, wingPaint);
+    canvas.restore();
   }
 }

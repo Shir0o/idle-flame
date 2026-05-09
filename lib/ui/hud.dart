@@ -85,6 +85,7 @@ class Hud extends StatelessWidget {
           Positioned(left: 16, bottom: 16, child: _NexusHealthBar()),
           Positioned.fill(child: _WelcomeToast()),
           Positioned.fill(child: _LevelUpPicker()),
+          Positioned.fill(child: _EvolutionPicker()),
           Positioned.fill(child: _RunOverPanel()),
           Positioned(
             top: 12,
@@ -2405,6 +2406,150 @@ class _Panel extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
       child: child,
+    );
+  }
+}
+
+class _EvolutionPicker extends StatelessWidget {
+  const _EvolutionPicker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        final archetype = state.pendingEvolutionArchetype;
+        if (archetype == null || state.isRunOver) return const SizedBox.shrink();
+
+        final evolutions = evolutionCatalog[archetype];
+        if (evolutions == null) return const SizedBox.shrink();
+
+        return ColoredBox(
+          color: Colors.black.withValues(alpha: 0.88),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 96, 16, 96),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        archetype.icon,
+                        color: archetype.color,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Ascendant Evolution',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${archetype.label} has reached Maximum Potential.',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _EvolutionCard(
+                        title: evolutions.$1.name,
+                        description: evolutions.$1.description,
+                        color: archetype.color,
+                        onTap: () => state.selectEvolution(1),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '— OR —',
+                        style: TextStyle(
+                          color: Colors.white24,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _EvolutionCard(
+                        title: evolutions.$2.name,
+                        description: evolutions.$2.description,
+                        color: archetype.color,
+                        onTap: () => state.selectEvolution(2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EvolutionCard extends StatelessWidget {
+  const _EvolutionCard({
+    required this.title,
+    required this.description,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String title;
+  final String description;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.1),
+                blurRadius: 12,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: color,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                description,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

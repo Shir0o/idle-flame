@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../zenith_zero_game.dart';
+import '../state/skill_catalog.dart';
 import 'enemy.dart';
 import 'combat_effects.dart';
 
@@ -339,13 +340,17 @@ class SentinelBlade extends PositionComponent
     _phase = _StrikePhase.dashing;
     _phaseTimer = 0;
     // Recalculate duration based on the actual control point distance.
-    final approxArcLen =
-        (_dashControl1 - _dashStart).length +
+    final approxArcLen = (_dashControl1 - _dashStart).length +
         (_dashControl2 - _dashControl1).length +
         (_dashEnd - _dashControl2).length;
+
+    final dashEvo = game.state.getEvolution(SkillArchetype.sentinel);
+    double actualSpeed = _dashSpeedRef;
+    if (dashEvo == 2) actualSpeed *= 2.0;
+
     _phaseDuration = math.max(
-      0.16,
-      math.min(0.65, approxArcLen / _dashSpeedRef),
+      0.08,
+      math.min(0.65, approxArcLen / actualSpeed),
     );
     _dashProgress = 0;
     _hitThisDash.clear();
@@ -504,6 +509,9 @@ class SentinelBlade extends PositionComponent
     }
 
     _attackTimer = game.state.sentinelAttackCooldown;
+    if (game.state.hasSentinelBarrageSynergy) {
+      _attackTimer /= (1 + game.state.barrageLevel * 0.06);
+    }
   }
 
   List<Enemy> _nearestShardTargets(Enemy primary) {

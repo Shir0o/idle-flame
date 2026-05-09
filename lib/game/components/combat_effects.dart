@@ -739,9 +739,10 @@ class NovaPulseEffect extends PositionComponent
   NovaPulseEffect({
     required this.effectCenter,
     required this.radius,
-    this.color = const Color(0xFFFF2D95),
+    Color? color,
     this.level = 1,
-  }) : super(priority: 55);
+  }) : color = color ?? const Color(0xFFFF2D95),
+       super(priority: 55);
 
   final Vector2 effectCenter;
   final double radius;

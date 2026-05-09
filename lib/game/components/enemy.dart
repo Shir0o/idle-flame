@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../audio/game_audio.dart';
 import '../zenith_zero_game.dart';
+import '../state/skill_catalog.dart';
 import 'combat_effects.dart';
 import 'damage_text.dart';
 
@@ -61,6 +62,9 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   double _walkPhase = 0;
   double _burnTimer = 0;
   double _burnDps = 0;
+  double _freezeTimer = 0;
+  bool _hasBeenFrozen = false;
+  bool _executeMarked = false;
   Vector2 _knockbackVelocity = Vector2.zero();
   bool _dying = false;
   bool _lastDamageWasExecute = false;
@@ -324,6 +328,13 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     }
 
     if (_dying) return;
+
+    if (_freezeTimer > 0) {
+      _freezeTimer -= dt;
+      _color = const Color(0xFF00E5FF);
+      return;
+    }
+
     final hero = game.hero;
     final toHero = hero.position - position;
     final dist = toHero.length;
@@ -363,11 +374,33 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     DamageType type = DamageType.basic,
   }) {
     if (_dying || game.state.isRunOver) return;
-    final executeBonus = hp / maxHp <= 0.5
-        ? game.state.executeDamageMultiplier
-        : 1.0;
-    final finalAmount = amount * executeBonus;
+
+    final frostEvo = game.state.getEvolution(SkillArchetype.frost);
+    final ruptureEvo = game.state.getEvolution(SkillArchetype.rupture);
+
+    // Glacier: Freeze on first chill
+    if (frostEvo == 1 && game.state.frostLevel > 0 && !_hasBeenFrozen) {
+      _freezeTimer = 1.0;
+      _hasBeenFrozen = true;
+    }
+
+    final baseThreshold = game.state.hasFrostRuptureSynergy ? 0.75 : 0.5;
+    final thresholdBonus = ruptureEvo == 1 ? 0.15 : 0.0;
+    final threshold = baseThreshold + thresholdBonus;
+
+    final executeBonus =
+        hp / maxHp <= threshold ? game.state.executeDamageMultiplier : 1.0;
+
+    double finalAmount = amount * executeBonus;
+
+    // Vulnerability: Marked take 30% more damage
+    if (ruptureEvo == 2 && _executeMarked) {
+      finalAmount *= 1.3;
+    }
+
     final isExecute = executeBonus > 1;
+    if (isExecute) _executeMarked = true;
+
     _lastDamageWasExecute = isExecute;
     final visual = _visualFor(type, isExecute);
     final incoming = source == null ? Vector2(0, -1) : position - source;
@@ -450,10 +483,22 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     game.audio.playEnemyDeath();
     if (game.state.bountyLevel > 0 && !game.effectsConstrained) {
       parent?.add(CoinBurstEffect(effectCenter: position.clone()));
+      final bountyEvo = game.state.getEvolution(SkillArchetype.bounty);
+      final jackpotRoll = bountyEvo == 2 && math.Random().nextDouble() < 0.15;
+      final jackpotMul = jackpotRoll ? 5.0 : 1.0;
+
+      if (game.state.hasBountyExecuteSynergy && _lastDamageWasExecute) {
+        game.state.gold += (game.state.goldPerKill * 0.5 * jackpotMul).round();
+      } else if (jackpotRoll) {
+        game.state.gold += (game.state.goldPerKill * (jackpotMul - 1)).round();
+      }
     }
     final meta = game.state.meta;
+    final frostEvo = game.state.getEvolution(SkillArchetype.frost);
+
     // Shatter: frost-slowed enemies explode for AoE on death
-    if (meta.hasKeystone('shatter') && game.state.frostLevel > 0) {
+    if ((meta.hasKeystone('shatter') || frostEvo == 2) &&
+        game.state.frostLevel > 0) {
       final blastRadiusSq = 110.0 * 110.0;
       final dmg = game.state.heroDamage * 0.8;
       if (game.canSpawnMajorEffect()) {

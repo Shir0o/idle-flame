@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../zenith_zero_game.dart';
 import '../state/game_state.dart';
 import '../state/mech_catalog.dart';
+import '../state/skill_catalog.dart';
 import 'combat_effects.dart';
 import 'enemy.dart';
 import 'sentinel_blade.dart';
@@ -37,6 +38,7 @@ class HeroComponent extends PositionComponent
   double _attackFlashTimer = 0;
   double _idlePhase = 0;
   int _twinShotCounter = 0;
+  int _attackCount = 0;
   final math.Random _critRng = math.Random();
   final List<SentinelBlade> _sentinelBlades = [];
   Mothership? _mothership;
@@ -215,14 +217,22 @@ class HeroComponent extends PositionComponent
     _updateMothership();
 
     final period = 1.0 / game.state.heroAttacksPerSec;
+    final barrageEvo = game.state.getEvolution(SkillArchetype.barrage);
+    final actualPeriod = barrageEvo == 1 ? period * 0.7 : period;
+
     _attackTimer += dt;
-    if (_attackTimer >= period) {
+    if (_attackTimer >= actualPeriod) {
       _attackTimer = 0;
       _tryAttack();
     }
+
     _novaTimer += dt;
-    if (game.state.flameNovaLevel > 0 &&
-        _novaTimer >= GameState.flameNovaCooldown) {
+    final novaEvo = game.state.getEvolution(SkillArchetype.nova);
+    final actualNovaCooldown = novaEvo == 1
+        ? GameState.flameNovaCooldown * 0.6
+        : GameState.flameNovaCooldown;
+
+    if (game.state.flameNovaLevel > 0 && _novaTimer >= actualNovaCooldown) {
       _novaTimer = 0;
       _castFlameNova();
     }
@@ -244,7 +254,11 @@ class HeroComponent extends PositionComponent
       _castSnake();
     }
     _summonTimer += dt;
-    if (game.state.summonLevel > 0 && _summonTimer >= GameState.summonCooldown) {
+    final summonEvo = game.state.getEvolution(SkillArchetype.summon);
+    final actualSummonCooldown =
+        GameState.summonCooldown / (summonEvo == 1 ? 2.0 : 1.0);
+
+    if (game.state.summonLevel > 0 && _summonTimer >= actualSummonCooldown) {
       _summonTimer = 0;
       _castSummon();
     }
@@ -340,7 +354,12 @@ class HeroComponent extends PositionComponent
     }
 
     final meta = game.state.meta;
-    final critRoll = meta.hasKeystone('crit') && _critRng.nextDouble() < 0.08;
+    final barrageEvo = game.state.getEvolution(SkillArchetype.barrage);
+    _attackCount++;
+    bool forceCrit = barrageEvo == 2 && _attackCount % 3 == 0;
+
+    final critRoll =
+        forceCrit || (meta.hasKeystone('crit') && _critRng.nextDouble() < 0.08);
     final critMul = critRoll ? 3.0 : 1.0;
     final twinShot =
         meta.hasKeystone('twin_shot') && (++_twinShotCounter % 4 == 0);
@@ -354,18 +373,42 @@ class HeroComponent extends PositionComponent
     final focusLevel = game.state.focusLevel;
     final chainLevel = game.state.chainLevel;
     final barrageLevel = game.state.barrageLevel;
+
+    final chainEvo = game.state.getEvolution(SkillArchetype.chain);
+    final focusEvo = game.state.getEvolution(SkillArchetype.focus);
+
     final slashColor = critRoll
         ? const Color(0xFFFF6B35)
         : (focusLevel > 0 ? const Color(0xFFFFF176) : const Color(0xFF00E5FF));
-    final jumpInterval = chainLevel >= 4 ? 0.04 : 0.08;
 
-    for (var i = 0; i < targets.length; i++) {
-      final enemy = targets[i];
+    double jumpInterval = chainLevel >= 4 ? 0.04 : 0.08;
+    if (chainEvo == 1) jumpInterval *= 0.7; // Chainstorm
+
+    int actualTargets = emberTargets;
+    if (chainEvo == 1) actualTargets += 2; // Chainstorm
+    if (chainEvo == 2) actualTargets = 1; // Tetherblade
+
+    double damageMult = critMul;
+    if (chainEvo == 2) damageMult *= 4.0; // Tetherblade
+    if (focusEvo == 1) damageMult *= 1.5; // Precision
+
+    final finalTargets = game.selectNearestEnemies(
+      position,
+      actualTargets,
+      range: game.state.heroAttackRange,
+    );
+
+    if (finalTargets.isNotEmpty) {
+      game.audio.playBasicAttack();
+      _attackFlashTimer = 0.18;
+    }
+
+    for (var i = 0; i < finalTargets.length; i++) {
+      final enemy = finalTargets[i];
       final delay = i * jumpInterval;
 
-      final prevTargetPos = i == 0
-          ? position.clone()
-          : targets[i - 1].position.clone();
+      final prevTargetPos =
+          i == 0 ? position.clone() : finalTargets[i - 1].position.clone();
 
       if (delay == 0) {
         _applyChainHit(
@@ -374,10 +417,11 @@ class HeroComponent extends PositionComponent
           slashColor,
           focusLevel,
           chainLevel,
-          critMul,
+          damageMult,
           twinShot,
           i == 0,
         );
+        if (focusEvo == 2) _applySplash(enemy.position, damageMult * 0.3);
       } else {
         parent?.add(
           TimerComponent(
@@ -391,10 +435,11 @@ class HeroComponent extends PositionComponent
                 slashColor,
                 focusLevel,
                 chainLevel,
-                critMul,
+                damageMult,
                 false,
                 false,
               );
+              if (focusEvo == 2) _applySplash(enemy.position, damageMult * 0.3);
             },
           ),
         );
@@ -447,6 +492,30 @@ class HeroComponent extends PositionComponent
       source: fromPos,
       type: DamageType.basic,
     );
+
+    // Chain+Nova Synergy: Chain jumps trigger a mini-nova
+    if (game.state.hasChainNovaSynergy) {
+      if (game.canSpawnMinorEffect()) {
+        parent?.add(
+          NovaPulseEffect(
+            effectCenter: enemy.position.clone(),
+            radius: 60,
+            level: game.state.flameNovaLevel,
+          ),
+        );
+      }
+      for (final other in _aliveEnemies()) {
+        if (other != enemy &&
+            (other.position - enemy.position).length2 <= 60 * 60) {
+          other.takeDamage(
+            game.state.flameNovaDamage * 0.15,
+            source: enemy.position.clone(),
+            type: DamageType.nova,
+          );
+        }
+      }
+    }
+
     // Whiplash: primary target hit twice
     if (isPrimary && game.state.meta.hasKeystone('whiplash')) {
       enemy.takeDamage(
@@ -467,6 +536,7 @@ class HeroComponent extends PositionComponent
 
   void _castFlameNova({double damageScale = 1.0, bool isAftershock = false}) {
     final novaLevel = game.state.flameNovaLevel;
+    final novaEvo = game.state.getEvolution(SkillArchetype.nova);
     final radius = game.state.flameNovaRadius;
     final targets = _enemiesInRange(radius);
 
@@ -484,7 +554,8 @@ class HeroComponent extends PositionComponent
     game.shakeCamera(intensity: finalShake, duration: 0.16);
 
     final effectRadius = radius.isFinite ? radius : game.size.length;
-    final finalRadius = effectRadius * (novaLevel >= 5 ? 1.5 : 1.0);
+    final finalRadius =
+        effectRadius * (novaLevel >= 5 ? 1.5 : 1.0) * (novaEvo == 2 ? 1.2 : 1.0);
 
     if (game.canSpawnMajorEffect()) {
       parent?.add(
@@ -492,6 +563,7 @@ class HeroComponent extends PositionComponent
           effectCenter: position.clone(),
           radius: finalRadius * (isAftershock ? 0.7 : 1.0),
           level: novaLevel,
+          color: novaEvo == 2 ? const Color(0xFF7C4DFF) : null,
         ),
       );
       // Level 5 Mastery: Echo pulse
@@ -533,6 +605,13 @@ class HeroComponent extends PositionComponent
           source: position.clone(),
           type: DamageType.nova,
         );
+        // Singularity: Pull enemies inward
+        if (novaEvo == 2) {
+          final toNexus = position - enemy.position;
+          if (toNexus.length > 20) {
+            enemy.position += toNexus.normalized() * 40;
+          }
+        }
       }
     }
     if (!isAftershock && game.state.meta.hasKeystone('aftershock')) {
@@ -545,6 +624,7 @@ class HeroComponent extends PositionComponent
     game.audio.playSkillCast();
 
     final firewallLevel = game.state.firewallLevel;
+    final firewallEvo = game.state.getEvolution(SkillArchetype.firewall);
     Vector2 targetPos;
 
     // Level 2+ Special: Adaptive Targeting (spawns on deepest enemy if exists)
@@ -557,11 +637,11 @@ class HeroComponent extends PositionComponent
     final wallY = targetPos.y;
     final wallX = targetPos.x;
     final width = game.state.firewallWidth;
-    final effectWidth = width.isFinite ? width : game.size.x;
-    final halfWidth = effectWidth / 2;
+    final effectWidth =
+        (width.isFinite ? width : game.size.x) * (firewallEvo == 2 ? 1.5 : 1.0);
     final wallCenter = Vector2(wallX, wallY);
 
-    void addWall(Vector2 center, double w, int lvl) {
+    void addWall(Vector2 center, double w, int lvl, {double dmgMult = 1.0}) {
       if (game.canSpawnMajorEffect()) {
         parent?.add(
           FirewallEffect(
@@ -579,10 +659,14 @@ class HeroComponent extends PositionComponent
 
       for (final enemy in hitEnemies) {
         enemy.takeDamage(
-          game.state.firewallDamage,
+          game.state.firewallDamage * dmgMult,
           source: center,
           type: DamageType.firewall,
         );
+        // Dragon Gate: Knockback
+        if (firewallEvo == 2) {
+          enemy.position += (enemy.position - center).normalized() * 30;
+        }
       }
 
       // Level 4 Special: Ward Refresh (only for first wall)
@@ -602,6 +686,16 @@ class HeroComponent extends PositionComponent
       );
     }
 
+    // Magma Lane: Extra wall
+    if (firewallEvo == 1) {
+      addWall(
+        Vector2(wallX, wallY + 60),
+        effectWidth * 0.9,
+        firewallLevel,
+        dmgMult: 0.8,
+      );
+    }
+
     if (!isBackdraft && game.state.meta.hasKeystone('backdraft')) {
       _backdraftTimer = 0.4;
     }
@@ -611,28 +705,36 @@ class HeroComponent extends PositionComponent
     _pulse(0.12);
     game.audio.playSkillCast();
     final level = game.state.snakeLevel;
-    
-    parent?.add(
-      FireSnake(
-        startPos: position.clone(),
-        level: level,
-        damage: game.state.snakeDamage,
-        speed: game.state.snakeSpeed,
-        trailDuration: game.state.snakeTrailDuration,
-      ),
-    );
+    final snakeEvo = game.state.getEvolution(SkillArchetype.snake);
 
-    // Level 4 Special: Serpent Split
-    if (level >= 4) {
+    if (snakeEvo == 2) {
+      // World Eater: One massive snake
       parent?.add(
         FireSnake(
           startPos: position.clone(),
           level: level,
-          damage: game.state.snakeDamage * 0.7,
-          speed: game.state.snakeSpeed * 1.2,
-          trailDuration: game.state.snakeTrailDuration * 0.8,
+          damage: game.state.snakeDamage * 2.5,
+          speed: game.state.snakeSpeed * 0.8,
+          trailDuration: game.state.snakeTrailDuration * 1.5,
+          isWorldEater: true,
         ),
       );
+    } else {
+      // Base / Hydra
+      final count = snakeEvo == 1 ? 4 : (level >= 4 ? 2 : 1);
+      for (var i = 0; i < count; i++) {
+        final offset =
+            count > 1 ? Vector2((i - 0.5) * 30, (i - 0.5) * 30) : Vector2.zero();
+        parent?.add(
+          FireSnake(
+            startPos: position + offset,
+            level: level,
+            damage: game.state.snakeDamage * (count > 1 ? 0.7 : 1.0),
+            speed: game.state.snakeSpeed * (count > 1 ? 1.2 : 1.0),
+            trailDuration: game.state.snakeTrailDuration,
+          ),
+        );
+      }
     }
   }
 
@@ -640,52 +742,75 @@ class HeroComponent extends PositionComponent
     _pulse(0.18);
     game.audio.playSkillCast();
     final level = game.state.summonLevel;
+    final summonEvo = game.state.getEvolution(SkillArchetype.summon);
 
-    // Wolf at L1
-    parent?.add(
-      FireSummon(
-        startPos: position.clone(),
-        type: SummonType.wolf,
-        level: level,
-        damage: game.state.summonDamage,
-      ),
-    );
-
-    // Salamander at L2
-    if (level >= 2) {
+    if (summonEvo == 2) {
+      // Avatar: One massive spirit with all auras
       parent?.add(
         FireSummon(
           startPos: position.clone(),
-          type: SummonType.salamander,
+          type: SummonType.avatar,
           level: level,
-          damage: game.state.summonDamage,
+          damage: game.state.summonDamage * 2.5,
         ),
       );
-    }
+    } else {
+      final synergy = game.state.hasMothershipSummonSynergy;
+      final summonCount = synergy ? 2 : 1;
 
-    // Phoenix at L4
-    if (level >= 4) {
-      parent?.add(
-        FireSummon(
-          startPos: position.clone(),
-          type: SummonType.phoenix,
-          level: level,
-          damage: game.state.summonDamage,
-        ),
-      );
-    }
+      for (var i = 0; i < summonCount; i++) {
+        final offset =
+            synergy ? Vector2((i - 0.5) * 40, (i - 0.5) * 40) : Vector2.zero();
+        final pos = position + offset;
 
-    // Level 5 Mastery: Great Spirit Menagerie (Bonus burst of all summons)
-    if (level >= 5) {
-      for (final type in SummonType.values) {
+        // Wolf at L1
         parent?.add(
           FireSummon(
-            startPos: position.clone(),
-            type: type,
+            startPos: pos.clone(),
+            type: SummonType.wolf,
             level: level,
-            damage: game.state.summonDamage * 0.5,
+            damage: game.state.summonDamage,
           ),
         );
+
+        // Salamander at L2
+        if (level >= 2) {
+          parent?.add(
+            FireSummon(
+              startPos: pos.clone(),
+              type: SummonType.salamander,
+              level: level,
+              damage: game.state.summonDamage,
+            ),
+          );
+        }
+
+        // Phoenix at L4
+        if (level >= 4) {
+          parent?.add(
+            FireSummon(
+              startPos: pos.clone(),
+              type: SummonType.phoenix,
+              level: level,
+              damage: game.state.summonDamage,
+            ),
+          );
+        }
+
+        // Level 5 Mastery: Great Spirit Menagerie (Bonus burst of all summons)
+        if (level >= 5) {
+          for (final type in SummonType.values) {
+            if (type == SummonType.avatar) continue;
+            parent?.add(
+              FireSummon(
+                startPos: pos.clone(),
+                type: type,
+                level: level,
+                damage: game.state.summonDamage * 0.5,
+              ),
+            );
+          }
+        }
       }
     }
   }
@@ -695,6 +820,7 @@ class HeroComponent extends PositionComponent
     if (target == null) return;
 
     final meteorLevel = game.state.meteorMarkLevel;
+    final meteorEvo = game.state.getEvolution(SkillArchetype.meteor);
     final radius = game.state.meteorMarkRadius;
     final blastRadius = radius.isFinite ? radius : game.size.length;
     final blastRadiusSquared = blastRadius * blastRadius;
@@ -722,13 +848,14 @@ class HeroComponent extends PositionComponent
             target.position.clone(),
             blastRadius,
             blastRadiusSquared,
+            damageScale: meteorEvo == 2 ? 1.4 : 1.0,
           );
 
           // Level 5 Mastery: Rain of Chrome Comets
           if (meteorLevel >= 5) {
             final others = _aliveEnemies().where((e) => e != target).toList();
             others.shuffle(_critRng);
-            final extraCount = 3;
+            final extraCount = 3 + (meteorEvo == 1 ? 3 : 0);
             for (var i = 0; i < extraCount && i < others.length; i++) {
               final extraTarget = others[i];
               final delay = (i + 1) * 0.15;
@@ -798,6 +925,29 @@ class HeroComponent extends PositionComponent
     game.shakeCamera(intensity: 7, duration: 0.22);
     game.audio.playSkillCast(); // Using cast sound for impact 'thud'
 
+    if (game.state.hasMeteorFirewallSynergy) {
+      if (game.canSpawnMajorEffect()) {
+        parent?.add(
+          FirewallEffect(
+            effectCenter: impactPos,
+            effectWidth: 200,
+            level: game.state.firewallLevel,
+          ),
+        );
+      }
+      for (final enemy in _aliveEnemies()) {
+        final insideWidth = (enemy.position.x - impactPos.x).abs() <= 100;
+        final nearWall = (enemy.position.y - impactPos.y).abs() <= 28;
+        if (insideWidth && nearWall) {
+          enemy.takeDamage(
+            game.state.firewallDamage * 0.4,
+            source: impactPos,
+            type: DamageType.firewall,
+          );
+        }
+      }
+    }
+
     for (final enemy in _aliveEnemies()) {
       if ((enemy.position - impactPos).length2 <= radiusSq) {
         enemy.takeDamage(
@@ -831,6 +981,19 @@ class HeroComponent extends PositionComponent
     _pulseDuration = duration;
     for (final blade in _sentinelBlades) {
       blade.pulse(duration);
+    }
+  }
+
+  void _applySplash(Vector2 center, double damageScale) {
+    final blastRadiusSq = 64.0 * 64.0;
+    for (final enemy in _aliveEnemies()) {
+      if ((enemy.position - center).length2 <= blastRadiusSq) {
+        enemy.takeDamage(
+          game.state.heroDamage * damageScale,
+          source: center,
+          type: DamageType.basic,
+        );
+      }
     }
   }
 

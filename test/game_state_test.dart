@@ -280,7 +280,7 @@ void main() {
   test('devGrantSkill cycles levels to 0 after maxLevel', () {
     final state = GameState();
     addTearDown(state.dispose);
-    const skillId = 'void_edge_focus';
+    const skillId = 'focus';
 
     // Grant to max level
     for (var i = 0; i < SkillDefinition.maxLevel; i++) {
