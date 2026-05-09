@@ -76,6 +76,12 @@ class MetaState extends ChangeNotifier {
     _save();
   }
 
+  void devResetEmbers() {
+    embers = 0;
+    notifyListeners();
+    _save();
+  }
+
   void devMaxAll() {
     for (final def in metaUpgradeCatalog) {
       _upgradeTiers[def.id] = def.maxTier;
@@ -83,6 +89,13 @@ class MetaState extends ChangeNotifier {
     for (final def in keystoneCatalog) {
       _keystones.add(def.id);
     }
+    notifyListeners();
+    _save();
+  }
+
+  void devResetAll() {
+    _upgradeTiers.clear();
+    _keystones.clear();
     notifyListeners();
     _save();
   }

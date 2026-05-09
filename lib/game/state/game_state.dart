@@ -271,6 +271,32 @@ class GameState extends ChangeNotifier {
     _saveSoon();
   }
 
+  void devResetAllSkills() {
+    _skillLevels.clear();
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void devMaxArchetypeSkills(SkillArchetype archetype) {
+    for (final def in skillCatalog) {
+      if (def.archetype == archetype) {
+        _skillLevels[def.id] = SkillDefinition.maxLevel;
+      }
+    }
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void devResetArchetypeSkills(SkillArchetype archetype) {
+    for (final def in skillCatalog) {
+      if (def.archetype == archetype) {
+        _skillLevels.remove(def.id);
+      }
+    }
+    notifyListeners();
+    _saveSoon();
+  }
+
   void devForceLevelUp() {
     _rollUpgradeChoices();
     notifyListeners();
@@ -351,6 +377,29 @@ class GameState extends ChangeNotifier {
 
   void devHealNexus() {
     nexusHp = nexusMaxHp;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void devResetCurrency() {
+    gold = 0;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void devResetFloor() {
+    floor = 1;
+    killsOnFloor = 0;
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void devResetEngine() {
+    devTimeScale = 1.0;
+    devEnemyStrength = 1.0;
+    devPauseSpawning = false;
+    godMode = false;
+    devDisableUpgrades = false;
     notifyListeners();
     _saveSoon();
   }

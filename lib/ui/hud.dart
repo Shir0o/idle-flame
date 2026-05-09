@@ -610,7 +610,13 @@ class _DevToolsState extends State<_DevTools> {
                       child: ListView(
                         shrinkWrap: true,
                         children: [
-                          _MenuHeader('CURRENCY & PROGRESS'),
+                          _MenuHeader(
+                            'CURRENCY & PROGRESS',
+                            onReset: () {
+                              state.devResetCurrency();
+                              meta.devResetEmbers();
+                            },
+                          ),
                           _MenuItem(
                             icon: Icons.add_circle,
                             color: const Color(0xFF64FFDA),
@@ -645,6 +651,13 @@ class _DevToolsState extends State<_DevTools> {
                             onTap: () => state.devMaxAllSkills(),
                           ),
                           _MenuItem(
+                            icon: Icons.restart_alt,
+                            color: const Color(0xFFFF8A80),
+                            label: 'Reset All Skills',
+                            description: 'Remove all skills from current run.',
+                            onTap: () => state.devResetAllSkills(),
+                          ),
+                          _MenuItem(
                             icon: Icons.star,
                             color: const Color(0xFFFFD166),
                             label: 'Max Meta',
@@ -652,7 +665,17 @@ class _DevToolsState extends State<_DevTools> {
                                 'Instantly unlock and max all meta-upgrades.',
                             onTap: () => meta.devMaxAll(),
                           ),
-                          _MenuHeader('FLOOR & COMBAT'),
+                          _MenuItem(
+                            icon: Icons.restart_alt,
+                            color: const Color(0xFFFF8A80),
+                            label: 'Reset Meta',
+                            description: 'Lock and reset all meta-upgrades.',
+                            onTap: () => meta.devResetAll(),
+                          ),
+                          _MenuHeader(
+                            'FLOOR & COMBAT',
+                            onReset: () => state.devResetFloor(),
+                          ),
                           _MenuItem(
                             icon: Icons.keyboard_double_arrow_up,
                             color: const Color(0xFF64FFDA),
@@ -683,7 +706,10 @@ class _DevToolsState extends State<_DevTools> {
                                 'Wipe all enemies and collect rewards.',
                             onTap: () => state.requestDevKillAll(),
                           ),
-                          _MenuHeader('ENGINE & UTILITIES'),
+                          _MenuHeader(
+                            'ENGINE & UTILITIES',
+                            onReset: () => state.devResetEngine(),
+                          ),
                           _MenuItem(
                             icon: state.devPauseSpawning
                                 ? Icons.play_arrow
@@ -1028,11 +1054,7 @@ class _DevToolsState extends State<_DevTools> {
                           icon: Icons.restart_alt_rounded,
                           label: 'Reset All',
                           color: const Color(0xFFFF8A80),
-                          onTap: () {
-                            for (final def in skillCatalog) {
-                              state.devSetSkillLevel(def.id, 0);
-                            }
-                          },
+                          onTap: () => state.devResetAllSkills(),
                         ),
                       ],
                     ),
@@ -1081,8 +1103,9 @@ class _DevToolsState extends State<_DevTools> {
 }
 
 class _MenuHeader extends StatelessWidget {
-  const _MenuHeader(this.title);
+  const _MenuHeader(this.title, {this.onReset});
   final String title;
+  final VoidCallback? onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -1109,6 +1132,15 @@ class _MenuHeader extends StatelessWidget {
               letterSpacing: 1.4,
             ),
           ),
+          if (onReset != null) ...[
+            const SizedBox(width: 12),
+            _BulkActionButton(
+              icon: Icons.restart_alt_rounded,
+              label: 'RESET',
+              color: const Color(0xFFFF8A80),
+              onTap: onReset!,
+            ),
+          ],
           const SizedBox(width: 10),
           Expanded(
             child: Container(
@@ -1434,6 +1466,21 @@ class _ArchetypeSection extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        const Spacer(),
+                        _BulkActionButton(
+                          icon: Icons.last_page_rounded,
+                          label: 'Max',
+                          color: color,
+                          onTap: () => state.devMaxArchetypeSkills(archetype),
+                        ),
+                        const SizedBox(width: 6),
+                        _BulkActionButton(
+                          icon: Icons.first_page_rounded,
+                          label: 'Reset',
+                          color: const Color(0xFFFF8A80),
+                          onTap: () => state.devResetArchetypeSkills(archetype),
+                        ),
+                        const SizedBox(width: 8),
                       ],
                     ),
                   ),
