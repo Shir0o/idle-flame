@@ -120,9 +120,10 @@ class _ArsenalPanel extends StatelessWidget {
         return Consumer2<GameState, MetaState>(
           builder: (context, state, meta, _) {
             final possessedSkills = state.skillLevels.entries.map((entry) {
-              final def = skillCatalog.firstWhere((d) => d.id == entry.key);
+              final def = findSkillById(entry.key);
+              if (def == null) return null;
               return (def: def, level: entry.value);
-            }).toList();
+            }).nonNulls.toList();
 
             final byArchetype = <SkillArchetype, List<_PossessedSkill>>{};
             for (final item in possessedSkills) {

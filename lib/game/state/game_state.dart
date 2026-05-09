@@ -828,12 +828,7 @@ class GameState extends ChangeNotifier {
     );
   }
 
-  SkillDefinition? _skillById(String id) {
-    for (final definition in skillCatalog) {
-      if (definition.id == id) return definition;
-    }
-    return null;
-  }
+  SkillDefinition? _skillById(String id) => findSkillById(id);
 
   List<String> _encodeSkillLevels() {
     return _skillLevels.entries

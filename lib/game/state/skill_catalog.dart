@@ -201,6 +201,13 @@ final List<SkillDefinition> skillCatalog = List.unmodifiable([
       id: 'summon', title: 'Fire Wolf Spirit', archetype: SkillArchetype.summon),
 ]);
 
+SkillDefinition? findSkillById(String id) {
+  for (final def in skillCatalog) {
+    if (def.id == id) return def;
+  }
+  return null;
+}
+
 class SkillEvolution {
   const SkillEvolution({
     required this.name,

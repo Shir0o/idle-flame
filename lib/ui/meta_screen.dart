@@ -118,7 +118,8 @@ class _Header extends StatelessWidget {
             runSpacing: 6,
             alignment: WrapAlignment.center,
             children: game.skillLevels.keys.map((skillId) {
-              final def = skillCatalog.firstWhere((d) => d.id == skillId);
+              final def = findSkillById(skillId);
+              if (def == null) return const SizedBox.shrink();
               return Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
