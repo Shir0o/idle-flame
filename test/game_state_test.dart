@@ -297,6 +297,54 @@ void main() {
     expect(state.skillLevel(skillId), 1);
   });
 
+  test('skill levels and evolutions survive save/load round-trip', () async {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    // Set some state
+    state.devSetSkillLevel('chain', 5);
+    state.pendingEvolutionArchetype = SkillArchetype.chain;
+    state.selectEvolution(1); // Chainstorm
+    state.devSetSkillLevel('nova', 3);
+
+    expect(state.skillLevel('chain'), 5);
+    expect(state.getEvolution(SkillArchetype.chain), 1);
+
+    // Save explicitly (flushing the debounce)
+    await state.save();
+    
+    final state2 = GameState();
+    addTearDown(state2.dispose);
+    await state2.load();
+
+    expect(state2.skillLevel('chain'), 5);
+    expect(state2.getEvolution(SkillArchetype.chain), 1);
+    expect(state2.skillLevel('nova'), 3);
+  });
+
+  test('old skill IDs are migrated to new archetype IDs', () async {
+    final prefs = await SharedPreferences.getInstance();
+    // Simulate an old save with 127-variant IDs
+    await prefs.setStringList('skillLevels', [
+      'neon_katana_chain:3',
+      'mana_reactor_nova:2',
+      'soulcoin_brand:1',
+    ]);
+
+    final state = GameState();
+    addTearDown(state.dispose);
+    await state.load();
+
+    // Verify migration
+    expect(state.skillLevel('chain'), 3);
+    expect(state.skillLevel('nova'), 2);
+    expect(state.skillLevel('bounty'), 1);
+
+    // Verify old IDs are cleaned up from internal map
+    expect(state.skillLevels.containsKey('neon_katana_chain'), isFalse);
+    expect(state.skillLevels.containsKey('chain'), isTrue);
+  });
+
   test('devMaxAllSkills maxes out every skill', () {
     final state = GameState();
     addTearDown(state.dispose);

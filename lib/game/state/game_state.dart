@@ -797,8 +797,9 @@ class GameState extends ChangeNotifier {
 
   double _offerWeight(String id) {
     final level = skillLevel(id);
-    // 1 + 3 * exp(-level / 4) - Rewards early investment but decays
-    double weight = 1.0 + 3.0 * exp(-level / 4.0);
+    // Peaks around level 2 (commitment reward), then decays.
+    // 1.0 floor ensures everything stays in the pool.
+    double weight = 1.0 + 5.0 * level * exp(-level / 1.5);
 
     // Cooldown on recently offered
     if (_recentlyOfferedIds.contains(id)) {
