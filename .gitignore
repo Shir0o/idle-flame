@@ -64,3 +64,6 @@ app.*.map.json
 *.ogg
 *.flac
 *.zip
+
+# Claude local settings and worktrees
+.claude/
