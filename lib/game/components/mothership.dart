@@ -45,8 +45,15 @@ class Mothership extends PositionComponent
     final heroPos = game.hero.position;
     _orbit(heroPos, dt);
 
-    if (_spawnTimer >= game.state.mothershipSpawnInterval) {
+    final spawnInterval = game.state.mothershipSpawnInterval;
+    final hasBandwidth = game.state.daemonBandwidth >= 10;
+    final actualInterval = hasBandwidth ? spawnInterval : spawnInterval * 2.0;
+
+    if (_spawnTimer >= actualInterval) {
       _spawnTimer = 0;
+      if (hasBandwidth) {
+        game.state.useBandwidth(10);
+      }
       _launchCrewShips();
     }
   }
@@ -338,6 +345,19 @@ class CrewShip extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
     final toTarget = _target!.position - position;
     final dist = toTarget.length;
+
+    // Sovereign Network Triad: Patrol firewall lanes
+    if (game.state.hasTriad('sovereign_network')) {
+      final walls = parent?.children.whereType<FirewallEffect>() ?? [];
+      if (walls.isNotEmpty) {
+        final nearestWall = walls.first;
+        final targetY = nearestWall.effectCenter.y;
+        final dy = targetY - position.y;
+        if (dy.abs() > 20) {
+          position.y += dy.sign * _speed * 0.4 * dt;
+        }
+      }
+    }
 
     switch (type) {
       case CrewShipType.interceptor:

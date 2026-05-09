@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:collection/collection.dart';
 
 import '../game/state/game_state.dart';
 import '../game/state/meta_catalog.dart';
 import '../game/state/meta_state.dart';
 import '../game/state/skill_catalog.dart';
+import '../game/state/triad_catalog.dart';
+import '../game/state/inflection_catalog.dart';
 
-class MetaShopScreen extends StatefulWidget {
-  const MetaShopScreen({super.key});
+class MetaScreen extends StatefulWidget {
+  const MetaScreen({super.key});
 
   @override
-  State<MetaShopScreen> createState() => _MetaShopScreenState();
+  State<MetaScreen> createState() => _MetaScreenState();
 }
 
-class _MetaShopScreenState extends State<MetaShopScreen> {
+class _MetaScreenState extends State<MetaScreen> {
   int _tab = 0;
 
   @override
@@ -448,6 +449,30 @@ class _CodexList extends StatelessWidget {
             icon: Icons.auto_awesome,
             color: Colors.amber,
             discovered: meta.discoveredIds.contains(f.id),
+          )).toList(),
+        ),
+        const SizedBox(height: 16),
+        // Triads
+        const _CodexHeader(title: 'TRIADS'),
+        _CodexGrid(
+          items: triadCatalog.map((t) => _CodexItem(
+            id: 'triad:${t.id}',
+            name: t.name,
+            icon: Icons.hub,
+            color: const Color(0xFF64FFDA),
+            discovered: meta.discoveredIds.contains('triad:${t.id}'),
+          )).toList(),
+        ),
+        const SizedBox(height: 16),
+        // Inflections
+        const _CodexHeader(title: 'INFLECTIONS'),
+        _CodexGrid(
+          items: inflectionCatalog.map((i) => _CodexItem(
+            id: 'inflection:${i.id}',
+            name: i.name,
+            icon: Icons.tune,
+            color: i.rarity == InflectionRarity.rare ? Colors.amber : Colors.white60,
+            discovered: meta.discoveredIds.contains('inflection:${i.id}'),
           )).toList(),
         ),
         const SizedBox(height: 16),

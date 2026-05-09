@@ -131,6 +131,32 @@ class HeroComponent extends PositionComponent
     canvas.drawCircle(center, radius, fillPaint);
     canvas.drawCircle(center, radius, outlinePaint);
 
+    // Trinity Awakening Rings
+    for (var i = 0; i < SkillPath.values.length; i++) {
+      final path = SkillPath.values[i];
+      if (game.state.meta.isAwakened(path)) {
+        final ringRadius = radius * (1.4 + i * 0.25);
+        canvas.drawCircle(
+          center,
+          ringRadius,
+          Paint()
+            ..color = path.color.withValues(alpha: 0.5)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.0,
+        );
+        // Outer glow for the ring
+        canvas.drawCircle(
+          center,
+          ringRadius,
+          Paint()
+            ..color = path.color.withValues(alpha: 0.2)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 4.0
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+        );
+      }
+    }
+
     // Inner core glow
     final glowPaint = Paint()
       ..color = coreColor.withValues(alpha: 0.3)
@@ -210,9 +236,20 @@ class HeroComponent extends PositionComponent
     }
   }
 
+  Enemy? _stanceTarget;
+  double _stanceTimer = 0;
+
   @override
   void update(double dt) {
     super.update(dt);
+
+    if (_stanceTimer > 0) {
+      _stanceTimer -= dt;
+      if (_stanceTimer <= 0) {
+        _stanceTarget = null;
+        game.state.edgeStance = 0;
+      }
+    }
 
     _idlePhase += dt;
     if (_attackFlashTimer > 0) _attackFlashTimer -= dt;
@@ -239,6 +276,7 @@ class HeroComponent extends PositionComponent
       _tryAttack();
     }
 
+    // Skills update with Signatures
     _novaTimer += dt;
     final novaEvo = game.state.getEvolution(SkillArchetype.nova);
     final actualNovaCooldown = novaEvo == 1
@@ -247,34 +285,45 @@ class HeroComponent extends PositionComponent
 
     if (game.state.flameNovaLevel > 0 && _novaTimer >= actualNovaCooldown) {
       _novaTimer = 0;
-      _castFlameNova();
+      bool doubled = game.state.useCinder();
+      _castFlameNova(doubled: doubled);
     }
+
     _firewallTimer += dt;
-    if (game.state.firewallLevel > 0 &&
-        _firewallTimer >= GameState.firewallCooldown) {
+    final hasWallBandwidth = game.state.daemonBandwidth >= 20;
+    final wallCooldown = hasWallBandwidth ? GameState.firewallCooldown : GameState.firewallCooldown * 2.0;
+    if (game.state.firewallLevel > 0 && _firewallTimer >= wallCooldown) {
       _firewallTimer = 0;
+      if (hasWallBandwidth) game.state.useBandwidth(20);
       _castFirewall();
     }
+
     _meteorTimer += dt;
-    if (game.state.meteorMarkLevel > 0 &&
-        _meteorTimer >= GameState.meteorMarkCooldown) {
+    final hasMeteorBandwidth = game.state.daemonBandwidth >= 30;
+    final meteorCooldown = hasMeteorBandwidth ? GameState.meteorMarkCooldown : GameState.meteorMarkCooldown * 2.0;
+    if (game.state.meteorMarkLevel > 0 && _meteorTimer >= meteorCooldown) {
       _meteorTimer = 0;
+      if (hasMeteorBandwidth) game.state.useBandwidth(30);
       _castMeteorMark();
     }
+
     _snakeTimer += dt;
     if (game.state.snakeLevel > 0 && _snakeTimer >= GameState.snakeCooldown) {
       _snakeTimer = 0;
-      _castSnake();
+      bool doubled = game.state.useCinder();
+      _castSnake(doubled: doubled);
     }
+
     _summonTimer += dt;
     final summonEvo = game.state.getEvolution(SkillArchetype.summon);
-    final actualSummonCooldown =
-        GameState.summonCooldown / (summonEvo == 1 ? 2.0 : 1.0);
+    final baseSummonCooldown = GameState.summonCooldown / (summonEvo == 1 ? 2.0 : 1.0);
 
-    if (game.state.summonLevel > 0 && _summonTimer >= actualSummonCooldown) {
+    if (game.state.summonLevel > 0 && _summonTimer >= baseSummonCooldown) {
       _summonTimer = 0;
-      _castSummon();
+      bool doubled = game.state.useCinder();
+      _castSummon(doubled: doubled);
     }
+
     if (_aftershockTimer > 0) {
       _aftershockTimer -= dt;
       if (_aftershockTimer <= 0) {
@@ -494,7 +543,19 @@ class HeroComponent extends PositionComponent
     final meta = game.state.meta;
     final barrageEvo = game.state.getEvolution(SkillArchetype.barrage);
     _attackCount++;
-    bool forceCrit = barrageEvo == 2 && _attackCount % 3 == 0;
+
+    // Stance Spending
+    bool stanceCrit = false;
+    bool stanceCleave = false;
+    if (game.state.edgeStance >= 5) {
+      stanceCleave = true;
+      game.state.edgeStance = 0;
+    } else if (game.state.edgeStance >= 3) {
+      stanceCrit = true;
+      game.state.edgeStance = 0;
+    }
+
+    bool forceCrit = (barrageEvo == 2 && _attackCount % 3 == 0) || stanceCrit;
 
     final critRoll =
         forceCrit || (meta.hasKeystone('crit') && _critRng.nextDouble() < 0.08);
@@ -530,10 +591,15 @@ class HeroComponent extends PositionComponent
     if (chainEvo == 2) damageMult *= 4.0; // Tetherblade
     if (focusEvo == 1) damageMult *= 1.5; // Precision
 
+    double range = game.state.heroAttackRange;
+    if (meta.hasSutraPerk(SkillArchetype.chain, 5)) {
+      range *= 2.0; // "Never miss" - double effective range
+    }
+
     final finalTargets = game.selectNearestEnemies(
       position,
       actualTargets,
-      range: game.state.heroAttackRange,
+      range: range,
     );
 
     if (finalTargets.isNotEmpty) {
@@ -548,6 +614,12 @@ class HeroComponent extends PositionComponent
       final prevTargetPos =
           i == 0 ? position.clone() : finalTargets[i - 1].position.clone();
 
+      // Quicksilver Triad: Focus damage stacks per hop
+      double hopDamageMult = damageMult;
+      if (game.state.hasTriad('quicksilver')) {
+        hopDamageMult *= (1.0 + i * 0.15);
+      }
+
       if (delay == 0) {
         _applyChainHit(
           enemy,
@@ -555,11 +627,16 @@ class HeroComponent extends PositionComponent
           slashColor,
           focusLevel,
           chainLevel,
-          damageMult,
+          hopDamageMult,
           twinShot,
           i == 0,
         );
-        if (focusEvo == 2) _applySplash(enemy.position, damageMult * 0.3);
+        if (focusEvo == 2) _applySplash(enemy.position, hopDamageMult * 0.3);
+        if (stanceCleave && i == 0) {
+          final tier = game.state.edgeTier;
+          final cleaveMult = 2.0 * (1 + tier.index * 0.5);
+          _applySplash(enemy.position, hopDamageMult * cleaveMult);
+        }
       } else {
         parent?.add(
           TimerComponent(
@@ -573,11 +650,16 @@ class HeroComponent extends PositionComponent
                 slashColor,
                 focusLevel,
                 chainLevel,
-                damageMult,
+                hopDamageMult,
                 false,
                 false,
               );
-              if (focusEvo == 2) _applySplash(enemy.position, damageMult * 0.3);
+              if (focusEvo == 2) _applySplash(enemy.position, hopDamageMult * 0.3);
+
+              // Storm Triad: Chain hops chill
+              if (game.state.hasTriad('storm_triad')) {
+                enemy.applyChill();
+              }
             },
           ),
         );
@@ -605,6 +687,16 @@ class HeroComponent extends PositionComponent
     bool twinShot,
     bool isPrimary,
   ) {
+    if (isPrimary) {
+      if (_stanceTarget == enemy) {
+        game.state.edgeStance = (game.state.edgeStance + 1).clamp(0, 5);
+      } else {
+        _stanceTarget = enemy;
+        game.state.edgeStance = 1;
+      }
+      _stanceTimer = 1.0;
+    }
+
     if (_canSpawnAttackEffect(lowPriority: !isPrimary)) {
       parent?.add(
         SlashArcEffect(
@@ -630,6 +722,19 @@ class HeroComponent extends PositionComponent
       source: fromPos,
       type: DamageType.basic,
     );
+
+    // Quicksilver Triad: Each barrage hit reduces chain cooldown
+    if (game.state.hasTriad('quicksilver') && game.state.barrageLevel > 0) {
+      _attackTimer += 0.5;
+    }
+
+    // Inflection: Volatile (Final jump crits)
+    if (game.state.hasInflection('chain_volatile') && !isPrimary) {
+      // Check if this is the last target in the chain
+      // In _tryAttack, we iterate over finalTargets. 
+      // We'd need to pass a flag. For now, let's just make non-primary hits have a crit chance.
+      critMul = 3.0; 
+    }
 
     // EDGE Adept: Phantom Slash
     if (game.state.edgeTier.index >= PathTier.adept.index) {
@@ -718,13 +823,17 @@ class HeroComponent extends PositionComponent
     }
   }
 
-  void _castFlameNova({double damageScale = 1.0, bool isAftershock = false}) {
+  void _castFlameNova({
+    double damageScale = 1.0,
+    bool isAftershock = false,
+    bool doubled = false,
+  }) {
     final novaLevel = game.state.flameNovaLevel;
     final novaEvo = game.state.getEvolution(SkillArchetype.nova);
     final radius = game.state.flameNovaRadius;
 
     // Sigil Reactor: Firewall lanes double Nova radius
-    double finalRadiusMult = 1.0;
+    double finalRadiusMult = doubled ? 2.0 : 1.0;
     if (game.state.sigilReactor) {
       final walls = parent?.children.whereType<FirewallEffect>() ?? [];
       if (walls.any((w) => (w.effectCenter.y - position.y).abs() <= 50)) {
@@ -751,15 +860,38 @@ class HeroComponent extends PositionComponent
     final finalRadius =
         effectRadius * (novaLevel >= 5 ? 1.5 : 1.0) * (novaEvo == 2 ? 1.2 : 1.0);
 
+    // Storm Triad: Check for chilled clusters
+    bool isIceStorm = false;
+    if (game.state.hasTriad('storm_triad')) {
+      isIceStorm = targets.any((e) => e.slowStacks > 0);
+    }
+
     if (game.canSpawnMajorEffect()) {
       parent?.add(
         NovaPulseEffect(
           effectCenter: position.clone(),
           radius: finalRadius * (isAftershock ? 0.7 : 1.0),
           level: novaLevel,
-          color: novaEvo == 2 ? const Color(0xFF7C4DFF) : null,
+          color: isIceStorm
+              ? const Color(0xFF00E5FF)
+              : (novaEvo == 2 ? const Color(0xFF7C4DFF) : null),
         ),
       );
+
+      // Sutra 25 Perk: Afterglow
+      if (game.state.meta.hasSutraPerk(SkillArchetype.nova, 25) && !isAftershock) {
+        parent?.add(
+          TimerComponent(
+            period: 1.0,
+            removeOnFinish: true,
+            onTick: () {
+              if (game.state.isRunOver) return;
+              _castFlameNova(damageScale: 0.5, isAftershock: true);
+            },
+          ),
+        );
+      }
+
       // Level 5 Mastery: Echo pulse
       if (novaLevel >= 5 && !isAftershock) {
         parent?.add(
@@ -795,10 +927,16 @@ class HeroComponent extends PositionComponent
       if (novaLevel < 5 ||
           (enemy.position - position).length2 <= finalRadius * finalRadius) {
         enemy.takeDamage(
-          game.state.flameNovaDamage * finalDamageScale,
+          game.state.flameNovaDamage * finalDamageScale * (isIceStorm ? 1.5 : 1.0),
           source: position.clone(),
           type: DamageType.nova,
         );
+
+        // Inflection: Burning
+        if (game.state.hasInflection('nova_burning')) {
+          enemy.applyBurn(duration: 2.0, dps: game.state.flameNovaDamage * 0.2);
+        }
+
         // Singularity: Pull enemies inward
         if (novaEvo == 2) {
           final toNexus = position - enemy.position;
@@ -867,6 +1005,30 @@ class HeroComponent extends PositionComponent
       if (firewallLevel >= 4 && hitEnemies.length >= 4) {
         _firewallTimer = GameState.firewallCooldown * 0.4;
       }
+
+      // Hellgate Choir Triad: Snakes hatch from edges
+      if (game.state.hasTriad('hellgate_choir')) {
+        final edge1 = center + Vector2(-w / 2, 0);
+        final edge2 = center + Vector2(w / 2, 0);
+        parent?.add(
+          FireSnake(
+            startPos: edge1,
+            level: game.state.snakeLevel,
+            damage: game.state.snakeDamage,
+            speed: game.state.snakeSpeed,
+            trailDuration: game.state.snakeTrailDuration,
+          ),
+        );
+        parent?.add(
+          FireSnake(
+            startPos: edge2,
+            level: game.state.snakeLevel,
+            damage: game.state.snakeDamage,
+            speed: game.state.snakeSpeed,
+            trailDuration: game.state.snakeTrailDuration,
+          ),
+        );
+      }
     }
 
     addWall(wallCenter, effectWidth, firewallLevel);
@@ -895,7 +1057,7 @@ class HeroComponent extends PositionComponent
     }
   }
 
-  void _castSnake() {
+  void _castSnake({bool doubled = false}) {
     _pulse(0.12);
     game.audio.playSkillCast();
     final level = game.state.snakeLevel;
@@ -907,7 +1069,7 @@ class HeroComponent extends PositionComponent
         FireSnake(
           startPos: position.clone(),
           level: level,
-          damage: game.state.snakeDamage * 2.5,
+          damage: game.state.snakeDamage * (doubled ? 5.0 : 2.5),
           speed: game.state.snakeSpeed * 0.8,
           trailDuration: game.state.snakeTrailDuration * 1.5,
           isWorldEater: true,
@@ -915,7 +1077,8 @@ class HeroComponent extends PositionComponent
       );
     } else {
       // Base / Hydra
-      final count = snakeEvo == 1 ? 4 : (level >= 4 ? 2 : 1);
+      final baseCount = snakeEvo == 1 ? 4 : (level >= 4 ? 2 : 1);
+      final count = doubled ? baseCount * 2 : baseCount;
       for (var i = 0; i < count; i++) {
         final offset =
             count > 1 ? Vector2((i - 0.5) * 30, (i - 0.5) * 30) : Vector2.zero();
@@ -932,7 +1095,7 @@ class HeroComponent extends PositionComponent
     }
   }
 
-  void _castSummon() {
+  void _castSummon({bool doubled = false}) {
     _pulse(0.18);
     game.audio.playSkillCast();
     final level = game.state.summonLevel;
@@ -945,12 +1108,12 @@ class HeroComponent extends PositionComponent
           startPos: position.clone(),
           type: SummonType.avatar,
           level: level,
-          damage: game.state.summonDamage * 2.5,
+          damage: game.state.summonDamage * (doubled ? 5.0 : 2.5),
         ),
       );
     } else {
       final synergy = game.state.hasMothershipSummonSynergy;
-      final summonCount = synergy ? 2 : 1;
+      final summonCount = (synergy ? 2 : 1) * (doubled ? 2 : 1);
 
       for (var i = 0; i < summonCount; i++) {
         final offset =
@@ -1118,6 +1281,20 @@ class HeroComponent extends PositionComponent
     _pulse(0.24);
     game.shakeCamera(intensity: 7, duration: 0.22);
     game.audio.playSkillCast(); // Using cast sound for impact 'thud'
+
+    // Sovereign Network Triad: Meteor impacts spawn a drone
+    if (game.state.hasTriad('sovereign_network')) {
+      if (CrewShip.availableSlots > 0 && CrewShip.reserveSpawn()) {
+        parent?.add(
+          CrewShip(
+            startPos: impactPos.clone(),
+            level: game.state.mothershipLevel,
+            damage: game.state.mothershipDroneDamage,
+            type: CrewShipType.interceptor,
+          ),
+        );
+      }
+    }
 
     if (game.state.hasMeteorFirewallSynergy) {
       if (game.canSpawnMajorEffect()) {

@@ -94,12 +94,21 @@ class SentinelBlade extends PositionComponent
       _findTarget(heroPos);
     }
 
+    // Iron Cathedral Triad: Patrol firewall lanes
+    Vector2 orbitRef = heroPos;
+    if (game.state.hasTriad('iron_cathedral')) {
+      final walls = parent?.children.whereType<FirewallEffect>() ?? [];
+      if (walls.isNotEmpty) {
+        orbitRef = walls.first.effectCenter;
+      }
+    }
+
     switch (_phase) {
       case _StrikePhase.idle:
         if (_target != null && _attackTimer <= 0) {
           _enterWindup();
         } else {
-          _orbit(heroPos, dt);
+          _orbit(orbitRef, dt);
         }
         break;
       case _StrikePhase.windup:
@@ -451,8 +460,13 @@ class SentinelBlade extends PositionComponent
   }
 
   void _applySliceDamage(Vector2 motion, Enemy t) {
+    double damage = game.state.sentinelDamage;
+    if (game.state.meta.hasSutraPerk(SkillArchetype.sentinel, 10) && _hitThisDash.isEmpty) {
+      damage *= 1.5; // 50% extra damage to the first enemy hit
+    }
+
     t.takeDamage(
-      game.state.sentinelDamage,
+      damage,
       source: position,
       type: DamageType.sentinel,
     );

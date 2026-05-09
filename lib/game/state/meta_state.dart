@@ -19,6 +19,7 @@ class MetaState extends ChangeNotifier {
   Set<String> get discoveredIds => Set.unmodifiable(_discoveredIds);
 
   int sutraCount(SkillArchetype archetype) => _sutras[archetype] ?? 0;
+  bool hasSutraPerk(SkillArchetype archetype, int mark) => sutraCount(archetype) >= mark;
   bool isAwakened(SkillPath path) => _awakenings[path] ?? false;
 
   void recordDiscovery(String id) {

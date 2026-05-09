@@ -3,6 +3,8 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../zenith_zero_game.dart';
 import 'enemy.dart';
+import 'combat_effects.dart';
+import 'fire_snake.dart';
 
 enum SummonType { wolf, salamander, phoenix, avatar }
 
@@ -141,9 +143,41 @@ class FireSummon extends PositionComponent
           source: position,
           type: DamageType.firewall,
         );
+
+        // Spirit Choir Triad: Summons emit nova pulses on attack
+        if (game.state.hasTriad('spirit_choir')) {
+          _pulseTimer += dt;
+          if (_pulseTimer >= 0.5) {
+            _pulseTimer = 0;
+            if (game.canSpawnMinorEffect()) {
+              parent?.add(
+                NovaPulseEffect(
+                  effectCenter: position.clone(),
+                  radius: 60,
+                  level: 1,
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.6),
+                ),
+              );
+            }
+          }
+        }
+      }
+    }
+
+    // Hellgate Choir Triad: Ignite snakes on contact
+    if (game.state.hasTriad('hellgate_choir')) {
+      final snakes = parent?.children.whereType<FireSnake>();
+      if (snakes != null) {
+        for (final snake in snakes) {
+          if ((snake.position - position).length2 < 50 * 50) {
+            snake.ignite();
+          }
+        }
       }
     }
   }
+
+  double _pulseTimer = 0;
 
   @override
   void render(Canvas canvas) {

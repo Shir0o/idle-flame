@@ -22,6 +22,13 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
   final double trailDuration;
   final bool isWorldEater;
 
+  double _igniteTimer = 0;
+  bool get isIgnited => _igniteTimer > 0;
+
+  void ignite() {
+    _igniteTimer = 1.0;
+  }
+
   final List<Vector2> _trail = [];
   final List<double> _trailAges = [];
   static const double _pointSpacing = 8.0;
@@ -40,6 +47,7 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
     }
     _totalTime += dt;
     _lifeTime += dt;
+    if (_igniteTimer > 0) _igniteTimer -= dt;
 
     if (_lifeTime >= _maxLife) {
       _target = null;
@@ -92,8 +100,11 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
     }
 
     // Damage logic
-    final hitRadius = isWorldEater ? 48.0 : 24.0;
+    final baseRadius = isWorldEater ? 48.0 : 24.0;
+    final hitRadius = isIgnited ? baseRadius * 1.5 : baseRadius;
     final hitRadius2 = hitRadius * hitRadius;
+    final finalDamage = isIgnited ? damage * 2.0 : damage;
+
     for (final enemy in game.targetableEnemies) {
       bool hit = false;
       // Check head
@@ -111,7 +122,7 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
 
       if (hit) {
         enemy.takeDamage(
-          damage * dt, // Continuous damage
+          finalDamage * dt, // Continuous damage
           source: position,
           type: DamageType.firewall,
         );

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'mech_catalog.dart';
 import 'meta_state.dart';
 import 'skill_catalog.dart';
+import 'triad_catalog.dart';
+import 'inflection_catalog.dart';
 
 class SkillChoice {
   const SkillChoice({
@@ -17,6 +19,7 @@ class SkillChoice {
     required this.level,
     required this.maxLevel,
     required this.description,
+    this.inflectionOptions = const [],
   });
 
   final SkillDefinition definition;
@@ -24,6 +27,7 @@ class SkillChoice {
   final int level;
   final int maxLevel;
   final String description;
+  final List<InflectionDefinition> inflectionOptions;
 
   bool get isNew => currentLevel == 0;
 
@@ -67,7 +71,7 @@ class GameState extends ChangeNotifier {
 
   static const String devAccessKey = 'TWANGPRO';
 
-  final Random _rng = Random();
+  final math.Random _rng = math.Random();
   final MetaState meta;
 
   int gold = 0;
@@ -91,10 +95,16 @@ class GameState extends ChangeNotifier {
   double devEnemyStrength = 1.0;
   int devKillAllRequest = 0;
 
+  int edgeStance = 0;
+  double daemonBandwidth = 100.0;
+  double hexCinder = 0.0;
+
   final Map<String, int> _skillLevels = {};
   final Map<SkillArchetype, int> _evolutions = {};
   final Set<String> _ownedFusionIds = {};
   final Set<String> _activeCantIds = {};
+  final Set<String> _activeTriadIds = {};
+  final Map<String, List<String>> _selectedInflections = {};
   List<String> _pendingUpgradeIds = [];
   List<String> _pendingFusionIds = [];
   List<String> _pendingCantIds = [];
@@ -131,6 +141,7 @@ class GameState extends ChangeNotifier {
 
   int levelUpCount = 0;
   int _streakStacks = 0;
+  int _bountyStreakStacks = 0;
   DateTime? _lastKillAt;
   bool _embersAwardedThisRun = false;
 
@@ -194,7 +205,7 @@ class GameState extends ChangeNotifier {
       (getEvolution(SkillArchetype.sentinel) == 1 ? 2 : 0);
   double get sentinelDamage =>
       heroDamage * (0.35 + sentinelLevel * 0.08) * sutraMultiplier(SkillArchetype.sentinel);
-  double get sentinelAttackCooldown => 0.8 * pow(0.92, sentinelLevel);
+  double get sentinelAttackCooldown => 0.8 * math.pow(0.92, sentinelLevel);
   double get sentinelOrbitSpeed => 2.4 * (1 + sentinelLevel * 0.1);
 
   int get mothershipLevel => _archetypeLevel(SkillArchetype.mothership);
@@ -202,7 +213,13 @@ class GameState extends ChangeNotifier {
       (3 + (mothershipLevel / 4).floor()).clamp(3, 10);
   double get mothershipDroneDamage =>
       heroDamage * (0.25 + mothershipLevel * 0.1) * sutraMultiplier(SkillArchetype.mothership);
-  double get mothershipSpawnInterval => 4.0 / (1 + (mothershipLevel - 1) * 0.15);
+  double get mothershipSpawnInterval {
+    double interval = 4.0 / (1 + (mothershipLevel - 1) * 0.15);
+    if (meta.hasSutraPerk(SkillArchetype.mothership, 10)) {
+      interval *= 0.66; // ~50% faster respawn (1 / 1.5 = 0.66)
+    }
+    return interval;
+  }
   bool get mothershipDroneExplode => mothershipLevel >= 4;
 
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
@@ -229,7 +246,7 @@ class GameState extends ChangeNotifier {
   double get summonDamage =>
       heroDamage * (1.4 + summonLevel * 0.45) * sutraMultiplier(SkillArchetype.summon);
 
-  double get enemySpeedMultiplier => max(0.45, 1 - frostLevel * 0.025);
+  double get enemySpeedMultiplier => math.max(0.45, 1 - frostLevel * 0.025);
   double get executeDamageMultiplier => 1 + ruptureLevel * 0.035;
 
   bool get hasFrostRuptureSynergy => frostLevel >= 1 && ruptureLevel >= 1;
@@ -240,6 +257,30 @@ class GameState extends ChangeNotifier {
   bool get hasMothershipSummonSynergy => mothershipLevel >= 1 && summonLevel >= 1;
 
   bool hasFusion(String id) => _ownedFusionIds.contains(id);
+  bool hasCant(String id) => _activeCantIds.contains(id);
+  bool hasTriad(String id) => _activeTriadIds.contains(id);
+  bool hasInflection(String id) {
+    return _selectedInflections.values.any((list) => list.contains(id));
+  }
+
+  void _checkTriads() {
+    for (final triad in triadCatalog) {
+      if (_activeTriadIds.contains(triad.id)) continue;
+
+      bool eligible = true;
+      for (final archetype in triad.archetypes) {
+        if (_archetypeLevel(archetype) < 1) {
+          eligible = false;
+          break;
+        }
+      }
+
+      if (eligible) {
+        _activeTriadIds.add(triad.id);
+        meta.recordDiscovery('triad:${triad.id}');
+      }
+    }
+  }
 
   bool get monowireCascade => hasFusion('monowire_cascade');
   bool get chromeIaido => hasFusion('chrome_iaido');
@@ -250,8 +291,6 @@ class GameState extends ChangeNotifier {
   bool get sigilReactor => hasFusion('sigil_reactor');
   bool get hexnetDrones => hasFusion('hexnet_drones');
   bool get bountysoulLedger => hasFusion('bountysoul_ledger');
-
-  bool hasCant(String id) => _activeCantIds.contains(id);
 
   bool get bloodprice => hasCant('bloodprice');
   bool get devotion => hasCant('devotion');
@@ -274,6 +313,28 @@ class GameState extends ChangeNotifier {
       }
     }
     return total;
+  }
+
+  int get edgeLevel => pathLevels(SkillPath.edge);
+  int get daemonLevel => pathLevels(SkillPath.daemon);
+  int get hexLevel => pathLevels(SkillPath.hex);
+
+  bool useBandwidth(double amount) {
+    if (daemonBandwidth >= amount) {
+      daemonBandwidth -= amount;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  bool useCinder() {
+    if (hexCinder >= 100.0) {
+      hexCinder = 0.0;
+      notifyListeners();
+      return true;
+    }
+    return false;
   }
 
   PathTier getTier(SkillPath path) {
@@ -326,7 +387,7 @@ class GameState extends ChangeNotifier {
 
   double _goldBoostTimer = 0;
   void triggerGoldBoost(double duration) {
-    _goldBoostTimer = max(_goldBoostTimer, duration);
+    _goldBoostTimer = math.max(_goldBoostTimer, duration);
     notifyListeners();
   }
 
@@ -393,14 +454,14 @@ class GameState extends ChangeNotifier {
       .map((c) => CantChoice(definition: c))
       .toList(growable: false);
   double get enemyMaxHp =>
-      _baseEnemyHp * pow(_enemyHpGrowth, floor - 1) * devEnemyStrength;
+      _baseEnemyHp * math.pow(_enemyHpGrowth, floor - 1) * devEnemyStrength;
   double get enemyBreachDamage {
     double dmg = (3 + floor * 0.5) * devEnemyStrength;
     if (bloodprice) dmg *= 1.5;
     return dmg;
   }
   int get goldPerKill {
-    final base = _baseGoldPerKill * pow(_goldGrowth, floor - 1);
+    final base = _baseGoldPerKill * math.pow(_goldGrowth, floor - 1);
     final bountyEvo = getEvolution(SkillArchetype.bounty);
     final bountyMultiplier =
         (1 + bountyLevel * 0.08) * (bountyEvo == 1 ? 1.5 : 1.0);
@@ -425,7 +486,7 @@ class GameState extends ChangeNotifier {
 
   double get estimatedDps {
     final directDps =
-        heroDamage * heroAttacksPerSec * max(1, emberTargets * 0.65);
+        heroDamage * heroAttacksPerSec * math.max(1, emberTargets * 0.65);
     final novaDps = flameNovaLevel == 0
         ? 0
         : flameNovaDamage / flameNovaCooldown;
@@ -445,17 +506,38 @@ class GameState extends ChangeNotifier {
 
   void registerKill() {
     if (isRunOver) return;
+    final now = DateTime.now();
+
     if (meta.hasKeystone('streak')) {
-      final now = DateTime.now();
       if (_lastKillAt != null &&
           now.difference(_lastKillAt!).inMilliseconds <= 1000) {
         _streakStacks = (_streakStacks + 1).clamp(0, 5);
       } else {
         _streakStacks = 0;
       }
-      _lastKillAt = now;
     }
-    gold += goldPerKill;
+
+    double multiplier = 1.0;
+    if (meta.hasSutraPerk(SkillArchetype.bounty, 25)) {
+      if (_lastKillAt != null &&
+          now.difference(_lastKillAt!).inMilliseconds <= 2000) {
+        _bountyStreakStacks++;
+      } else {
+        _bountyStreakStacks = 0;
+      }
+      multiplier += _bountyStreakStacks * 0.05;
+    }
+    _lastKillAt = now;
+
+    // Path Signature Resources
+    if (daemonLevel > 0) {
+      daemonBandwidth = (daemonBandwidth + 5.0).clamp(0.0, 100.0);
+    }
+    if (hexLevel > 0) {
+      hexCinder = (hexCinder + 4.0).clamp(0.0, 100.0);
+    }
+
+    gold += (goldPerKill * multiplier).round();
     killsOnFloor += 1;
     runKills += 1;
     lifetimeKills += 1;
@@ -473,9 +555,13 @@ class GameState extends ChangeNotifier {
 
   SkillPath? _lastPathPicked;
 
-  void selectUpgrade(String id) {
+  void selectUpgrade(String id, {String? inflectionId}) {
     if (isRunOver || !_pendingUpgradeIds.contains(id) || _isMaxed(id)) return;
     meta.recordDiscovery(id);
+    if (inflectionId != null) {
+      meta.recordDiscovery('inflection:$inflectionId');
+      _selectedInflections.putIfAbsent(id, () => []).add(inflectionId);
+    }
     final nextLevel = skillLevel(id) + 1;
     _skillLevels[id] = nextLevel;
     levelUpCount += 1;
@@ -489,6 +575,7 @@ class GameState extends ChangeNotifier {
     }
 
     if (lockedUpgradeId == id) lockedUpgradeId = null;
+    _checkTriads();
     _clearPending();
     notifyListeners();
     _saveSoon();
@@ -499,6 +586,7 @@ class GameState extends ChangeNotifier {
     meta.recordDiscovery('${pendingEvolutionArchetype!.name}:$path');
     _evolutions[pendingEvolutionArchetype!] = path;
     pendingEvolutionArchetype = null;
+    _checkTriads();
     notifyListeners();
     _saveSoon();
   }
@@ -511,6 +599,7 @@ class GameState extends ChangeNotifier {
     } else {
       _skillLevels[id] = current + 1;
     }
+    _checkTriads();
     notifyListeners();
     _saveSoon();
   }
@@ -534,7 +623,7 @@ class GameState extends ChangeNotifier {
   }
 
   void devJumpFloor(int floors) {
-    floor = max(1, floor + floors);
+    floor = math.max(1, floor + floors);
     killsOnFloor = 0;
     notifyListeners();
     _saveSoon();
@@ -744,7 +833,7 @@ class GameState extends ChangeNotifier {
     _activeCantIds.add(id);
 
     if (id == 'heretic_bargain') {
-      nexusHp = max(0, nexusHp - nexusMaxHp * 0.2);
+      nexusHp = math.max(0, nexusHp - nexusMaxHp * 0.2);
       _forceFusionNext = true;
     }
 
@@ -768,7 +857,7 @@ class GameState extends ChangeNotifier {
 
   void damageNexus(double amount) {
     if (isRunOver || amount <= 0 || godMode) return;
-    nexusHp = max(0, min(nexusMaxHp, nexusHp) - amount);
+    nexusHp = math.max(0, math.min(nexusMaxHp, nexusHp) - amount);
     if (isRunOver) {
       _clearPending();
       _awardEmbersForRun();
@@ -1100,9 +1189,18 @@ class GameState extends ChangeNotifier {
 
   double _offerWeight(String id) {
     final level = skillLevel(id);
+    final definition = findSkillById(id);
+    
     // Peaks around level 2 (commitment reward), then decays.
     // 1.0 floor ensures everything stays in the pool.
-    double weight = 1.0 + 5.0 * level * exp(-level / 1.5);
+    double weight = 1.0 + 5.0 * level * math.exp(-level / 1.5);
+
+    // Near-orbit nudge: multiply weight if picking this completes a synergy
+    if (level == 0 && definition != null) {
+      if (_completesSynergyIfPicked(definition.archetype)) {
+        weight *= 1.5;
+      }
+    }
 
     // Cooldown on recently offered
     if (_recentlyOfferedIds.contains(id)) {
@@ -1110,6 +1208,31 @@ class GameState extends ChangeNotifier {
     }
 
     return weight;
+  }
+
+  bool _completesSynergyIfPicked(SkillArchetype archetype) {
+    // Check if any synergy partner is already owned
+    final partners = switch (archetype) {
+      SkillArchetype.frost => [SkillArchetype.rupture],
+      SkillArchetype.rupture => [SkillArchetype.frost, SkillArchetype.bounty],
+      SkillArchetype.chain => [SkillArchetype.nova],
+      SkillArchetype.nova => [SkillArchetype.chain],
+      SkillArchetype.meteor => [SkillArchetype.firewall],
+      SkillArchetype.firewall => [SkillArchetype.meteor],
+      SkillArchetype.sentinel => [SkillArchetype.barrage],
+      SkillArchetype.barrage => [SkillArchetype.sentinel],
+      SkillArchetype.bounty => [
+        SkillArchetype.rupture,
+        SkillArchetype.mothership,
+        SkillArchetype.snake
+      ],
+      SkillArchetype.mothership => [SkillArchetype.bounty, SkillArchetype.summon],
+      SkillArchetype.summon => [SkillArchetype.mothership],
+      SkillArchetype.snake => [SkillArchetype.bounty],
+      _ => <SkillArchetype>[],
+    };
+
+    return partners.any((p) => _archetypeLevel(p) >= 1);
   }
 
   bool _isMaxed(String id) => skillLevel(id) >= SkillDefinition.maxLevel;
@@ -1123,12 +1246,23 @@ class GameState extends ChangeNotifier {
     if (definition == null) return null;
     final currentLevel = skillLevel(id);
     final nextLevel = currentLevel + 1;
+
+    List<InflectionDefinition> options = [];
+    if (currentLevel >= 1) {
+      final pool = inflectionCatalog
+          .where((inf) => inf.archetype == definition.archetype)
+          .toList();
+      pool.shuffle(_rng);
+      options = pool.take(2).toList();
+    }
+
     return SkillChoice(
       definition: definition,
       currentLevel: currentLevel,
       level: nextLevel,
       maxLevel: SkillDefinition.maxLevel,
       description: definition.descriptionForLevel(nextLevel),
+      inflectionOptions: options,
     );
   }
 
@@ -1203,7 +1337,7 @@ class GameState extends ChangeNotifier {
     for (final entry in oldSlugs.entries) {
       if (_skillLevels.containsKey(entry.key)) {
         final level = _skillLevels.remove(entry.key)!;
-        _skillLevels[entry.value] = max(_skillLevels[entry.value] ?? 0, level);
+        _skillLevels[entry.value] = math.max(_skillLevels[entry.value] ?? 0, level);
       }
     }
   }

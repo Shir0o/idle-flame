@@ -9,6 +9,7 @@ import '../state/skill_catalog.dart';
 import 'combat_effects.dart';
 import 'damage_text.dart';
 import 'path_benefits.dart';
+import 'fire_summons.dart';
 
 enum DamageType { basic, nova, firewall, meteor, sentinel, mothership, rupture }
 
@@ -64,6 +65,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   double _burnTimer = 0;
   double _burnDps = 0;
   double _freezeTimer = 0;
+  int _slowStacks = 0;
   bool _hasBeenFrozen = false;
   bool _executeMarked = false;
   int phantomFrostHitCount = 0;
@@ -71,6 +73,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   bool _dying = false;
   bool _lastDamageWasExecute = false;
   bool get isAlive => !_dying;
+  int get slowStacks => _slowStacks;
 
   static const double _stopRadius = 50;
   static const double _breachInterval = 1.0;
@@ -346,6 +349,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
           toHero.normalized() *
           _typeData[type]!.speed *
           game.state.enemySpeedMultiplier *
+          (1.0 - _slowStacks * 0.15) *
           dt;
       _breachTimer = 0;
       return;
@@ -368,6 +372,28 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         );
       }
     }
+  }
+
+  void applyChill({double duration = 2.0}) {
+    if (_dying) return;
+    final maxStacks = game.state.meta.hasSutraPerk(SkillArchetype.frost, 5) ? 2 : 1;
+    if (_slowStacks < maxStacks) {
+      _slowStacks++;
+    }
+    // Visual indicator for chill
+    _flashTimer = 0.1;
+    _color = const Color(0xFF80DEEA);
+
+    add(
+      TimerComponent(
+        period: duration,
+        removeOnFinish: true,
+        onTick: () {
+          if (_slowStacks > 0) _slowStacks--;
+          if (_slowStacks == 0) _color = _typeData[type]!.baseColor;
+        },
+      ),
+    );
   }
 
   void takeDamage(
@@ -394,6 +420,19 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         hp / maxHp <= threshold ? game.state.executeDamageMultiplier : 1.0;
 
     double finalAmount = amount * executeBonus;
+
+    // Iron Cathedral Triad: Auto-execute at 30% if inside firewall
+    if (game.state.hasTriad('iron_cathedral')) {
+      final walls = parent?.children.whereType<FirewallEffect>() ?? [];
+      final inWall = walls.any((w) {
+        final insideWidth = (position.x - w.effectCenter.x).abs() <= w.effectWidth / 2;
+        final nearWall = (position.y - w.effectCenter.y).abs() <= 40;
+        return insideWidth && nearWall;
+      });
+      if (inWall && hp / maxHp <= 0.3) {
+        finalAmount = hp + 1; // Instant kill
+      }
+    }
 
     // Vulnerability: Marked take 30% more damage
     if (ruptureEvo == 2 && _executeMarked) {
@@ -559,6 +598,25 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
             dmg,
             source: position.clone(),
             type: DamageType.nova,
+          );
+        }
+      }
+
+      // Spirit Choir Triad: Spawn ice meteor on shatter
+      if (game.state.hasTriad('spirit_choir')) {
+        final children = parent?.children;
+        final nearestSummon = children
+            ?.whereType<FireSummon>()
+            .where((s) => (s.position - position).length2 < 100 * 100)
+            .firstOrNull;
+        if (nearestSummon != null) {
+          parent?.add(
+            MeteorImpactEffect(
+              target: position.clone(),
+              radius: 80,
+              level: 1,
+              color: const Color(0xFF00E5FF),
+            ),
           );
         }
       }

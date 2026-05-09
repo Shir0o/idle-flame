@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:collection/collection.dart';
 
 import '../game/state/game_state.dart';
 import '../game/state/mech_catalog.dart';
 import '../game/state/meta_catalog.dart';
 import '../game/state/meta_state.dart';
 import '../game/state/skill_catalog.dart';
+import '../game/state/inflection_catalog.dart';
 import 'meta_screen.dart';
 import 'sigil_matrix.dart';
 
@@ -1743,8 +1743,8 @@ class _LevelUpPicker extends StatelessWidget {
                                 state.lockedUpgradeId == choice.definition.id,
                             canLock: state.meta.lockEnabled,
                             canBanish: state.banishesRemaining > 0,
-                            onTap: () =>
-                                state.selectUpgrade(choice.definition.id),
+                            onTap: (infId) =>
+                                state.selectUpgrade(choice.definition.id, inflectionId: infId),
                             onToggleLock: () =>
                                 state.toggleLock(choice.definition.id),
                             onBanish: () =>
@@ -2174,10 +2174,138 @@ class _NexusHealthBarState extends State<_NexusHealthBar>
                     ),
                 ],
               ),
+              const _PathResources(),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PathResources extends StatelessWidget {
+  const _PathResources();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (context, state, _) {
+        final edgeActive = state.pathLevels(SkillPath.edge) > 0;
+        final daemonActive = state.pathLevels(SkillPath.daemon) > 0;
+        final hexActive = state.pathLevels(SkillPath.hex) > 0;
+
+        if (!edgeActive && !daemonActive && !hexActive) {
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (edgeActive) _buildEdgeResources(state),
+              if (daemonActive) _buildDaemonResources(state),
+              if (hexActive) _buildHexResources(state),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEdgeResources(GameState state) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: List.generate(5, (i) {
+          final active = i < state.edgeStance;
+          return Container(
+            width: 12,
+            height: 4,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: active
+                  ? SkillPath.edge.color
+                  : Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(1),
+              boxShadow: active
+                  ? [
+                      BoxShadow(
+                        color: SkillPath.edge.color.withValues(alpha: 0.5),
+                        blurRadius: 4,
+                      )
+                    ]
+                  : null,
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildDaemonResources(GameState state) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Stack(
+        children: [
+          Container(
+            height: 4,
+            width: 100,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+          Container(
+            height: 4,
+            width: state.daemonBandwidth,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF00E5FF),
+                  SkillPath.daemon.color,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(1),
+              boxShadow: [
+                BoxShadow(
+                  color: SkillPath.daemon.color.withValues(alpha: 0.4),
+                  blurRadius: 4,
+                )
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHexResources(GameState state) {
+    return Stack(
+      children: [
+        Container(
+          height: 4,
+          width: 100,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(1),
+          ),
+        ),
+        Container(
+          height: 4,
+          width: state.hexCinder,
+          decoration: BoxDecoration(
+            color: SkillPath.hex.color,
+            borderRadius: BorderRadius.circular(1),
+            boxShadow: [
+              BoxShadow(
+                color: SkillPath.hex.color.withValues(alpha: 0.4),
+                blurRadius: 4,
+              )
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2190,7 +2318,7 @@ class _RunOverPanel extends StatelessWidget {
     return Consumer<GameState>(
       builder: (_, state, _) {
         if (!state.isRunOver) return const SizedBox.shrink();
-        return const MetaShopScreen();
+        return const MetaScreen();
       },
     );
   }
@@ -2208,7 +2336,7 @@ class _ChoiceCard extends StatelessWidget {
   });
 
   final SkillChoice choice;
-  final VoidCallback onTap;
+  final void Function(String? inflectionId) onTap;
   final bool isLocked;
   final bool canLock;
   final bool canBanish;
@@ -2222,144 +2350,224 @@ class _ChoiceCard extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isLocked
-                  ? const Color(0xFF64FFDA)
-                  : color.withValues(alpha: 0.35),
-              width: isLocked ? 2 : 1.5,
-            ),
-            boxShadow: isLocked
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF64FFDA).withValues(alpha: 0.15),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                    ),
-                  ]
-                : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isLocked
+                ? const Color(0xFF64FFDA)
+                : color.withValues(alpha: 0.35),
+            width: isLocked ? 2 : 1.5,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withValues(alpha: 0.2),
-                      color.withValues(alpha: 0.05),
-                    ],
+          boxShadow: isLocked
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF64FFDA).withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    spreadRadius: 1,
                   ),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: color.withValues(alpha: 0.3)),
-                ),
-                child: Icon(archetype.icon, color: color, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
+                ]
+              : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            InkWell(
+              onTap: () => onTap(null),
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            choice.tierLabel,
-                            style: TextStyle(
-                              color: color,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            color.withValues(alpha: 0.2),
+                            color.withValues(alpha: 0.05),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        if (choice.isNew)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF64FFDA,
-                              ).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'NEW',
-                              style: TextStyle(
-                                color: Color(0xFF64FFDA),
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: color.withValues(alpha: 0.3)),
+                      ),
+                      child: Icon(archetype.icon, color: color, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  choice.tierLabel,
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                               ),
+                              const SizedBox(width: 8),
+                              if (choice.isNew)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF64FFDA,
+                                    ).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'NEW',
+                                    style: TextStyle(
+                                      color: Color(0xFF64FFDA),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              const Spacer(),
+                              if (canLock)
+                                _CardActionIcon(
+                                  icon: isLocked ? Icons.lock : Icons.lock_outline,
+                                  color: isLocked
+                                      ? const Color(0xFF64FFDA)
+                                      : Colors.white30,
+                                  onTap: onToggleLock,
+                                  tooltip: isLocked ? 'Unlock' : 'Lock for next pick',
+                                ),
+                              if (canBanish) ...[
+                                const SizedBox(width: 8),
+                                _CardActionIcon(
+                                  icon: Icons.close,
+                                  color: Colors.white30,
+                                  onTap: onBanish,
+                                  tooltip: 'Banish from run',
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            choice.definition.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        const Spacer(),
-                        if (canLock)
-                          _CardActionIcon(
-                            icon: isLocked ? Icons.lock : Icons.lock_outline,
-                            color: isLocked
-                                ? const Color(0xFF64FFDA)
-                                : Colors.white30,
-                            onTap: onToggleLock,
-                            tooltip: isLocked ? 'Unlock' : 'Lock for next pick',
+                          const SizedBox(height: 4),
+                          Text(
+                            choice.description,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 12,
+                              height: 1.3,
+                            ),
                           ),
-                        if (canBanish) ...[
-                          const SizedBox(width: 8),
-                          _CardActionIcon(
-                            icon: Icons.close,
-                            color: Colors.white30,
-                            onTap: onBanish,
-                            tooltip: 'Banish from run',
-                          ),
+                          const SizedBox(height: 8),
+                          _LevelPips(level: choice.level, color: color),
                         ],
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      choice.definition.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      choice.description,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 12,
-                        height: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _LevelPips(level: choice.level, color: color),
+                  ],
+                ),
+              ),
+            ),
+            if (choice.inflectionOptions.isNotEmpty) ...[
+              const Divider(color: Colors.white10, height: 1),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    ...choice.inflectionOptions.map((inf) => Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: _InflectionButton(
+                              inflection: inf,
+                              color: color,
+                              onTap: () => onTap(inf.id),
+                            ),
+                          ),
+                        )),
                   ],
                 ),
               ),
             ],
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InflectionButton extends StatelessWidget {
+  const _InflectionButton({
+    required this.inflection,
+    required this.color,
+    required this.onTap,
+  });
+
+  final InflectionDefinition inflection;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              inflection.name.toUpperCase(),
+              style: TextStyle(
+                color: color,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              inflection.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 9,
+                height: 1.1,
+              ),
+            ),
+          ],
         ),
       ),
     );
