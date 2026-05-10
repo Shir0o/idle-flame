@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Skill Tree v1 — From Pool to Tree</title>
+<style>
+  :root {
+    --bg: #07080f;
+    --panel: #0f1320;
+    --panel-2: #131a2e;
+    --ink: #e6edf3;
+    --dim: #8a93a6;
+    --rule: #1c2235;
+    --accent: #64ffda;
+    --edge:   #00e5ff;
+    --daemon: #ff2d95;
+    --hex:    #b388ff;
+    --gold:   #ffd166;
+    --warn:   #ff8a80;
+    /* v1 didn't have paths — use neutral tier colors */
+    --tier-starter:    #64ffda;
+    --tier-specialist: #ffd166;
+    --tier-capstone:   #ff2d95;
+  }
+  html, body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 12% 10%, rgba(0,229,255,0.08), transparent 35%),
+      radial-gradient(circle at 88% 18%, rgba(255,45,149,0.08), transparent 40%),
+      radial-gradient(circle at 50% 95%, rgba(179,136,255,0.08), transparent 45%);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 0; padding: 0; line-height: 1.6;
+  }
+  main { max-width: 880px; margin: 40px auto; padding: 0 28px 80px; }
+  h1, h2, h3, h4 { color: #fff; font-weight: 800; letter-spacing: -0.01em; }
+  h1 {
+    font-size: 2.2rem;
+    margin-top: 0.2em;
+    background: linear-gradient(90deg, var(--edge) 0%, var(--daemon) 50%, var(--hex) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.4em;
+    padding-top: 0.6em;
+    border-top: 1px solid var(--rule);
+    letter-spacing: 0.02em;
+  }
+  h3 { font-size: 1.05rem; color: var(--accent); margin-top: 1.4em; letter-spacing: 0.04em; text-transform: uppercase; }
+  h4 { font-size: 0.92rem; color: var(--dim); margin-top: 1.2em; letter-spacing: 0.05em; text-transform: uppercase; }
+  p, li { color: var(--ink); }
+  em { color: var(--dim); font-style: italic; }
+  strong { color: #fff; }
+  hr { border: none; border-top: 1px solid var(--rule); margin: 2em 0; }
+  code {
+    background: var(--panel);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.92rem;
+    background: rgba(15,19,32,0.5);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { color: var(--dim); font-weight: 600; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.08em; }
+  ul, ol { padding-left: 1.4em; }
+  li { margin-bottom: 0.4em; }
+  .lede { color: var(--dim); font-style: italic; margin-top: -0.6em; }
+  .footer { color: var(--dim); margin-top: 4em; text-align: center; font-size: 0.85em; letter-spacing: 0.05em; font-style: italic; }
+  figure {
+    margin: 1.8em 0;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 18px 12px;
+    text-align: center;
+  }
+  figure svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  figcaption {
+    color: var(--dim); font-size: 0.82em; font-style: italic;
+    margin-top: 8px; letter-spacing: 0.02em;
+  }
+  .fig-label {
+    font-size: 0.72em; color: var(--accent);
+    font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; display: block; margin-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Skill Tree v1 — From Pool to Tree</h1>
+<p class="lede">Original foundation pass for the skill system in <strong>Zenith Zero: Idle Descent</strong>. Catalog consolidation · anti-snowball weights · deliberate synergies · gated tiers · level-5 evolutions.</p>
+
+<!-- Header sigil: a tree growing from a pool -->
+<figure style="background:transparent; border:none; padding:0; margin: 0 0 1.2em;">
+<svg viewBox="0 0 480 70" width="480" height="70" aria-hidden="true">
+  <defs>
+    <linearGradient id="hdr-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#64ffda"/>
+      <stop offset="50%" stop-color="#ffd166"/>
+      <stop offset="100%" stop-color="#ff2d95"/>
+    </linearGradient>
+  </defs>
+  <!-- pool (left): scattered small dots -->
+  <g fill="#3a4257">
+    <circle cx="40" cy="25" r="2"/><circle cx="48" cy="35" r="2"/><circle cx="58" cy="30" r="2"/>
+    <circle cx="35" cy="42" r="2"/><circle cx="50" cy="48" r="2"/><circle cx="62" cy="44" r="2"/>
+    <circle cx="42" cy="55" r="2"/><circle cx="55" cy="58" r="2"/><circle cx="68" cy="52" r="2"/>
+    <circle cx="72" cy="36" r="2"/><circle cx="78" cy="48" r="2"/><circle cx="82" cy="28" r="2"/>
+  </g>
+  <text x="60" y="14" text-anchor="middle" fill="#3a4257" font-size="9" letter-spacing="2">POOL · 127</text>
+
+  <!-- arrow -->
+  <line x1="110" y1="40" x2="170" y2="40" stroke="url(#hdr-grad)" stroke-width="1.5"/>
+  <polygon points="170,40 162,36 162,44" fill="#ffd166"/>
+
+  <!-- tree (right): three tiers -->
+  <g transform="translate(200,40)">
+    <!-- starter row -->
+    <circle cx="20" cy="0"  r="5" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/>
+    <circle cx="40" cy="0"  r="5" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/>
+    <circle cx="60" cy="0"  r="5" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/>
+    <circle cx="80" cy="0"  r="5" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/>
+    <!-- specialist row -->
+    <circle cx="110" cy="0" r="5" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+    <circle cx="130" cy="0" r="5" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+    <circle cx="150" cy="0" r="5" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+    <circle cx="170" cy="0" r="5" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+    <circle cx="190" cy="0" r="5" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+    <!-- capstone row -->
+    <circle cx="220" cy="0" r="5" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/>
+    <circle cx="240" cy="0" r="5" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/>
+    <circle cx="260" cy="0" r="5" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/>
+    <circle cx="280" cy="0" r="5" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/>
+  </g>
+  <text x="350" y="14" text-anchor="middle" fill="#9aa6b2" font-size="9" letter-spacing="2">TREE · 13</text>
+</svg>
+</figure>
+
+<hr>
+
+<h2>0. Why this exists</h2>
+<p>A first-pass read of the skill code revealed four structural issues that compound into a flat, snowball-prone progression curve:</p>
+<ol>
+  <li>The catalog has <strong>127 named skills but only 13 mechanical archetypes</strong> — the rest are cosmetic reskins (<a href="../../lib/game/state/skill_catalog.dart">skill_catalog.dart</a>, see the <code>_skills(...)</code> helper).</li>
+  <li>The level-up offer pool gives <strong>owned-archetype skills 4× weight over new ones</strong> (<a href="../../lib/game/state/game_state.dart">game_state.dart</a>), so once a player picks Chain they keep seeing Chain.</li>
+  <li><strong>Synergies are essentially absent</strong> — only Frost+Shatter and Rupture's execute mark cross archetypes (<a href="../../lib/game/components/enemy.dart">enemy.dart</a>). Everything else is isolated stat application.</li>
+  <li>There is <strong>no skill tree</strong> — no prerequisites, no evolutions, no archetype unlocks. The "tree" is a flat weighted random draw with meta-knobs (lock / banish / reroll / widerPick / rareCadence / prePick).</li>
+</ol>
+<p>This document is design-only. No code changes are proposed; the goal is a clear set of recommendations for an implementation pass.</p>
+
+<h2>1. Catalog: collapse the cosmetic bloat or commit to differentiation</h2>
+
+<figure>
+  <span class="fig-label">Figure 1 — Catalog consolidation</span>
+  <svg viewBox="0 0 640 280" width="640" aria-label="Catalog consolidation 127 to 13">
+    <defs>
+      <linearGradient id="con-grad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%"   stop-color="#64ffda"/>
+        <stop offset="100%" stop-color="#ffd166"/>
+      </linearGradient>
+    </defs>
+
+    <!-- LEFT: scatter of 127 small dots in a clouded grid -->
+    <g transform="translate(30,40)">
+      <text fill="#9aa6b2" font-size="10" font-weight="bold" letter-spacing="2.5">BEFORE — 127 RESKINS</text>
+      <text y="14" fill="#8a93a6" font-size="9">10–15 cosmetic variants per archetype</text>
+      <g fill="#3a4257" transform="translate(0,30)">
+        <!-- 13 rows × ~10 cols = ~130 dots, slightly randomized -->
+        <g><circle cx="0"   cy="0"  r="1.8"/><circle cx="14"  cy="2"  r="1.8"/><circle cx="28"  cy="0"  r="1.8"/><circle cx="42"  cy="3"  r="1.8"/><circle cx="56"  cy="0"  r="1.8"/><circle cx="70"  cy="2"  r="1.8"/><circle cx="84"  cy="0"  r="1.8"/><circle cx="98"  cy="3"  r="1.8"/><circle cx="112" cy="0" r="1.8"/><circle cx="126" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,14)"><circle cx="3"  cy="0"  r="1.8"/><circle cx="17"  cy="2"  r="1.8"/><circle cx="31"  cy="0"  r="1.8"/><circle cx="45"  cy="3"  r="1.8"/><circle cx="59"  cy="0"  r="1.8"/><circle cx="73"  cy="2"  r="1.8"/><circle cx="87"  cy="0"  r="1.8"/><circle cx="101" cy="3"  r="1.8"/><circle cx="115" cy="0" r="1.8"/><circle cx="129" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,28)"><circle cx="0"  cy="0"  r="1.8"/><circle cx="14"  cy="2"  r="1.8"/><circle cx="28"  cy="0"  r="1.8"/><circle cx="42"  cy="3"  r="1.8"/><circle cx="56"  cy="0"  r="1.8"/><circle cx="70"  cy="2"  r="1.8"/><circle cx="84"  cy="0"  r="1.8"/><circle cx="98"  cy="3"  r="1.8"/><circle cx="112" cy="0" r="1.8"/><circle cx="126" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,42)"><circle cx="3"  cy="0"  r="1.8"/><circle cx="17"  cy="2"  r="1.8"/><circle cx="31"  cy="0"  r="1.8"/><circle cx="45"  cy="3"  r="1.8"/><circle cx="59"  cy="0"  r="1.8"/><circle cx="73"  cy="2"  r="1.8"/><circle cx="87"  cy="0"  r="1.8"/><circle cx="101" cy="3"  r="1.8"/><circle cx="115" cy="0" r="1.8"/><circle cx="129" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,56)"><circle cx="0"  cy="0"  r="1.8"/><circle cx="14"  cy="2"  r="1.8"/><circle cx="28"  cy="0"  r="1.8"/><circle cx="42"  cy="3"  r="1.8"/><circle cx="56"  cy="0"  r="1.8"/><circle cx="70"  cy="2"  r="1.8"/><circle cx="84"  cy="0"  r="1.8"/><circle cx="98"  cy="3"  r="1.8"/><circle cx="112" cy="0" r="1.8"/><circle cx="126" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,70)"><circle cx="3"  cy="0"  r="1.8"/><circle cx="17"  cy="2"  r="1.8"/><circle cx="31"  cy="0"  r="1.8"/><circle cx="45"  cy="3"  r="1.8"/><circle cx="59"  cy="0"  r="1.8"/><circle cx="73"  cy="2"  r="1.8"/><circle cx="87"  cy="0"  r="1.8"/><circle cx="101" cy="3"  r="1.8"/><circle cx="115" cy="0" r="1.8"/><circle cx="129" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,84)"><circle cx="0"  cy="0"  r="1.8"/><circle cx="14"  cy="2"  r="1.8"/><circle cx="28"  cy="0"  r="1.8"/><circle cx="42"  cy="3"  r="1.8"/><circle cx="56"  cy="0"  r="1.8"/><circle cx="70"  cy="2"  r="1.8"/><circle cx="84"  cy="0"  r="1.8"/><circle cx="98"  cy="3"  r="1.8"/><circle cx="112" cy="0" r="1.8"/><circle cx="126" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,98)"><circle cx="3"  cy="0"  r="1.8"/><circle cx="17"  cy="2"  r="1.8"/><circle cx="31"  cy="0"  r="1.8"/><circle cx="45"  cy="3"  r="1.8"/><circle cx="59"  cy="0"  r="1.8"/><circle cx="73"  cy="2"  r="1.8"/><circle cx="87"  cy="0"  r="1.8"/><circle cx="101" cy="3"  r="1.8"/><circle cx="115" cy="0" r="1.8"/><circle cx="129" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,112)"><circle cx="0"  cy="0"  r="1.8"/><circle cx="14"  cy="2"  r="1.8"/><circle cx="28"  cy="0"  r="1.8"/><circle cx="42"  cy="3"  r="1.8"/><circle cx="56"  cy="0"  r="1.8"/><circle cx="70"  cy="2"  r="1.8"/><circle cx="84"  cy="0"  r="1.8"/><circle cx="98"  cy="3"  r="1.8"/><circle cx="112" cy="0" r="1.8"/><circle cx="126" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,126)"><circle cx="3"  cy="0"  r="1.8"/><circle cx="17"  cy="2"  r="1.8"/><circle cx="31"  cy="0"  r="1.8"/><circle cx="45"  cy="3"  r="1.8"/><circle cx="59"  cy="0"  r="1.8"/><circle cx="73"  cy="2"  r="1.8"/><circle cx="87"  cy="0"  r="1.8"/><circle cx="101" cy="3"  r="1.8"/><circle cx="115" cy="0" r="1.8"/><circle cx="129" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,140)"><circle cx="0"  cy="0"  r="1.8"/><circle cx="14"  cy="2"  r="1.8"/><circle cx="28"  cy="0"  r="1.8"/><circle cx="42"  cy="3"  r="1.8"/><circle cx="56"  cy="0"  r="1.8"/><circle cx="70"  cy="2"  r="1.8"/><circle cx="84"  cy="0"  r="1.8"/><circle cx="98"  cy="3"  r="1.8"/><circle cx="112" cy="0" r="1.8"/><circle cx="126" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,154)"><circle cx="3"  cy="0"  r="1.8"/><circle cx="17"  cy="2"  r="1.8"/><circle cx="31"  cy="0"  r="1.8"/><circle cx="45"  cy="3"  r="1.8"/><circle cx="59"  cy="0"  r="1.8"/><circle cx="73"  cy="2"  r="1.8"/><circle cx="87"  cy="0"  r="1.8"/><circle cx="101" cy="3"  r="1.8"/><circle cx="115" cy="0" r="1.8"/><circle cx="129" cy="2"  r="1.8"/></g>
+        <g transform="translate(0,168)"><circle cx="0"  cy="0"  r="1.8"/><circle cx="14"  cy="2"  r="1.8"/><circle cx="28"  cy="0"  r="1.8"/><circle cx="42"  cy="3"  r="1.8"/><circle cx="56"  cy="0"  r="1.8"/><circle cx="70"  cy="2"  r="1.8"/><circle cx="84"  cy="0"  r="1.8"/></g>
+      </g>
+      <text y="220" fill="#3a4257" font-size="9" font-style="italic">cosmetic noise · same mechanic</text>
+    </g>
+
+    <!-- arrow -->
+    <line x1="220" y1="140" x2="320" y2="140" stroke="url(#con-grad)" stroke-width="2"/>
+    <polygon points="320,140 310,134 310,146" fill="#ffd166"/>
+    <text x="270" y="130" text-anchor="middle" fill="#ffd166" font-size="10" font-weight="bold" letter-spacing="2">LANE A</text>
+
+    <!-- RIGHT: 13 archetypes in a clean 3-column grid -->
+    <g transform="translate(360,40)">
+      <text fill="#9aa6b2" font-size="10" font-weight="bold" letter-spacing="2.5">AFTER — 13 ARCHETYPES</text>
+      <text y="14" fill="#8a93a6" font-size="9">one canonical skill per mechanic</text>
+      <g transform="translate(0,30)" font-size="9" fill="#fff">
+        <g><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#64ffda" stroke-width="1.2"/><text x="22" y="9">Chain</text></g>
+        <g transform="translate(80,0)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#64ffda" stroke-width="1.2"/><text x="22" y="9">Nova</text></g>
+        <g transform="translate(160,0)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#64ffda" stroke-width="1.2"/><text x="22" y="9">Barrage</text></g>
+
+        <g transform="translate(0,22)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#64ffda" stroke-width="1.2"/><text x="22" y="9">Focus</text></g>
+        <g transform="translate(80,22)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#ffd166" stroke-width="1.2"/><text x="22" y="9">Frost</text></g>
+        <g transform="translate(160,22)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#ffd166" stroke-width="1.2"/><text x="22" y="9">Rupture</text></g>
+
+        <g transform="translate(0,44)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#ffd166" stroke-width="1.2"/><text x="22" y="9">Sentinel</text></g>
+        <g transform="translate(80,44)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#ffd166" stroke-width="1.2"/><text x="22" y="9">Firewall</text></g>
+        <g transform="translate(160,44)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#ffd166" stroke-width="1.2"/><text x="22" y="9">Bounty</text></g>
+
+        <g transform="translate(0,66)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#ff2d95" stroke-width="1.2"/><text x="22" y="9">Meteor</text></g>
+        <g transform="translate(80,66)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#ff2d95" stroke-width="1.2"/><text x="22" y="9">Mothership</text></g>
+        <g transform="translate(160,66)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#ff2d95" stroke-width="1.2"/><text x="22" y="9">Snake</text></g>
+
+        <g transform="translate(0,88)"><circle cx="10" cy="6" r="6" fill="#0f1320" stroke="#ff2d95" stroke-width="1.2"/><text x="22" y="9">Summon</text></g>
+      </g>
+      <text y="180" fill="#64ffda" font-size="9" font-style="italic">every offer is a real choice</text>
+    </g>
+  </svg>
+  <figcaption>Lane A drops 127 reskinned variants to 13 canonical archetypes. The picker stops asking "Neon Katana or Monowire Arcana?" (same mechanic, different sticker) and starts asking "Chain or Frost?" (real choices).</figcaption>
+</figure>
+
+<p>The current <code>_skills(archetype, [...10 names])</code> pattern produces 10–15 skills per archetype that are <strong>mechanically identical</strong>. Worse, archetype effect calculations sum levels across all variants, so the cosmetic name is gameplay-invisible.</p>
+
+<h3>Pick a lane</h3>
+<ul>
+  <li><strong>Lane A — Consolidate</strong> to one skill per archetype. Drop from 127 → 13. Smallest change, biggest clarity win.</li>
+  <li><strong>Lane B — Differentiate</strong>: keep names but make variants mechanically distinct (jump count vs. arc damage vs. seek). 5–10× the design and balance work.</li>
+</ul>
+<p><strong>Lane A is the recommended default.</strong> If flavor matters, retain <em>one</em> alt cosmetic per archetype (13 + ~13 evolutions, see §4).</p>
+<p>A side issue: descriptions are vague metaphor ("cadence improves") but the code applies concrete numbers. Quantify them ("+12% attack speed", "+1 chain target") so picks are informed. Description rewrite, not a balance change.</p>
+
+<h2>2. Offer weights: anti-snowball pressure</h2>
+
+<figure>
+  <span class="fig-label">Figure 2 — Offer weight curves</span>
+  <svg viewBox="0 0 600 320" width="600" aria-label="Offer weight curves">
+    <!-- chart frame -->
+    <g transform="translate(60,40)">
+      <line x1="0" y1="240" x2="500" y2="240" stroke="#1c2235" stroke-width="1"/>
+      <line x1="0" y1="0"   x2="0"   y2="240" stroke="#1c2235" stroke-width="1"/>
+
+      <!-- y-axis labels -->
+      <g fill="#8a93a6" font-size="9" font-family="monospace" text-anchor="end">
+        <text x="-6" y="3">5</text>
+        <text x="-6" y="51">4</text>
+        <text x="-6" y="99">3</text>
+        <text x="-6" y="147">2</text>
+        <text x="-6" y="195">1</text>
+        <text x="-6" y="243">0</text>
+      </g>
+      <text transform="translate(-44,120) rotate(-90)" fill="#8a93a6" font-size="10" letter-spacing="2" text-anchor="middle">WEIGHT</text>
+
+      <!-- x-axis labels -->
+      <g fill="#8a93a6" font-size="9" font-family="monospace" text-anchor="middle">
+        <text x="0"   y="258">0</text>
+        <text x="100" y="258">2</text>
+        <text x="200" y="258">4</text>
+        <text x="300" y="258">6</text>
+        <text x="400" y="258">8</text>
+        <text x="500" y="258">10</text>
+      </g>
+      <text x="250" y="280" fill="#8a93a6" font-size="10" letter-spacing="2" text-anchor="middle">ARCHETYPE LEVEL</text>
+
+      <!-- gridlines -->
+      <g stroke="#131a2e" stroke-width="0.5">
+        <line x1="0" y1="48"  x2="500" y2="48"/>
+        <line x1="0" y1="96"  x2="500" y2="96"/>
+        <line x1="0" y1="144" x2="500" y2="144"/>
+        <line x1="0" y1="192" x2="500" y2="192"/>
+      </g>
+
+      <!-- OLD: step function (4 if owned [level >=1], 1 if new) -->
+      <!-- y for weight 1 = 240-1*48 = 192 ; y for 4 = 240 - 4*48 = 48 -->
+      <line x1="0"  y1="192" x2="50" y2="192" stroke="#ff8a80" stroke-width="2"/>  <!-- new (level 0): weight 1 -->
+      <line x1="50" y1="192" x2="50" y2="48"  stroke="#ff8a80" stroke-width="2" stroke-dasharray="2 2"/>
+      <line x1="50" y1="48"  x2="500" y2="48" stroke="#ff8a80" stroke-width="2"/>  <!-- owned: weight 4 flat -->
+
+      <!-- NEW: 1 + 3*exp(-level/4) smooth curve -->
+      <!-- compute path points -->
+      <path d="
+        M 0,48
+        C 30,55 60,72 100,99
+        C 140,123 180,143 220,158
+        C 260,170 300,178 340,184
+        C 380,189 420,191 500,192
+      " stroke="#64ffda" stroke-width="2" fill="none"/>
+
+      <!-- Old curve dots at level 0 / level 1+ -->
+      <circle cx="0"  cy="192" r="3" fill="#ff8a80"/>
+      <circle cx="100" cy="48" r="3" fill="#ff8a80"/>
+
+      <!-- New curve markers -->
+      <circle cx="0"   cy="48" r="3" fill="#64ffda"/>
+      <circle cx="100" cy="99" r="3" fill="#64ffda"/>
+      <circle cx="400" cy="191" r="3" fill="#64ffda"/>
+
+      <!-- legend -->
+      <g transform="translate(280,20)" font-size="10">
+        <line x1="0" y1="0" x2="20" y2="0" stroke="#ff8a80" stroke-width="2"/>
+        <text x="26" y="3" fill="#ff8a80">old · 4× owned / 1× new</text>
+        <line x1="0" y1="16" x2="20" y2="16" stroke="#64ffda" stroke-width="2"/>
+        <text x="26" y="19" fill="#64ffda">new · 1 + 3·e^(−level/4)</text>
+      </g>
+    </g>
+  </svg>
+  <figcaption>Old: step function — owned archetypes are 4× more likely than new ones forever, regardless of saturation. New: weight peaks at level 1–2 (rewarding commitment) and decays toward parity by level 8.</figcaption>
+</figure>
+
+<p>Today <code>_offerWeight</code> returns weight 4 for owned skills and 1 for unowned. With ~13 archetypes and that bias, a player who has picked 3 archetypes early will see those archetypes ~12× more often than any of the remaining 10.</p>
+
+<h3>Replace static 4×/1× with a saturating curve</h3>
+<ul>
+  <li>Weight peaks at first or second pick (rewards commitment) and decays toward parity. Concrete shape: <code>weight = 1 + 3 * exp(-level / 4)</code>.</li>
+  <li><strong>Cooldown on recently offered</strong>: if archetype X was offered last level-up, halve its weight this level-up.</li>
+  <li>Make <code>rareCadence</code> the <em>floor</em>, not a special event — every 3rd level-up forces one new-archetype card.</li>
+</ul>
+<p><strong>Soft cap on archetype level:</strong> damage curves currently scale linearly. Consider tapered scaling past archetype level 8 (e.g., level 9–15 contributes at half rate). Keeps stacking viable but reduces the "one-archetype solo carry" outcome.</p>
+
+<h2>3. Synergies: pair archetypes deliberately</h2>
+<p>The 13 archetypes naturally fall into roles. Designing <em>one</em> explicit cross-archetype synergy per pair gives the build space real shape.</p>
+<table>
+  <thead><tr><th>Pair</th><th>Synergy</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr><td>Frost + Rupture</td>      <td>Chilled enemies count as "wounded" for rupture's execute threshold</td>            <td>Pairs slow / control with the finisher.</td></tr>
+    <tr><td>Chain + Nova</td>         <td>Chain jumps trigger a mini-nova at each hop (smaller radius)</td>                  <td>Turns chain from line-clear into AoE clear.</td></tr>
+    <tr><td>Meteor + Firewall</td>    <td>Meteor impacts leave a temporary firewall lane</td>                                 <td>Two slow-cadence skills become one zone-control tool.</td></tr>
+    <tr><td>Sentinel + Barrage</td>   <td>Sentinel blade cooldown scales with hero attack rate</td>                            <td>Lets attack-speed builds pull double duty.</td></tr>
+    <tr><td>Bounty + any execute</td> <td>Execute kills (Rupture proc, Snake bite, Mothership crash) drop bonus gold</td>      <td>Makes Bounty interact with kill-pattern builds.</td></tr>
+    <tr><td>Mothership + Summon</td>  <td>Drones inherit summon damage; summons inherit drone count</td>                        <td>Two minion archetypes become one "swarm" identity.</td></tr>
+  </tbody>
+</table>
+<p>Today only Frost+Shatter (keystone-locked) and Rupture's mark are real cross-archetype effects. Adding 5–6 synergies turns the picker into a <em>combo</em> decision — the single highest-leverage change for build depth.</p>
+
+<h2>4. Real skill-tree structure: gated unlocks and evolutions</h2>
+
+<figure>
+  <span class="fig-label">Figure 3 — Tier ladder</span>
+  <svg viewBox="0 0 640 360" width="640" aria-label="Tier ladder">
+    <!-- Starter -->
+    <g transform="translate(40,30)">
+      <rect width="560" height="80" rx="8" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/>
+      <text x="20" y="22" fill="#64ffda" font-size="11" font-weight="bold" letter-spacing="3">STARTER · ALWAYS OFFERED</text>
+      <text x="20" y="38" fill="#8a93a6" font-size="9">baseline damage archetypes</text>
+      <g transform="translate(20,52)" font-size="11" fill="#fff">
+        <g><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/><text x="26" y="3">Chain</text></g>
+        <g transform="translate(120,0)"><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/><text x="26" y="3">Nova</text></g>
+        <g transform="translate(240,0)"><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/><text x="26" y="3">Barrage</text></g>
+        <g transform="translate(380,0)"><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/><text x="26" y="3">Focus</text></g>
+      </g>
+    </g>
+
+    <!-- arrow down -->
+    <g transform="translate(320,116)">
+      <line x1="0" y1="0" x2="0" y2="20" stroke="#ffd166" stroke-width="1.5"/>
+      <polygon points="0,20 -5,12 5,12" fill="#ffd166"/>
+      <text x="14" y="14" fill="#ffd166" font-size="10" font-style="italic">archetype level 5</text>
+    </g>
+
+    <!-- Specialist -->
+    <g transform="translate(40,150)">
+      <rect width="560" height="80" rx="8" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+      <text x="20" y="22" fill="#ffd166" font-size="11" font-weight="bold" letter-spacing="3">SPECIALIST · UNLOCKED AT 1× LEVEL 5</text>
+      <text x="20" y="38" fill="#8a93a6" font-size="9">role-specific archetypes</text>
+      <g transform="translate(20,52)" font-size="11" fill="#fff">
+        <g><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/><text x="26" y="3">Frost</text></g>
+        <g transform="translate(100,0)"><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/><text x="26" y="3">Rupture</text></g>
+        <g transform="translate(200,0)"><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/><text x="26" y="3">Sentinel</text></g>
+        <g transform="translate(310,0)"><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/><text x="26" y="3">Firewall</text></g>
+        <g transform="translate(420,0)"><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/><text x="26" y="3">Bounty</text></g>
+      </g>
+    </g>
+
+    <!-- arrow down -->
+    <g transform="translate(320,236)">
+      <line x1="0" y1="0" x2="0" y2="20" stroke="#ff2d95" stroke-width="1.5"/>
+      <polygon points="0,20 -5,12 5,12" fill="#ff2d95"/>
+      <text x="14" y="14" fill="#ff2d95" font-size="10" font-style="italic">specialist hits level 5</text>
+    </g>
+
+    <!-- Capstone -->
+    <g transform="translate(40,270)">
+      <rect width="560" height="80" rx="8" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/>
+      <text x="20" y="22" fill="#ff2d95" font-size="11" font-weight="bold" letter-spacing="3">CAPSTONE · UNLOCKED VIA SPECIALIST</text>
+      <text x="20" y="38" fill="#8a93a6" font-size="9">heavy / late-fantasy archetypes</text>
+      <g transform="translate(20,52)" font-size="11" fill="#fff">
+        <g><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/><text x="26" y="3">Meteor</text></g>
+        <g transform="translate(120,0)"><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/><text x="26" y="3">Mothership</text></g>
+        <g transform="translate(280,0)"><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/><text x="26" y="3">Snake</text></g>
+        <g transform="translate(400,0)"><circle cx="10" cy="0" r="9" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/><text x="26" y="3">Summon</text></g>
+      </g>
+    </g>
+  </svg>
+  <figcaption>Three tiers, two gates. Starter archetypes are always offered. Specialists unlock once any archetype reaches level 5. Capstones unlock once any specialist reaches level 5. Early runs feel learnable; late runs feel earned.</figcaption>
+</figure>
+
+<p>There is no prerequisite system today. Every skill is available from floor 1, drawn from the same pool. A "tree" implies branching choices with consequences. Two layers to add, in order of cost:</p>
+
+<h3>Layer A — Archetype tiers (small change, immediate structure)</h3>
+<ul>
+  <li><strong>Starter</strong> (always offered): Chain, Nova, Barrage, Focus.</li>
+  <li><strong>Specialist</strong> (unlocked at archetype-level 5 anywhere): Frost, Rupture, Sentinel, Firewall, Bounty.</li>
+  <li><strong>Capstone</strong> (unlocked once a specialist hits level 5): Meteor, Mothership, Snake, Summon.</li>
+</ul>
+<p>The pool naturally narrows then widens, killing the early-game noise of being offered Mothership at floor 2.</p>
+
+<h3>Layer B — Evolutions at level 5 (bigger change, higher payoff)</h3>
+<p>Today level 5 says "Big upgrade" in flavor text but is just a stat bump. Replace it with a <strong>branching evolution choice</strong>:</p>
+<ul>
+  <li>Chain → <em>Chainstorm</em> (more jumps, less damage per jump) <strong>or</strong> <em>Tetherblade</em> (one target, massive damage).</li>
+  <li>Nova → <em>Pulse Reactor</em> (faster smaller novas) <strong>or</strong> <em>Singularity</em> (slow large novas that pull enemies in).</li>
+  <li>Frost → <em>Glacier</em> (deeper slow, stacking) <strong>or</strong> <em>Shatter Bloom</em> (chilled enemies explode on death — fold today's Shatter keystone into this).</li>
+  <li>Mothership → <em>Carrier Armada</em> (more drones) <strong>or</strong> <em>Dreadnought</em> (one massive drone with high HP).</li>
+</ul>
+<p>The level-5 fork is a permanent identity decision. It also gives the existing keystone system a natural home: keystones become <em>evolution biases</em> that nudge you toward one branch.</p>
+
+<h3>Layer C — Cross-archetype unlocks (deferred)</h3>
+<ul>
+  <li>Chain L5 + Nova L5 → <em>Resonance Cascade</em> (every 5th chain hop detonates).</li>
+  <li>Meteor L5 + Firewall L5 → <em>Cinder Rain</em> (firewall-marked enemies attract meteors).</li>
+</ul>
+<p>Defer until Layers A and B are in. Mention here because it answers "where does the system go after the redesign."</p>
+
+<h2>5. Critical files</h2>
+<ul>
+  <li><code>lib/game/state/skill_catalog.dart</code> — archetype enum, definitions, descriptions. Touch points: §1, §4 (evolutions).</li>
+  <li><code>lib/game/state/game_state.dart</code> — <code>_offerWeight</code>, <code>_rollUpgradeChoices</code>, archetype effects, <code>_archetypeLevel</code>. Touch points: §2, §4.</li>
+  <li><code>lib/game/state/meta_catalog.dart</code> — keystones. Touch point: §4 Layer B (re-home keystones as evolution modifiers).</li>
+  <li><code>lib/game/components/enemy.dart</code> — existing synergy hooks. Touch point: §3 (add new synergy proc points).</li>
+</ul>
+
+<h2>6. Verification</h2>
+<ol>
+  <li><strong>Snowball test (§2)</strong> — run 20 simulated runs picking the highest-weighted offer each level. Track <code>archetypeLevel</code> distribution at floor 30. Pre-fix: heavy concentration in 2-3 archetypes. Post-fix: should see 5+ archetypes touched on average.</li>
+  <li><strong>Tier-gate test (§4 Layer A)</strong> — confirm specialist / capstone archetypes don't appear in offers until prerequisite met.</li>
+  <li><strong>Synergy test (§3)</strong> — when both archetypes of a pair are at level ≥1, confirm the synergy proc fires.</li>
+  <li><strong>Evolution test (§4 Layer B)</strong> — trigger a level-5 pick of any archetype, confirm a fork dialog appears, confirm permanent state on selection.</li>
+  <li><strong>Live preview</strong> — keep the Flutter web preview running and walk through floors 1–10 to feel the pacing change.</li>
+</ol>
+
+<h2>7. What v1 deliberately defers</h2>
+<ul>
+  <li><strong>Layer C cross-archetype fusions.</strong> Mentioned for direction-setting. Layers A and B should land first.</li>
+  <li><strong>Per-skill identity (Lane B).</strong> Cosmetic-rich variants are deferred in favor of the simpler 13-skill catalog.</li>
+  <li><strong>Path / school grouping.</strong> No higher-level structure than starter / specialist / capstone tiers.</li>
+  <li><strong>New archetypes.</strong> The 13 stay; the pass restructures, doesn't expand.</li>
+  <li><strong>Active player abilities.</strong> Auto-RPG loop holds.</li>
+</ul>
+
+<p class="footer">— the foundation that everything else builds on · Layer C → Fusion Forms in v2 · path grouping → EDGE / DAEMON / HEX in v2 —</p>
+
+</main>
+</body>
+</html>
