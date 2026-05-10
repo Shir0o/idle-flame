@@ -2486,10 +2486,6 @@ class _FloorRewardPicker extends StatelessWidget {
         title: 'Ancestral Memory',
         description: '+1 Sutra Mark on a random owned archetype.'
       ),
-    FloorBoon.revealModifier => (
-        title: 'Prescience Core',
-        description: 'Next floor\'s modifier is revealed early.'
-      ),
     FloorBoon.halveCantCost => (
         title: 'Void Bargain',
         description: 'Halve the HP cost of your next Heretic Cant.'

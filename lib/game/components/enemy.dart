@@ -818,7 +818,11 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
   void _die() {
     _dying = true;
+    final wasBossActive = game.state.isBossActive;
     game.state.registerKill(isBoss: isBoss);
+    if (wasBossActive && !game.state.isBossActive) {
+      game.setBossZoom(false);
+    }
     game.audio.playEnemyDeath();
 
     if (type == EnemyType.splinter) {

@@ -146,7 +146,7 @@ These enemies appear in normal Phase 2 / Crucible mixes from floor ~6 onward, ra
 
 ### Why six, not twelve
 
-Six new types + four existing = ten total. That's a manageable design surface and gives every Crucible / boss real composition variety. If late-game players burn through them, expand in v1.5.
+Six new types + four existing = ten total. That's a manageable design surface and gives every Crucible / boss real composition variety. If late-game players burn through them, expand in v2.
 
 ---
 

@@ -20,7 +20,6 @@ enum FloorBoon {
   rerollPlus1,
   gold25,
   randomSutra,
-  revealModifier,
   halveCantCost,
   skipNextCant,
 }
@@ -971,8 +970,6 @@ class GameState extends ChangeNotifier {
       case FloorBoon.randomSutra:
         final archetype = _randomOwnedArchetype();
         meta.incrementSutra(archetype);
-      case FloorBoon.revealModifier:
-        _revealNextModifier = true;
       case FloorBoon.halveCantCost:
         _halveNextCantCost = true;
       case FloorBoon.skipNextCant:
@@ -1299,20 +1296,38 @@ class GameState extends ChangeNotifier {
   }
 
   bool _forceFusionNext = false;
-  bool _revealNextModifier = false;
   bool _halveNextCantCost = false;
   bool _skipNextCant = false;
+
+  /// Show the pre-fight boss telegraph card. The spawner calls this when a
+  /// boss is about to enter; the HUD reads `bossTelegraphPending` and the
+  /// name/subtitle to render the overlay.
+  void showBossTelegraph(String name, String hint) {
+    bossTelegraphName = name;
+    bossTelegraphSubtitle = hint;
+    bossTelegraphPending = true;
+    notifyListeners();
+  }
+
+  /// Resolve the telegraph and mark the boss encounter as live.
+  void startBossEncounter() {
+    bossTelegraphPending = false;
+    isBossActive = true;
+    notifyListeners();
+  }
 
   void selectCant(String id) {
     if (isRunOver || !_pendingCantIds.contains(id)) return;
     _activeCantIds.add(id);
 
     if (id == 'heretic_bargain' && !activeModifiers.contains(FloorModifier.discountKit)) {
-      nexusHp = math.max(0, nexusHp - nexusMaxHp * 0.2);
+      final hpCostFraction = _halveNextCantCost ? 0.1 : 0.2;
+      nexusHp = math.max(0, nexusHp - nexusMaxHp * hpCostFraction);
       _forceFusionNext = true;
     } else if (id == 'heretic_bargain') {
       _forceFusionNext = true;
     }
+    _halveNextCantCost = false;
 
     _clearPending();
     notifyListeners();
@@ -1504,6 +1519,10 @@ class GameState extends ChangeNotifier {
   void _rollUpgradeChoices({String? forceLockedId}) {
     // Every 5 floors (or if Heretic Tide is active), offer Heretic Cants instead of normal upgrades
     bool offerCants = (floor % 5 == 0 || activeModifiers.contains(FloorModifier.hereticTide));
+    if (offerCants && _skipNextCant) {
+      _skipNextCant = false;
+      offerCants = false;
+    }
     if (offerCants && _pendingCantIds.isEmpty && !hasCant('greedglyph')) {
       final pool = hereticCantCatalog.where((c) => !_activeCantIds.contains(c.id)).toList();
       pool.shuffle(_rng);

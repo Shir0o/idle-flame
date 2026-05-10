@@ -1,4 +1,4 @@
-# Floors v1.5 — Finishing the Texture
+# Floors v2 — Finishing the Texture
 
 *Polish pass for **Zenith Zero: Idle Descent**.*
 *Closes the texture gaps left by Floors v1.*
@@ -18,7 +18,7 @@ What's missing is **texture** — the small layer that makes the framework feel 
 - Two modifiers (Cipher Storm, Stance Stutter) are in the enum but their effects aren't wired.
 - Big boss clears (F10, F20) feel structurally identical to F11 or F21.
 
-v1.5 is six small fixes that turn "lots of stuff happening" into "lots of stuff happening *that I understand and care about*." Total scope: ~2 weeks. None of this is new design — it's plumbing the v1 doc already promised but didn't ship.
+v2 is six small fixes that turn "lots of stuff happening" into "lots of stuff happening *that I understand and care about*." Total scope: ~2 weeks. None of this is new design — it's plumbing the v1 doc already promised but didn't ship.
 
 This doc is design-only. Build order in §7.
 
@@ -45,7 +45,7 @@ Restore the tiered payout from the v1 doc:
 - Rewards trigger on the `_advanceFloor()` call when `isBossFloor && isBoss`. There's already a branch at [game_state.dart](../../lib/game/state/game_state.dart) — slot the reward dispatch there.
 - The Sutra-mark choice should pop a small picker dialog (3 archetypes the player owns, or all 13 if no specifics).
 - The Fusion offer guarantee should set a flag (`_pendingGuaranteedFusion = true`) that `_rollUpgradeChoices` honors at the next level-up.
-- F25 unlocks need a queue. Track which permanent unlocks have been awarded; pull the next from a list. ~5 entries is enough for v1.5.
+- F25 unlocks need a queue. Track which permanent unlocks have been awarded; pull the next from a list. ~5 entries is enough for v2.
 
 ### Why this matters most
 
@@ -197,11 +197,11 @@ Optional but high-leverage. After the player clears F10 (Glass Sovereign) and F2
 
 - Every floor would feel pacing-fatiguing.
 - F10 and F20 are the natural "halfway" beats. F25 is the finale (already has a reward via §1).
-- Two rooms gives the system room to expand without overwhelming v1.5 scope.
+- Two rooms gives the system room to expand without overwhelming v2 scope.
 
 ### Why this isn't already in v1
 
-It was step 10 in the v1 build order — explicitly the lowest priority. v1.5 can either include it (3-4 days) or push it to v1.6 if the rest of v1.5 takes longer than expected.
+It was step 10 in the v1 build order — explicitly the lowest priority. v2 can either include it (3-4 days) or push it to v3 if the rest of v2 takes longer than expected.
 
 ---
 
@@ -222,9 +222,9 @@ Total: ~10-12 working days. Ship in two ~one-week increments.
 
 ## 8. Player-incentive checklist
 
-Same five hooks. v1.5 reinforces:
+Same five hooks. v2 reinforces:
 
-| Hook | v1.5 addition |
+| Hook | v2 addition |
 |---|---|
 | Numbers go up | Tiered boss rewards (embers, sutra marks); reward room boons |
 | Surprise / discovery | Bestiary fills as you play; Cipher Storm rotation creates moment-to-moment variance |
@@ -234,20 +234,20 @@ Same five hooks. v1.5 reinforces:
 
 ---
 
-## 9. What v1.5 deliberately avoids
+## 9. What v2 deliberately avoids
 
-- **No new bosses, enemies, or modifiers.** v1's catalog is enough. v1.5 finishes; doesn't expand.
+- **No new bosses, enemies, or modifiers.** v1's catalog is enough. v2 finishes; doesn't expand.
 - **No new Crucible events.** Eight is enough.
 - **No active player abilities** during boss fights. Auto-RPG holds.
 - **No mid-run save/restart for boss retries.** If a player dies on F25 they restart the run. That's the contract.
 - **No leaderboards or social features.** Single-player descent.
-- **No tutorial overlay.** The first-encounter toast (§3) is *the* tutorial — it teaches in context. A separate tutorial flow is its own scope and lives in v2.
+- **No tutorial overlay.** The first-encounter toast (§3) is *the* tutorial — it teaches in context. A separate tutorial flow is its own scope and lives in a later release.
 
 ---
 
 ## 10. Open questions for playtesting
 
-1. **F25 permanent unlock list** — how many entries? Suggest ~5 for v1.5, expandable later. Once exhausted, fall back to embers.
+1. **F25 permanent unlock list** — how many entries? Suggest ~5 for v2, expandable later. Once exhausted, fall back to embers.
 2. **Reward room frequency** — F10/F20 only, or every boss after F10? Two feels right but verify.
 3. **Counter tip toast duration** — 4 seconds suggested. Long enough to read, short enough not to occlude gameplay. Verify with playtesters who skip text.
 4. **Sutra-mark picker after F10** — does the dialog interrupt the run mid-floor, or wait until run end? Mid-floor is more rewarding (immediate gratification); end-of-run is less disruptive.
@@ -256,4 +256,4 @@ Same five hooks. v1.5 reinforces:
 
 ---
 
-*End of v1.5 — six items, two weeks, one finished v1.*
+*End of v2 — six items, two weeks, one finished v1.*
