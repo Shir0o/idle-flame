@@ -221,7 +221,10 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   void onMount() {
     super.onMount();
     game.activeEnemies.add(this);
-    game.state.meta.recordDiscovery('enemy:${type.name}');
+    final id = 'enemy:${type.name}';
+    if (!game.state.meta.discoveredIds.contains(id)) {
+      game.state.meta.recordDiscovery(id);
+    }
     if (game.state.enemiesShielded) {
       _shielded = true;
     }

@@ -3250,9 +3250,16 @@ class _BossRewardToastState extends State<_BossRewardToast>
           (label: state.lastBossRewardLabel, subtitle: state.lastBossRewardSubtitle),
       builder: (context, data, _) {
         if (data.label == null) return const SizedBox.shrink();
-        if (!_controller.isAnimating) {
-          _controller.forward(from: 0).then((_) {
-            if (mounted) context.read<GameState>().clearBossReward();
+        // Schedule the animation kickoff *after* this build pass completes
+        // so we don't mutate animation state during build (which can throw
+        // "setState() called during build" or restart unexpectedly on
+        // unrelated rebuilds).
+        if (!_controller.isAnimating && _controller.value == 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || _controller.isAnimating) return;
+            _controller.forward(from: 0).then((_) {
+              if (mounted) context.read<GameState>().clearBossReward();
+            });
           });
         }
         return AnimatedBuilder(

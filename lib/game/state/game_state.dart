@@ -641,21 +641,25 @@ class GameState extends ChangeNotifier {
     return (base * bountyMultiplier * streakMultiplier * boostMultiplier * cantMultiplier * modifierMultiplier).round();
   }
 
+  // Restriction + pressure modifiers — anything that makes the floor harder.
+  // Boons (echoTide, discountKit, manaBloom, glyphCache) are excluded.
+  // Centralized here so adding a new modifier only requires updating one
+  // place to opt it into the gold-bonus rule.
+  static const Set<FloorModifier> _hardFloorModifiers = {
+    FloorModifier.bandwidthBlackout,
+    FloorModifier.cinderDamp,
+    FloorModifier.stanceStutter,
+    FloorModifier.quickening,
+    FloorModifier.solarFlare,
+    FloorModifier.veilOfAsh,
+    FloorModifier.hereticTide,
+    FloorModifier.cipherStorm,
+  };
+
   // True when at least one "hard" floor modifier (restriction or pressure)
-  // is active. Boons are friendly and don't qualify.
-  bool get hasHardFloorModifier {
-    const hard = {
-      FloorModifier.bandwidthBlackout,
-      FloorModifier.cinderDamp,
-      FloorModifier.stanceStutter,
-      FloorModifier.quickening,
-      FloorModifier.solarFlare,
-      FloorModifier.veilOfAsh,
-      FloorModifier.hereticTide,
-      FloorModifier.cipherStorm,
-    };
-    return activeModifiers.any(hard.contains);
-  }
+  // is active.
+  bool get hasHardFloorModifier =>
+      activeModifiers.any(_hardFloorModifiers.contains);
 
   double get estimatedTimeToKill =>
       estimatedDps <= 0 ? double.infinity : enemyMaxHp / estimatedDps;
