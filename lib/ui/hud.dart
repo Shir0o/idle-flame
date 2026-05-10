@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
 
 import '../game/state/game_state.dart';
 import '../game/state/mech_catalog.dart';
 import '../game/state/meta_catalog.dart';
 import '../game/state/meta_state.dart';
 import '../game/state/skill_catalog.dart';
+import '../game/state/triad_catalog.dart';
 import '../game/state/inflection_catalog.dart';
 import 'meta_screen.dart';
 import 'sigil_matrix.dart';
@@ -256,6 +258,48 @@ class _ArsenalPanel extends StatelessWidget {
                                 color: k.archetype.color,
                                 label: k.def.title,
                                 description: k.def.description,
+                                onTap: () {},
+                              ),
+                          ],
+                          if (state.activeTriadIds.isNotEmpty) ...[
+                            const _MenuHeader('ACTIVE TRIADS'),
+                            for (final triadId in state.activeTriadIds)
+                              Builder(builder: (context) {
+                                final triad = triadCatalog.firstWhereOrNull((t) => t.id == triadId);
+                                if (triad == null) return const SizedBox.shrink();
+                                return _MenuItem(
+                                  icon: Icons.hub,
+                                  color: const Color(0xFF64FFDA),
+                                  label: triad.name,
+                                  description: triad.description,
+                                  onTap: () {},
+                                );
+                              }),
+                          ],
+                          if (state.edgeLevel > 0 || state.daemonLevel > 0 || state.hexLevel > 0) ...[
+                            const _MenuHeader('CURRENT RESOURCES'),
+                            if (state.edgeLevel > 0)
+                              _MenuItem(
+                                icon: Icons.bolt_rounded,
+                                color: SkillPath.edge.color,
+                                label: 'Stance',
+                                description: '${state.edgeStance}/5 pips',
+                                onTap: () {},
+                              ),
+                            if (state.daemonLevel > 0)
+                              _MenuItem(
+                                icon: Icons.lan_rounded,
+                                color: SkillPath.daemon.color,
+                                label: 'Bandwidth',
+                                description: '${state.daemonBandwidth.toStringAsFixed(0)}/100 units',
+                                onTap: () {},
+                              ),
+                            if (state.hexLevel > 0)
+                              _MenuItem(
+                                icon: Icons.local_fire_department_rounded,
+                                color: SkillPath.hex.color,
+                                label: 'Cinder',
+                                description: '${state.hexCinder.toStringAsFixed(0)}/100 charge',
                                 onTap: () {},
                               ),
                           ],
@@ -1205,6 +1249,7 @@ class _MenuItem extends StatelessWidget {
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -1213,6 +1258,8 @@ class _MenuItem extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 12,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -1300,6 +1347,38 @@ class _ActiveSkillRow extends StatelessWidget {
                     fontSize: 12,
                     height: 1.3,
                   ),
+                ),
+                const SizedBox(height: 6),
+                Consumer<GameState>(
+                  builder: (context, state, _) {
+                    final inflectionIds = state.getInflectionsFor(def.id);
+                    if (inflectionIds.isEmpty) return const SizedBox.shrink();
+                    return Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: inflectionIds.map((infId) {
+                        final inf = inflectionCatalog.firstWhereOrNull((i) => i.id == infId);
+                        if (inf == null) return const SizedBox.shrink();
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: color.withValues(alpha: 0.2)),
+                          ),
+                          child: Text(
+                            inf.name.toUpperCase(),
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
                 ),
               ],
             ),
@@ -1454,39 +1533,47 @@ class _ArchetypeSection extends StatelessWidget {
                   Expanded(
                     child: Row(
                       children: [
-                        Text(
-                          archetype.label.toUpperCase(),
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                archetype.label.toUpperCase(),
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.2,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '$ownedCount/${skills.length}',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$ownedCount/${skills.length}',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const Spacer(),
+                        const SizedBox(width: 4),
                         _BulkActionButton(
                           icon: Icons.last_page_rounded,
                           label: 'Max',
                           color: color,
                           onTap: () => state.devMaxArchetypeSkills(archetype),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         _BulkActionButton(
                           icon: Icons.first_page_rounded,
                           label: 'Reset',
                           color: const Color(0xFFFF8A80),
                           onTap: () => state.devResetArchetypeSkills(archetype),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                       ],
                     ),
                   ),
@@ -1581,15 +1668,15 @@ class _AddSkillRow extends StatelessWidget {
     final dim = level == 0;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 2, 8, 2),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
+          Row(
+            children: [
+              Expanded(
+                child: Text(
                   def.title,
                   style: TextStyle(
                     color: dim
@@ -1600,40 +1687,54 @@ class _AddSkillRow extends StatelessWidget {
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-                _LevelPips(level: level, color: color),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              _LevelPips(level: level, color: color),
+            ],
           ),
-          const SizedBox(width: 8),
-          _SkillStepButton(
-            icon: Icons.first_page_rounded,
-            tooltip: 'Set to 0',
-            color: const Color(0xFFFF8A80),
-            enabled: level > 0,
-            onTap: () => state.devSetSkillLevel(def.id, 0),
-          ),
-          _SkillStepButton(
-            icon: Icons.remove_rounded,
-            tooltip: 'Decrease',
-            color: Colors.white70,
-            enabled: level > 0,
-            onTap: () => state.devSetSkillLevel(def.id, level - 1),
-          ),
-          _SkillStepButton(
-            icon: Icons.add_rounded,
-            tooltip: 'Increase',
-            color: color,
-            enabled: !maxed,
-            onTap: () => state.devSetSkillLevel(def.id, level + 1),
-          ),
-          _SkillStepButton(
-            icon: Icons.last_page_rounded,
-            tooltip: 'Max out',
-            color: color,
-            enabled: !maxed,
-            onTap: () =>
-                state.devSetSkillLevel(def.id, SkillDefinition.maxLevel),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              _SkillStepButton(
+                icon: Icons.first_page_rounded,
+                tooltip: 'Set to 0',
+                color: const Color(0xFFFF8A80),
+                enabled: level > 0,
+                onTap: () => state.devSetSkillLevel(def.id, 0),
+              ),
+              _SkillStepButton(
+                icon: Icons.remove_rounded,
+                tooltip: 'Decrease',
+                color: Colors.white70,
+                enabled: level > 0,
+                onTap: () => state.devSetSkillLevel(def.id, level - 1),
+              ),
+              _SkillStepButton(
+                icon: Icons.add_rounded,
+                tooltip: 'Increase',
+                color: color,
+                enabled: !maxed,
+                onTap: () => state.devSetSkillLevel(def.id, level + 1),
+              ),
+              _SkillStepButton(
+                icon: Icons.last_page_rounded,
+                tooltip: 'Max out',
+                color: color,
+                enabled: !maxed,
+                onTap: () =>
+                    state.devSetSkillLevel(def.id, SkillDefinition.maxLevel),
+              ),
+              if (level > 0)
+                _SkillStepButton(
+                  icon: Icons.tune_rounded,
+                  tooltip: 'Add Random Inflection',
+                  color: Colors.amber,
+                  enabled: true,
+                  onTap: () => state.devGrantRandomInflection(def.id),
+                ),
+            ],
           ),
         ],
       ),

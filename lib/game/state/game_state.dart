@@ -259,6 +259,12 @@ class GameState extends ChangeNotifier {
   bool hasFusion(String id) => _ownedFusionIds.contains(id);
   bool hasCant(String id) => _activeCantIds.contains(id);
   bool hasTriad(String id) => _activeTriadIds.contains(id);
+  Set<String> get activeTriadIds => Set.unmodifiable(_activeTriadIds);
+
+  List<String> getInflectionsFor(String skillId) {
+    return List.unmodifiable(_selectedInflections[skillId] ?? []);
+  }
+
   bool hasInflection(String id) {
     return _selectedInflections.values.any((list) => list.contains(id));
   }
@@ -600,6 +606,20 @@ class GameState extends ChangeNotifier {
       _skillLevels[id] = current + 1;
     }
     _checkTriads();
+    notifyListeners();
+    _saveSoon();
+  }
+
+  void devGrantRandomInflection(String skillId) {
+    final def = _skillById(skillId);
+    if (def == null) return;
+    final pool = inflectionCatalog
+        .where((inf) => inf.archetype == def.archetype)
+        .toList();
+    if (pool.isEmpty) return;
+    final inf = pool[_rng.nextInt(pool.length)];
+    _selectedInflections.putIfAbsent(skillId, () => []).add(inf.id);
+    meta.recordDiscovery('inflection:${inf.id}');
     notifyListeners();
     _saveSoon();
   }
