@@ -9,9 +9,9 @@
 
 A first-pass read of the skill code revealed four structural issues that compound into a flat, snowball-prone progression curve:
 
-1. The catalog has **127 named skills but only 13 mechanical archetypes** — the rest are cosmetic reskins ([skill_catalog.dart:171-334](../../lib/game/state/skill_catalog.dart), `_skills(...)` helper at line 335).
-2. The level-up offer pool gives **owned-archetype skills 4× weight over new ones** ([game_state.dart:696-698](../../lib/game/state/game_state.dart)), so once a player picks Chain they keep seeing Chain.
-3. **Synergies are essentially absent** — only Frost+Shatter ([enemy.dart:456-466](../../lib/game/components/enemy.dart)) and Rupture's execute mark ([enemy.dart:423-431](../../lib/game/components/enemy.dart)) cross archetypes. Everything else is isolated stat application.
+1. The catalog has **127 named skills but only 13 mechanical archetypes** — the rest are cosmetic reskins ([skill_catalog.dart](../../lib/game/state/skill_catalog.dart) — see the `_skills(...)` helper).
+2. The level-up offer pool gives **owned-archetype skills 4× weight over new ones** ([game_state.dart](../../lib/game/state/game_state.dart)), so once a player picks Chain they keep seeing Chain.
+3. **Synergies are essentially absent** — only Frost+Shatter ([enemy.dart](../../lib/game/components/enemy.dart)) and Rupture's execute mark ([enemy.dart](../../lib/game/components/enemy.dart)) cross archetypes. Everything else is isolated stat application.
 4. There is **no skill tree** — no prerequisites, no evolutions, no archetype unlocks. The "tree" is a flat weighted random draw with meta-knobs (lock / banish / reroll / widerPick / rareCadence / prePick).
 
 This document is design-only. No code changes are proposed; the goal is a clear set of recommendations for an implementation pass.
@@ -20,7 +20,7 @@ This document is design-only. No code changes are proposed; the goal is a clear 
 
 ## 1. Catalog: collapse the cosmetic bloat or commit to differentiation
 
-The current `_skills(archetype, [...10 names])` pattern produces 10–15 skills per archetype that are **mechanically identical**. The picker rolls between, e.g., "Neon Katana Chain" and "Monowire Arcana" — same Chain effect, different sticker. Worse, archetype effect calculations sum levels across all variants ([game_state.dart:702-709](../../lib/game/state/game_state.dart)), so the cosmetic name is gameplay-invisible.
+The current `_skills(archetype, [...10 names])` pattern produces 10–15 skills per archetype that are **mechanically identical**. The picker rolls between, e.g., "Neon Katana Chain" and "Monowire Arcana" — same Chain effect, different sticker. Worse, archetype effect calculations sum levels across all variants ([game_state.dart](../../lib/game/state/game_state.dart)), so the cosmetic name is gameplay-invisible.
 
 **Recommendation: pick a lane.**
 
@@ -29,21 +29,21 @@ The current `_skills(archetype, [...10 names])` pattern produces 10–15 skills 
 
 **Lane A is the recommended default.** If flavor matters, retain *one* alt cosmetic per archetype (13 + ~13 evolutions, see §4) rather than 10.
 
-A side issue: descriptions in [skill_catalog.dart:74-167](../../lib/game/state/skill_catalog.dart) are vague metaphor ("cadence improves", "spellblade cuts through whole packs") but the code applies concrete numbers. Quantify the descriptions ("+12% attack speed", "+1 chain target") so picks are informed. The numbers already exist in [game_state.dart:102-189](../../lib/game/state/game_state.dart) — exposing them is a description rewrite, not a balance change.
+A side issue: descriptions in [skill_catalog.dart](../../lib/game/state/skill_catalog.dart) are vague metaphor ("cadence improves", "spellblade cuts through whole packs") but the code applies concrete numbers. Quantify the descriptions ("+12% attack speed", "+1 chain target") so picks are informed. The numbers already exist in [game_state.dart](../../lib/game/state/game_state.dart) — exposing them is a description rewrite, not a balance change.
 
 ---
 
 ## 2. Offer weights: add anti-snowball pressure
 
-`_offerWeight` ([game_state.dart:696-698](../../lib/game/state/game_state.dart)) returns weight 4 for owned skills and 1 for unowned. With ~13 archetypes and that bias, a player who has picked 3 archetypes early will see those archetypes ~12× more often than any of the remaining 10. `rareCadence` (every-5th-pick guarantee) is the only counter and only fires once every five level-ups.
+`_offerWeight` ([game_state.dart](../../lib/game/state/game_state.dart)) returns weight 4 for owned skills and 1 for unowned. With ~13 archetypes and that bias, a player who has picked 3 archetypes early will see those archetypes ~12× more often than any of the remaining 10. `rareCadence` (every-5th-pick guarantee) is the only counter and only fires once every five level-ups.
 
 **Recommendation: replace the static 4×/1× with a saturating curve.**
 
 - Weight should *peak* at a player's first or second pick of an archetype (rewards commitment) and then *decay* toward parity as the archetype approaches saturation. Concrete shape: `weight = 1 + 3 * exp(-archetypeLevel / 4)`. First pick boosts the archetype; by archetype-level 8 it's back to baseline.
 - Add a **cooldown-on-recently-offered**: if archetype X was offered last level-up, halve its weight this level-up. Smooths the "I keep seeing the same thing" feel.
-- Make `rareCadence` ([game_state.dart:625-635](../../lib/game/state/game_state.dart)) the *floor*, not a special event: every 3rd level-up, force one card to be a never-owned archetype (when one exists). Small change, large diversity payoff.
+- Make `rareCadence` ([game_state.dart](../../lib/game/state/game_state.dart)) the *floor*, not a special event: every 3rd level-up, force one card to be a never-owned archetype (when one exists). Small change, large diversity payoff.
 
-**Soft cap on archetype level:** damage curves currently scale linearly (`1 + 0.08*level` for Focus, etc., [game_state.dart:103-126](../../lib/game/state/game_state.dart)). Consider tapered scaling past archetype level 8 (e.g., level 9–15 contributes at half rate). Keeps stacking viable but reduces the "one-archetype solo carry" outcome.
+**Soft cap on archetype level:** damage curves currently scale linearly (`1 + 0.08*level` for Focus, etc., [game_state.dart](../../lib/game/state/game_state.dart)). Consider tapered scaling past archetype level 8 (e.g., level 9–15 contributes at half rate). Keeps stacking viable but reduces the "one-archetype solo carry" outcome.
 
 ---
 
@@ -89,7 +89,7 @@ Today level 5 says "Big upgrade" in flavor text but is just a stat bump. Replace
 - Frost → *Glacier* (deeper slow, stacking) **or** *Shatter Bloom* (chilled enemies explode on death — fold today's Shatter keystone into this).
 - Mothership → *Carrier Armada* (more drones) **or** *Dreadnought* (one massive drone with high HP).
 
-This is what makes a "skill tree" feel like a tree — the level-5 fork is a permanent identity decision. It also gives the existing keystone system ([meta_catalog.dart:36-146](../../lib/game/state/meta_catalog.dart)) a natural home: keystones become *evolution biases* that nudge you toward one branch.
+This is what makes a "skill tree" feel like a tree — the level-5 fork is a permanent identity decision. It also gives the existing keystone system ([meta_catalog.dart](../../lib/game/state/meta_catalog.dart)) a natural home: keystones become *evolution biases* that nudge you toward one branch.
 
 ### Layer C — Cross-archetype unlocks (optional, longest reach)
 
@@ -105,9 +105,9 @@ Defer until Layers A and B are in. Mention here because it answers "where does t
 ## 5. Critical files (for whoever implements later)
 
 - [lib/game/state/skill_catalog.dart](../../lib/game/state/skill_catalog.dart) — archetype enum, definitions, descriptions. Touch points: §1, §4 (evolutions).
-- [lib/game/state/game_state.dart](../../lib/game/state/game_state.dart) — `_offerWeight` (line 696), `_rollUpgradeChoices` (line 615), archetype effect application (lines 102-189), `_archetypeLevel` (line 702). Touch points: §2 (weight curve), §4 (gating logic), description quantification.
+- [lib/game/state/game_state.dart](../../lib/game/state/game_state.dart) — `_offerWeight`, `_rollUpgradeChoices`, archetype effect application, `_archetypeLevel`. Touch points: §2 (weight curve), §4 (gating logic), description quantification.
 - [lib/game/state/meta_catalog.dart](../../lib/game/state/meta_catalog.dart) — keystones. Touch point: §4 layer B (re-home keystones as evolution modifiers).
-- [lib/game/components/enemy.dart](../../lib/game/components/enemy.dart) — existing synergy hooks (Frost+Shatter at 456, Rupture mark at 423). Touch point: §3 (add new synergy proc points).
+- [lib/game/components/enemy.dart](../../lib/game/components/enemy.dart) — existing synergy hooks (Frost+Shatter, Rupture mark). Touch point: §3 (add new synergy proc points).
 
 ## 6. Verification (when changes are made)
 

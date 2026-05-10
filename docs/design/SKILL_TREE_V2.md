@@ -30,7 +30,7 @@ The fiction is already **sword × tech × magic** — a trio. The 13 archetypes 
 | **DAEMON** | The grid — drones, firewalls, orbital strikes | mothership, firewall, meteor, bounty | Systems and infrastructure. Lanes, network, economy. |
 | **HEX** | The arcana — sigils, sutras, summoned spirits | nova, frost, snake, summon | Elemental ward and spirit. Zones, control, presence. |
 
-This mirrors the names already in [skill_catalog.dart](lib/game/state/skill_catalog.dart): *Neon Katana Chain, Plasma Wakizashi, Overclocked Iaido* (Edge); *Tactical Mothership, Rune Firewall, Orbital Spellblade, Soulcoin Brand* (Daemon); *Mana Reactor Nova, Cryo Hex Ash, Fire Snake Ignite, Fire Wolf Spirit* (Hex).
+This mirrors the names already in [skill_catalog.dart](../../lib/game/state/skill_catalog.dart): *Neon Katana Chain, Plasma Wakizashi, Overclocked Iaido* (Edge); *Tactical Mothership, Rune Firewall, Orbital Spellblade, Soulcoin Brand* (Daemon); *Mana Reactor Nova, Cryo Hex Ash, Fire Snake Ignite, Fire Wolf Spirit* (Hex).
 
 ### Why three, not four
 

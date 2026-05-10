@@ -154,10 +154,10 @@
 <h2>0. Why this exists</h2>
 <p>A first-pass read of the skill code revealed four structural issues that compound into a flat, snowball-prone progression curve:</p>
 <ol>
-  <li>The catalog has <strong>127 named skills but only 13 mechanical archetypes</strong> — the rest are cosmetic reskins.</li>
-  <li>The level-up offer pool gives <strong>owned-archetype skills 4× weight over new ones</strong>, so once a player picks Chain they keep seeing Chain.</li>
-  <li><strong>Synergies are essentially absent</strong> — only Frost+Shatter and Rupture's execute mark cross archetypes. Everything else is isolated stat application.</li>
-  <li>There is <strong>no skill tree</strong> — no prerequisites, no evolutions, no archetype unlocks. The "tree" is a flat weighted random draw with meta-knobs.</li>
+  <li>The catalog has <strong>127 named skills but only 13 mechanical archetypes</strong> — the rest are cosmetic reskins (<a href="../../lib/game/state/skill_catalog.dart">skill_catalog.dart</a>, see the <code>_skills(...)</code> helper).</li>
+  <li>The level-up offer pool gives <strong>owned-archetype skills 4× weight over new ones</strong> (<a href="../../lib/game/state/game_state.dart">game_state.dart</a>), so once a player picks Chain they keep seeing Chain.</li>
+  <li><strong>Synergies are essentially absent</strong> — only Frost+Shatter and Rupture's execute mark cross archetypes (<a href="../../lib/game/components/enemy.dart">enemy.dart</a>). Everything else is isolated stat application.</li>
+  <li>There is <strong>no skill tree</strong> — no prerequisites, no evolutions, no archetype unlocks. The "tree" is a flat weighted random draw with meta-knobs (lock / banish / reroll / widerPick / rareCadence / prePick).</li>
 </ol>
 <p>This document is design-only. No code changes are proposed; the goal is a clear set of recommendations for an implementation pass.</p>
 

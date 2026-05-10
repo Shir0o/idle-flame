@@ -28,7 +28,7 @@ This doc is design-only. Build order in §7.
 
 > **Figure 1: Boss reward ladder** — five bosses, five distinct payouts. Beating each one *earns* something visible, not just "advance to next floor."
 
-Today, [`registerKill`](lib/game/state/game_state.dart) advances the floor on a boss kill but grants no special reward. The boss is mechanically a tank-elite. There's no progression beat.
+Today, [`registerKill`](../../lib/game/state/game_state.dart) advances the floor on a boss kill but grants no special reward. The boss is mechanically a tank-elite. There's no progression beat.
 
 Restore the tiered payout from the v1 doc:
 
@@ -42,7 +42,7 @@ Restore the tiered payout from the v1 doc:
 
 ### Implementation hints
 
-- Rewards trigger on the `_advanceFloor()` call when `isBossFloor && isBoss`. There's already a branch at [game_state.dart:658](lib/game/state/game_state.dart) — slot the reward dispatch there.
+- Rewards trigger on the `_advanceFloor()` call when `isBossFloor && isBoss`. There's already a branch at [game_state.dart](../../lib/game/state/game_state.dart) — slot the reward dispatch there.
 - The Sutra-mark choice should pop a small picker dialog (3 archetypes the player owns, or all 13 if no specifics).
 - The Fusion offer guarantee should set a flag (`_pendingGuaranteedFusion = true`) that `_rollUpgradeChoices` honors at the next level-up.
 - F25 unlocks need a queue. Track which permanent unlocks have been awarded; pull the next from a list. ~5 entries is enough for v1.5.
@@ -59,7 +59,7 @@ When a boss spawns today, it appears in the same wave as everything else. Player
 
 ### Proposal — "BOSS INCOMING" entry beat
 
-When the spawner triggers [`_spawnBoss`](lib/game/components/enemy_spawner.dart:181):
+When the spawner triggers [`_spawnBoss`](../../lib/game/components/enemy_spawner.dart):
 
 1. **Pause the spawn timer** for 1.5s.
 2. **Dim the rest of the screen** to 40% opacity using the same overlay technique as `_LevelUpPicker`.
@@ -132,7 +132,7 @@ The Memory-Core today tracks Archetypes, Fusions, Inflections (per the v3 work).
 
 ### Proposal
 
-Add two tabs to the Codex screen ([meta_screen.dart](lib/ui/meta_screen.dart)):
+Add two tabs to the Codex screen ([meta_screen.dart](../../lib/ui/meta_screen.dart)):
 
 #### Bestiary
 

@@ -29,7 +29,7 @@ This doc is design-only. Build order in §6.
 
 ### Today
 
-`killsPerFloor = 10` ([game_state.dart:149](lib/game/state/game_state.dart)). The spawner emits one enemy every 1.8s with a slowly-shifting type mix. After 10 kills the floor advances. Pacing is flat — every second of the floor feels identical to every other second.
+`killsPerFloor = 10` ([game_state.dart](../../lib/game/state/game_state.dart)). The spawner emits one enemy every 1.8s with a slowly-shifting type mix. After 10 kills the floor advances. Pacing is flat — every second of the floor feels identical to every other second.
 
 ### Proposal — three phases per floor
 
