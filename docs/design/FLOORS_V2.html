@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Floors v2 — Past the Architect</title>
+<title>Floors v2 — Finishing the Texture</title>
 <style>
   :root {
     --bg: #07080f;
@@ -58,16 +58,6 @@
     border-radius: 4px;
     font-size: 0.9em;
   }
-  pre {
-    background: var(--panel);
-    color: var(--ink);
-    padding: 14px 16px;
-    border-radius: 6px;
-    border-left: 3px solid var(--accent);
-    font-size: 0.85em;
-    overflow-x: auto;
-    line-height: 1.5;
-  }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -101,37 +91,55 @@
     font-weight: 700; letter-spacing: 0.12em;
     text-transform: uppercase; display: block; margin-bottom: 4px;
   }
+  pre.toast {
+    display: inline-block;
+    background: #0f1320;
+    border: 1px solid var(--warn);
+    border-left: 3px solid var(--warn);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--ink);
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 0.85em;
+    line-height: 1.5;
+    margin: 0.6em 0;
+    white-space: pre-line;
+  }
 </style>
 </head>
 <body>
 <main>
 
-<h1>Floors v2 — Past the Architect</h1>
-<p class="lede">Next-step pass for <strong>Zenith Zero: Idle Descent</strong>. Picks up where Floors v1.5 ends.</p>
+<h1>Floors v2 — Finishing the Texture</h1>
+<p class="lede">Polish pass for <strong>Zenith Zero: Idle Descent</strong>. Closes the texture gaps left by Floors v1.</p>
 
-<!-- Header sigil: five marks for the five v2 items -->
+<!-- Header sigil: six dots representing the six polish items -->
 <figure style="background:transparent; border:none; padding:0; margin: 0 0 1.2em;">
 <svg viewBox="0 0 480 50" width="480" height="50" aria-hidden="true">
   <line x1="40" y1="25" x2="440" y2="25" stroke="#1c2235" stroke-width="1"/>
   <g>
-    <polygon points="60,18 68,25 60,32 52,25" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
-    <text x="60" y="46" text-anchor="middle" fill="#ffd166" font-size="9" letter-spacing="1">ENDLESS</text>
+    <circle cx="60"  cy="25" r="6" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+    <text x="60" y="46" text-anchor="middle" fill="#ffd166" font-size="9" letter-spacing="1">REWARDS</text>
   </g>
   <g>
-    <polygon points="150,18 158,25 150,32 142,25" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/>
-    <text x="150" y="46" text-anchor="middle" fill="#ff2d95" font-size="9" letter-spacing="1">REWARDS</text>
+    <circle cx="140" cy="25" r="6" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/>
+    <text x="140" y="46" text-anchor="middle" fill="#ff2d95" font-size="9" letter-spacing="1">TELEGRAPH</text>
   </g>
   <g>
-    <polygon points="240,18 248,25 240,32 232,25" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/>
-    <text x="240" y="46" text-anchor="middle" fill="#64ffda" font-size="9" letter-spacing="1">CODEX</text>
+    <circle cx="220" cy="25" r="6" fill="#0f1320" stroke="#64ffda" stroke-width="1.5"/>
+    <text x="220" y="46" text-anchor="middle" fill="#64ffda" font-size="9" letter-spacing="1">TIPS</text>
   </g>
   <g>
-    <polygon points="330,18 338,25 330,32 322,25" fill="#0f1320" stroke="#b388ff" stroke-width="1.5"/>
-    <text x="330" y="46" text-anchor="middle" fill="#b388ff" font-size="9" letter-spacing="1">RECAP</text>
+    <circle cx="300" cy="25" r="6" fill="#0f1320" stroke="#b388ff" stroke-width="1.5"/>
+    <text x="300" y="46" text-anchor="middle" fill="#b388ff" font-size="9" letter-spacing="1">CODEX</text>
   </g>
   <g>
-    <polygon points="420,18 428,25 420,32 412,25" fill="#0f1320" stroke="#00e5ff" stroke-width="1.5"/>
-    <text x="420" y="46" text-anchor="middle" fill="#00e5ff" font-size="9" letter-spacing="1">DAILY</text>
+    <circle cx="370" cy="25" r="5" fill="#0f1320" stroke="#8a93a6" stroke-width="1"/>
+    <text x="370" y="46" text-anchor="middle" fill="#8a93a6" font-size="9" letter-spacing="1">MODS</text>
+  </g>
+  <g>
+    <circle cx="430" cy="25" r="5" fill="#0f1320" stroke="#8a93a6" stroke-width="1"/>
+    <text x="430" y="46" text-anchor="middle" fill="#8a93a6" font-size="9" letter-spacing="1">ROOM</text>
   </g>
 </svg>
 </figure>
@@ -139,348 +147,418 @@
 <hr>
 
 <h2>0. Why this exists</h2>
-<p>Floors v1.5 closed the <em>texture</em> gaps inside the F1→F25 arc. The framework now teaches itself: bosses telegraph, new enemies surface counter tips, the Codex tracks discoveries, the modifier catalog is fully wired, and F10/F20 hand out reward-room boons.</p>
-
-<p>What v1.5 deliberately did not address:</p>
+<p>The Floors v1 commit landed the entire framework: three phases per floor, twelve modifiers, all five bosses with mechanics, six new enemy archetypes with full combat behavior. That is <em>more than what was scoped</em>.</p>
+<p>What's missing is <strong>texture</strong> — the small layer that makes the framework feel finished from the player's seat:</p>
 <ul>
-  <li><strong>F25 is a wall, not a horizon.</strong> The Architect respawns on F30, F35, F40 with the same fight and a flat ember reward. There's no reason to keep going except a bigger number.</li>
-  <li><strong>The reward room is a one-shot.</strong> Two rooms across a 25-floor descent. The pool collapsed from 8 boons to 5 after we trimmed the un-buildable ones in v1.5.</li>
-  <li><strong>Discovery is gated to the death screen.</strong> A new Bestiary entry pays embers and hides until the player dies. The discovery loop runs once per run.</li>
-  <li><strong>Run end is anonymous.</strong> The Nexus Breached panel shows floor, kill count, gold, embers — and nothing about <em>what the run was</em>. No memorable beats.</li>
-  <li><strong>Every run is the same shuffle.</strong> Modifiers and Crucibles roll independently each floor. There's no "today's challenge," no shared experience, no reason to play a <em>specific</em> run.</li>
+  <li>Bosses currently advance the floor and drop nothing. Beating the Watcher feels the same as killing 10 basics.</li>
+  <li>The Watcher just <em>appears</em> during Phase 3. There's no "boss fight!" beat, no name on screen, no mechanic hint.</li>
+  <li>A new player encountering an Aegis takes 50% chip damage with no idea why.</li>
+  <li>The Codex doesn't track enemies or Crucibles met, so the new content has no discovery loop.</li>
+  <li>Two modifiers (Cipher Storm, Stance Stutter) are in the enum but their effects aren't wired.</li>
+  <li>Big boss clears (F10, F20) feel structurally identical to F11 or F21.</li>
 </ul>
+<p>v2 is six small fixes that turn "lots of stuff happening" into "lots of stuff happening <em>that I understand and care about</em>." Total scope: ~2 weeks. None of this is new design — it's plumbing the v1 doc already promised but didn't ship.</p>
 
-<p>v2 is five items that turn the v1.5 framework into a <strong>replayable</strong> one. Total scope: ~2.5 weeks. The first three close gaps the v1.5 spec named in its own open-questions section. The last two introduce the smallest amount of new design needed to give the descent a horizon past F25.</p>
-
-<h2>1. Endless mode — Architect Echoes (F26+)</h2>
+<h2>1. Tiered boss rewards</h2>
 
 <figure>
-  <span class="fig-label">Figure 1 — Endless ladder</span>
-  <svg viewBox="0 0 640 360" width="640" aria-label="Endless ladder">
+  <span class="fig-label">Figure 1 — Boss reward ladder</span>
+  <svg viewBox="0 0 640 380" width="640" aria-label="Boss reward ladder">
     <defs>
-      <linearGradient id="endless-spine" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#ffd166" stop-opacity="0.6"/>
-        <stop offset="50%" stop-color="#ff2d95" stop-opacity="0.6"/>
-        <stop offset="100%" stop-color="#b388ff" stop-opacity="0.6"/>
+      <linearGradient id="rewladder" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#64ffda" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#ffd166" stop-opacity="0.7"/>
       </linearGradient>
     </defs>
-    <line x1="120" y1="30" x2="120" y2="340" stroke="url(#endless-spine)" stroke-width="2"/>
+    <line x1="120" y1="40" x2="120" y2="350" stroke="url(#rewladder)" stroke-width="2"/>
 
-    <!-- F25 trophy -->
-    <g transform="translate(120,40)">
-      <circle r="16" fill="#0f1320" stroke="#ffd166" stroke-width="2"/>
-      <text y="4" text-anchor="middle" fill="#ffd166" font-size="10" font-weight="bold">F25</text>
-      <text x="36" y="-4" fill="#fff" font-size="12" font-weight="bold">THE ARCHITECT</text>
-      <text x="36" y="12" fill="#8a93a6" font-size="10">Trophy clear · permanent unlock</text>
+    <!-- F5 -->
+    <g transform="translate(120,60)">
+      <circle r="14" fill="#0f1320" stroke="#ffd166" stroke-width="2"/>
+      <text y="4" text-anchor="middle" fill="#ffd166" font-size="10" font-weight="bold">F5</text>
+      <text x="34" y="-6" fill="#fff" font-size="12" font-weight="bold">THE WATCHER</text>
+      <g transform="translate(34,12)">
+        <rect x="0" y="-12" width="160" height="22" rx="4" fill="#ffd166" fill-opacity="0.1" stroke="#ffd166" stroke-opacity="0.5"/>
+        <circle cx="14" cy="-1" r="4" fill="#ffd166"/>
+        <text x="26" y="2" fill="#ffd166" font-size="10" font-weight="bold">+50 EMBERS</text>
+      </g>
     </g>
 
-    <!-- divider line: end of v1.5, start of v2 -->
-    <line x1="60" y1="80" x2="500" y2="80" stroke="#1c2235" stroke-dasharray="3,4"/>
-    <text x="500" y="78" text-anchor="end" fill="#64ffda" font-size="9" letter-spacing="1">v2 begins ↓</text>
-
-    <!-- F30 echo of watcher -->
-    <g transform="translate(120,110)">
-      <circle r="12" fill="#0f1320" stroke="#ff2d95" stroke-width="2"/>
-      <text y="4" text-anchor="middle" fill="#ff2d95" font-size="9" font-weight="bold">F30</text>
-      <text x="30" y="-4" fill="#fff" font-size="11" font-weight="bold">ARCHITECT · ECHO OF WATCHER</text>
-      <text x="30" y="11" fill="#8a93a6" font-size="10">Daemon-shielded adds at 75/50/25%</text>
+    <!-- F10 -->
+    <g transform="translate(120,130)">
+      <circle r="14" fill="#0f1320" stroke="#ffd166" stroke-width="2"/>
+      <text y="4" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="bold">F10</text>
+      <text x="34" y="-6" fill="#fff" font-size="12" font-weight="bold">GLASS SOVEREIGN</text>
+      <g transform="translate(34,12)">
+        <rect x="0" y="-12" width="220" height="22" rx="4" fill="#64ffda" fill-opacity="0.1" stroke="#64ffda" stroke-opacity="0.5"/>
+        <circle cx="14" cy="-1" r="4" fill="#64ffda"/>
+        <text x="26" y="2" fill="#64ffda" font-size="10" font-weight="bold">+1 SUTRA MARK · CHOICE</text>
+      </g>
     </g>
 
-    <!-- F35 echo of sovereign -->
-    <g transform="translate(120,160)">
-      <circle r="12" fill="#0f1320" stroke="#00e5ff" stroke-width="2"/>
-      <text y="4" text-anchor="middle" fill="#00e5ff" font-size="9" font-weight="bold">F35</text>
-      <text x="30" y="-4" fill="#fff" font-size="11" font-weight="bold">ARCHITECT · ECHO OF SOVEREIGN</text>
-      <text x="30" y="11" fill="#8a93a6" font-size="10">Splash-immune above 50% HP</text>
+    <!-- F15 -->
+    <g transform="translate(120,200)">
+      <circle r="14" fill="#0f1320" stroke="#ffd166" stroke-width="2"/>
+      <text y="4" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="bold">F15</text>
+      <text x="34" y="-6" fill="#fff" font-size="12" font-weight="bold">HIVEFATHER</text>
+      <g transform="translate(34,12)">
+        <rect x="0" y="-12" width="200" height="22" rx="4" fill="#b388ff" fill-opacity="0.1" stroke="#b388ff" stroke-opacity="0.5"/>
+        <circle cx="14" cy="-1" r="4" fill="#b388ff"/>
+        <text x="26" y="2" fill="#b388ff" font-size="10" font-weight="bold">+1 CODEX PEEK</text>
+      </g>
     </g>
 
-    <!-- F40 echo of hivefather -->
-    <g transform="translate(120,210)">
-      <circle r="12" fill="#0f1320" stroke="#b388ff" stroke-width="2"/>
-      <text y="4" text-anchor="middle" fill="#b388ff" font-size="9" font-weight="bold">F40</text>
-      <text x="30" y="-4" fill="#fff" font-size="11" font-weight="bold">ARCHITECT · ECHO OF HIVEFATHER</text>
-      <text x="30" y="11" fill="#8a93a6" font-size="10">Heals from any nearby adds</text>
+    <!-- F20 -->
+    <g transform="translate(120,270)">
+      <circle r="14" fill="#0f1320" stroke="#ffd166" stroke-width="2"/>
+      <text y="4" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="bold">F20</text>
+      <text x="34" y="-6" fill="#fff" font-size="12" font-weight="bold">CIPHER TWIN</text>
+      <g transform="translate(34,12)">
+        <rect x="0" y="-12" width="220" height="22" rx="4" fill="#00e5ff" fill-opacity="0.1" stroke="#00e5ff" stroke-opacity="0.5"/>
+        <circle cx="14" cy="-1" r="4" fill="#00e5ff"/>
+        <text x="26" y="2" fill="#00e5ff" font-size="10" font-weight="bold">FREE FUSION OFFER</text>
+      </g>
     </g>
 
-    <!-- F45 echo of twin -->
-    <g transform="translate(120,260)">
-      <circle r="12" fill="#0f1320" stroke="#64ffda" stroke-width="2"/>
-      <text y="4" text-anchor="middle" fill="#64ffda" font-size="9" font-weight="bold">F45</text>
-      <text x="30" y="-4" fill="#fff" font-size="11" font-weight="bold">ARCHITECT · ECHO OF TWIN</text>
-      <text x="30" y="11" fill="#8a93a6" font-size="10">Rotating immunity (3s window)</text>
-    </g>
-
-    <!-- F50 stack=2 -->
-    <g transform="translate(120,310)">
-      <circle r="14" fill="#0f1320" stroke="#fff" stroke-width="2"/>
-      <text y="4" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">F50+</text>
-      <text x="34" y="-4" fill="#fff" font-size="11" font-weight="bold">STACK +1 · TWO MECHANICS LAYERED</text>
-      <text x="34" y="11" fill="#8a93a6" font-size="10">Cycle repeats, each loop adds one stack (cap 4 @ F90)</text>
+    <!-- F25 -->
+    <g transform="translate(120,340)">
+      <circle r="18" fill="#0f1320" stroke="#ff2d95" stroke-width="2.5"/>
+      <text y="4" text-anchor="middle" fill="#ff2d95" font-size="9" font-weight="bold">F25</text>
+      <text x="40" y="-8" fill="#ff2d95" font-size="13" font-weight="bold">THE ARCHITECT</text>
+      <g transform="translate(40,8)">
+        <rect x="0" y="-10" width="260" height="22" rx="4" fill="#ff2d95" fill-opacity="0.15" stroke="#ff2d95" stroke-opacity="0.7"/>
+        <polygon points="14,-1 18,-7 22,-1 18,5" fill="#ff2d95"/>
+        <text x="30" y="3" fill="#ff2d95" font-size="10" font-weight="bold">PERMANENT META UNLOCK</text>
+      </g>
     </g>
   </svg>
-  <figcaption>F25 stays the trophy. F30+ rotates the four prior bosses' mechanics through the Architect; every full cycle layers on a stack.</figcaption>
+  <figcaption>Five bosses, five distinct payouts. The reward gradient escalates: currency → meta → discovery → in-run guarantee → permanent state.</figcaption>
 </figure>
 
-<p>Today, <code>_grantBossReward</code> at floor ≥ 30 falls into the <code>default</code> branch — a flat <code>50 + floor*5</code> ember payout and the same Architect fight. There's no ramp, no surprise, no reason F35 plays differently from F30.</p>
-
-<h3>Proposal — Architect Echoes</h3>
-<p>Starting on F30, the Architect carries one <strong>Echo modifier</strong> drawn from the four earlier bosses' mechanics:</p>
-
+<p>Today, <code>registerKill</code> advances the floor on a boss kill but grants no special reward. Restore the tiered payout from the v1 doc:</p>
 <table>
-  <thead>
-    <tr><th>Echo of</th><th>Borrows</th><th>Telegraph hint</th></tr>
-  </thead>
+  <thead><tr><th>Floor</th><th>Boss</th><th>Reward</th><th>Why</th></tr></thead>
   <tbody>
-    <tr><td>The Watcher</td><td>Spawns 3 Daemon-shielded adds at 75/50/25% HP</td><td><em>"Echo of the Watcher. The shielded adds return."</em></td></tr>
-    <tr><td>Glass Sovereign</td><td>Becomes splash-immune above 50% HP</td><td><em>"Echo of the Sovereign. Splash glances off."</em></td></tr>
-    <tr><td>Hivefather</td><td>Periodically heals from any nearby adds</td><td><em>"Echo of the Hivefather. Sustain through the brood."</em></td></tr>
-    <tr><td>Cipher Twin</td><td>Carries a permanent rotating immunity (3s window)</td><td><em>"Echo of the Twin. Immunity rotates."</em></td></tr>
+    <tr><td>5</td>  <td>The Watcher</td>     <td><strong style="color:var(--gold)">+50 embers</strong></td>                                      <td>First boss; pure currency teaches the loop.</td></tr>
+    <tr><td>10</td> <td>Glass Sovereign</td> <td><strong style="color:var(--accent)">+1 Sutra mark of choice</strong></td>                       <td>Engages the Sutra system that exists but rarely converts.</td></tr>
+    <tr><td>15</td> <td>Hivefather</td>      <td><strong style="color:var(--hex)">+1 Codex peek</strong></td>                                    <td>Engages Codex without forcing first-time encounters.</td></tr>
+    <tr><td>20</td> <td>Cipher Twin</td>     <td><strong style="color:var(--edge)">A free Fusion offer at next level-up</strong></td>            <td>Engages Fusions; lets the player guarantee one for the run.</td></tr>
+    <tr><td>25</td> <td>The Architect</td>   <td><strong style="color:var(--daemon)">Permanent meta unlock</strong></td>                         <td>The "I beat the game" trophy; rotating list until exhausted.</td></tr>
   </tbody>
 </table>
 
-<p>The echo cycles through the four in a fixed order — F30 Watcher, F35 Sovereign, F40 Hivefather, F45 Twin — then F50 returns to Watcher with a <code>+1</code> echo stack (a second mechanic layered on). The arc tops out at four stacks (F90), at which point the Architect carries all four mechanics simultaneously.</p>
+<h3>Why this matters most</h3>
+<p>Idle games answer "what did I earn?" every two minutes. Today the answer at every boss is the same: "the next floor." This single change converts every 5th floor from a beat into a <strong>milestone</strong>.</p>
 
-<h3>Endless rewards</h3>
-<ul>
-  <li><strong>Echo clears</strong> pay <code>100 + (floor × 10)</code> embers — modest but compounding.</li>
-  <li>Each new echo <em>first-clear</em> adds an entry to the Codex (<code>echo:watcher</code>, etc.) and pays a one-time +25 ember bounty, same shape as Bestiary discoveries.</li>
-  <li>The F25 permanent unlock queue from v1.5 stays sealed (5 entries, claimed once each). Endless does <em>not</em> award unlocks — it's pure leaderboard-style depth.</li>
-</ul>
-
-<h3>Why this matters</h3>
-<p>The longest-tail player today has nothing to chase past F25 except more embers, which the meta-shop can already drown in. Endless turns the post-F25 tail into a <em>content</em> arc — different fight, different counter, different Codex row to fill.</p>
-
-<h2>2. Reward rooms every five floors past F10</h2>
-<p>The v1.5 doc explicitly flagged this as open question #2: <em>"F10/F20 only, or every boss after F10?"</em> Two rooms gave players a taste; five would let the system breathe.</p>
-
-<h3>Proposal</h3>
-<p>Trigger the post-boss reward room after <strong>every</strong> boss starting at F10 — F10, F15, F20, F25, and every 5 floors in Endless. F5 stays clean (the Watcher reward is already a payout beat; piling a boon room on top would dilute the F10 milestone).</p>
-
-<h3>Boon pool expansion (5 → 8)</h3>
-<p>The pool shrank to 5 working boons after v1.5 trimmed <code>revealModifier</code> and wired <code>halveCantCost</code> / <code>skipNextCant</code>. Add three new boons designed to actually fit existing systems:</p>
-
-<table>
-  <thead>
-    <tr><th>Boon</th><th>Effect</th><th>Hooks into</th></tr>
-  </thead>
-  <tbody>
-    <tr><td><strong>Inflection Spark</strong></td><td>Next level-up offers an Inflection on a skill of your choice.</td><td><code>_rollUpgradeChoices</code> — set <code>_pendingInflectionSkillChoice = true</code>.</td></tr>
-    <tr><td><strong>Path Resonance</strong></td><td>+1 stack toward your dominant path's tier (one-time, this run).</td><td><code>dominantPath</code> already computed; nudge <code>pathScores</code> directly.</td></tr>
-    <tr><td><strong>Modifier Preview Lens</strong></td><td>The next floor's modifier is shown in the HUD chip strip <em>before</em> you commit to advancing.</td><td>New: pre-roll <code>_advanceFloor</code>'s modifier set into a <code>previewModifiers</code> field; HUD reads it during the inter-floor beat.</td></tr>
-  </tbody>
-</table>
-
-<p>The lens is the v1.5 <em>Prescience Core</em> boon, but this time with the inter-floor preview UI it needs to mean something. Build it once; reuse it in §3 below.</p>
-
-<h3>Pacing risk</h3>
-<p>Five rooms in a 25-floor descent is one every five floors — same cadence as the modifier rolls. Playtest for fatigue; if it pulls the player out too often, drop F15 and keep F10/F20/F25.</p>
-
-<h2>3. In-run Codex slate</h2>
+<h2>2. Boss telegraph + arena dim</h2>
 
 <figure>
-  <span class="fig-label">Figure 3 — In-run codex slate</span>
-  <svg viewBox="0 0 640 320" width="640" aria-label="Codex slate mockup">
-    <!-- HUD frame -->
-    <rect x="10" y="10" width="620" height="300" rx="8" fill="#0f1320" stroke="#1c2235"/>
-    <!-- floor chip -->
-    <rect x="22" y="22" width="80" height="28" rx="4" fill="#131a2e" stroke="#64ffda" stroke-opacity="0.5"/>
-    <text x="62" y="40" text-anchor="middle" fill="#64ffda" font-size="11" font-weight="bold">F12 · CRUCIBLE</text>
-    <!-- new codex slate icon -->
-    <rect x="110" y="22" width="28" height="28" rx="4" fill="#131a2e" stroke="#b388ff"/>
-    <text x="124" y="41" text-anchor="middle" fill="#b388ff" font-size="14" font-weight="bold">▤</text>
-    <text x="155" y="41" fill="#b388ff" font-size="10">tap to open codex slate</text>
-
-    <!-- arrow -->
-    <path d="M124 60 L124 88" stroke="#b388ff" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <span class="fig-label">Figure 2 — Boss entry telegraph</span>
+  <svg viewBox="0 0 600 360" width="600" aria-label="Boss entry telegraph mockup">
     <defs>
-      <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-        <path d="M0,0 L10,5 L0,10 Z" fill="#b388ff"/>
-      </marker>
+      <radialGradient id="bossglow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ff2d95" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#ff2d95" stop-opacity="0"/>
+      </radialGradient>
     </defs>
+    <!-- game background (dimmed) -->
+    <rect x="20" y="20" width="560" height="320" rx="12" fill="#0a0d18"/>
+    <!-- faded gameplay elements -->
+    <g opacity="0.18">
+      <circle cx="80" cy="60" r="12" fill="#ff2d95"/>
+      <text x="80" y="65" text-anchor="middle" fill="#fff" font-size="9">F5</text>
+      <circle cx="520" cy="60" r="14" fill="#ffd166" fill-opacity="0.4"/>
+      <text x="520" y="64" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">$23</text>
+      <!-- small enemy silhouettes -->
+      <circle cx="200" cy="110" r="10" fill="#ff2d95"/>
+      <circle cx="380" cy="140" r="10" fill="#ff2d95"/>
+      <!-- nexus at bottom -->
+      <circle cx="300" cy="310" r="14" fill="#80deea"/>
+    </g>
+    <!-- dim overlay -->
+    <rect x="20" y="20" width="560" height="320" rx="12" fill="#000" fill-opacity="0.55"/>
 
-    <!-- slate panel -->
-    <rect x="60" y="98" width="520" height="200" rx="6" fill="#131a2e" stroke="#b388ff" stroke-opacity="0.5"/>
-    <text x="76" y="120" fill="#b388ff" font-size="11" font-weight="bold" letter-spacing="2">CODEX SLATE</text>
-    <text x="564" y="120" text-anchor="end" fill="#8a93a6" font-size="10">paused</text>
+    <!-- boss glow -->
+    <ellipse cx="300" cy="180" rx="240" ry="80" fill="url(#bossglow)"/>
 
-    <!-- this run section -->
-    <text x="76" y="145" fill="#64ffda" font-size="9" letter-spacing="1">THIS RUN</text>
-    <text x="76" y="161" fill="#fff" font-size="11">Modifiers: Quickening, Cinder Damp, Stance Stutter</text>
-    <text x="76" y="176" fill="#fff" font-size="11">Crucibles: Pressure, Hivebreak ✓ ✓</text>
-    <text x="76" y="191" fill="#fff" font-size="11">Bosses cleared: F5 Watcher · F10 Sovereign</text>
-
-    <!-- recent discoveries -->
-    <text x="76" y="218" fill="#64ffda" font-size="9" letter-spacing="1">RECENT DISCOVERIES</text>
-    <rect x="76" y="226" width="160" height="20" rx="3" fill="#0f1320" stroke="#ffd166" stroke-opacity="0.4"/>
-    <text x="86" y="240" fill="#ffd166" font-size="10">+5 ▤ Splinter</text>
-    <rect x="244" y="226" width="180" height="20" rx="3" fill="#0f1320" stroke="#ffd166" stroke-opacity="0.4"/>
-    <text x="254" y="240" fill="#ffd166" font-size="10">+5 ▤ Hivebreak crucible</text>
-
-    <!-- bestiary peek -->
-    <text x="76" y="270" fill="#64ffda" font-size="9" letter-spacing="1">BESTIARY · TAP TO PEEK</text>
-    <g>
-      <rect x="76" y="278" width="20" height="14" rx="2" fill="#64ffda" fill-opacity="0.2" stroke="#64ffda" stroke-opacity="0.5"/>
-      <rect x="100" y="278" width="20" height="14" rx="2" fill="#64ffda" fill-opacity="0.2" stroke="#64ffda" stroke-opacity="0.5"/>
-      <rect x="124" y="278" width="20" height="14" rx="2" fill="#64ffda" fill-opacity="0.2" stroke="#64ffda" stroke-opacity="0.5"/>
-      <rect x="148" y="278" width="20" height="14" rx="2" fill="#64ffda" fill-opacity="0.2" stroke="#64ffda" stroke-opacity="0.5"/>
-      <rect x="172" y="278" width="20" height="14" rx="2" fill="#64ffda" fill-opacity="0.2" stroke="#64ffda" stroke-opacity="0.5"/>
-      <rect x="196" y="278" width="20" height="14" rx="2" fill="#0f1320" stroke="#1c2235"/>
-      <rect x="220" y="278" width="20" height="14" rx="2" fill="#0f1320" stroke="#1c2235"/>
-      <text x="246" y="289" fill="#8a93a6" font-size="9">5 / 11 discovered</text>
+    <!-- telegraph card -->
+    <g transform="translate(300,180)">
+      <rect x="-180" y="-60" width="360" height="120" rx="10" fill="#0f1320" stroke="#ff2d95" stroke-width="1.5"/>
+      <text y="-32" text-anchor="middle" fill="#ffd166" font-size="11" font-weight="bold" letter-spacing="4">BOSS · F5</text>
+      <text y="0" text-anchor="middle" fill="#fff" font-size="22" font-weight="bold" letter-spacing="3">THE WATCHER</text>
+      <text y="28" text-anchor="middle" fill="#ff2d95" font-size="11" font-style="italic">"Daemon-shielded adds. AoE wins."</text>
+      <line x1="-140" y1="42" x2="140" y2="42" stroke="#ff2d95" stroke-opacity="0.3" stroke-width="0.5"/>
+      <text y="54" text-anchor="middle" fill="#9aa6b2" font-size="9" letter-spacing="2">REWARD: +50 EMBERS</text>
     </g>
   </svg>
-  <figcaption>A small icon in the HUD opens a paused, read-only codex slate showing the current run's beats, recent unlocks, and a compact Bestiary peek.</figcaption>
+  <figcaption>1.5s pause, screen dims to 40% opacity, telegraph card centers the moment. Players know what they're fighting.</figcaption>
 </figure>
 
-<p>Right now the Codex (with v1.5's Bestiary and Crucibles tabs) is reachable only through the Nexus Breached death panel. A new player who just discovered the Aegis can't go look at what they discovered until they die.</p>
-
-<h3>Proposal</h3>
-<p>Add a <strong>codex slate</strong> opened by a small icon in the HUD's top-left, next to the floor chip. Opening it pauses the run (same overlay treatment as the level-up picker) and shows three sections:</p>
+<p>When the spawner triggers <code>_spawnBoss</code>:</p>
 <ol>
-  <li><strong>This run</strong> — modifiers seen, Crucibles survived, bosses cleared. Resets each run.</li>
-  <li><strong>Recent discoveries</strong> — last 5 Codex entries unlocked (any tab), with the +5 ember toast inline.</li>
-  <li><strong>Bestiary peek</strong> — same grid as the death-screen Bestiary, read-only, scrollable.</li>
+  <li><strong>Pause the spawn timer</strong> for 1.5s.</li>
+  <li><strong>Dim the rest of the screen</strong> to 40% opacity using the same overlay as <code>_LevelUpPicker</code>.</li>
+  <li><strong>Show a centered telegraph card</strong> for 1.2s with floor number, boss name, one-line mechanic.</li>
+  <li><strong>Zoom slightly</strong> (1.05×) for the duration of the boss fight; release on death.</li>
 </ol>
 
-<p>The Boons / Keystones / Meta-shop tabs are <strong>not</strong> in the slate — those are deliberately gated to the death screen. The slate is <em>reference</em> during a run, not <em>progression</em>.</p>
+<h3>Per-boss telegraph copy</h3>
+<table>
+  <thead><tr><th>Boss</th><th>One-line hint</th></tr></thead>
+  <tbody>
+    <tr><td>The Watcher</td>     <td><em>"Daemon-shielded adds. AoE wins."</em></td></tr>
+    <tr><td>Glass Sovereign</td> <td><em>"Evasive and splash-immune. Edge focus wins."</em></td></tr>
+    <tr><td>Hivefather</td>      <td><em>"Drone broods. Sustain wins."</em></td></tr>
+    <tr><td>Cipher Twin</td>     <td><em>"Alternating immunities. Mixed paths win."</em></td></tr>
+    <tr><td>The Architect</td>   <td><em>"Everything you've learned. No hints."</em></td></tr>
+  </tbody>
+</table>
+<p>The Architect deliberately doesn't tell the player what to do — by F25 they should know.</p>
 
-<h3>Why pause-not-overlay</h3>
-<p>If the slate doesn't pause, the player takes damage while reading and the slate becomes a punishment. Pause matches every existing modal in the game (level-up, fusion, cant, sutra picker, reward room).</p>
-
-<h3>Implementation</h3>
-<p>The data is all already in <code>MetaState</code> and <code>GameState</code>. The new surface is one widget in <code>lib/ui/hud.dart</code>. Reuse <code>_BestiaryList</code> and <code>_CrucibleList</code> from <code>meta_screen.dart</code> directly — they already accept a <code>MetaState</code> and render read-only.</p>
-
-<h2>4. Run summary recap</h2>
+<h2>3. First-encounter counter tips</h2>
 
 <figure>
-  <span class="fig-label">Figure 4 — Run summary card</span>
-  <svg viewBox="0 0 560 280" width="560" aria-label="Run summary card mockup">
-    <rect x="10" y="10" width="540" height="260" rx="8" fill="#131a2e" stroke="#ff2d95" stroke-opacity="0.4"/>
-
-    <!-- header -->
-    <text x="28" y="40" fill="#fff" font-size="14" font-weight="bold" letter-spacing="2">RUN 47</text>
-    <text x="532" y="40" text-anchor="end" fill="#ffd166" font-size="13" font-weight="bold">F14 · 287 KILLS</text>
-    <line x1="28" y1="52" x2="532" y2="52" stroke="#1c2235"/>
-
-    <!-- rows -->
-    <g font-family="-apple-system" font-size="11">
-      <text x="28" y="80" fill="#8a93a6" letter-spacing="1">PEAK FLOOR</text>
-      <text x="220" y="80" fill="#fff" font-weight="bold">F14 (Hivefather)</text>
-
-      <text x="28" y="108" fill="#8a93a6" letter-spacing="1">LONGEST PHASE</text>
-      <text x="220" y="108" fill="#fff" font-weight="bold">F12 Crucible · 41s</text>
-
-      <text x="28" y="136" fill="#8a93a6" letter-spacing="1">BEST KILL STREAK</text>
-      <text x="220" y="136" fill="#fff" font-weight="bold">18 in 6.2s</text>
-
-      <text x="28" y="164" fill="#8a93a6" letter-spacing="1">WORST DAMAGE</text>
-      <text x="220" y="164" fill="#ff8a80" font-weight="bold">Splinter cascade · F11 · 28% HP</text>
-
-      <text x="28" y="192" fill="#8a93a6" letter-spacing="1">EMBERS EARNED</text>
-      <text x="220" y="192" fill="#ffd166" font-weight="bold">+412</text>
+  <span class="fig-label">Figure 3 — First-encounter toast</span>
+  <svg viewBox="0 0 600 280" width="600" aria-label="First encounter toast mockup">
+    <!-- game background (active) -->
+    <rect x="20" y="20" width="560" height="240" rx="12" fill="#0a0d18"/>
+    <!-- faded gameplay -->
+    <g opacity="0.5">
+      <circle cx="80" cy="60" r="12" fill="#ff2d95"/>
+      <text x="80" y="65" text-anchor="middle" fill="#fff" font-size="9">F8</text>
+      <!-- aegis enemy -->
+      <g transform="translate(220,140)">
+        <circle r="20" fill="#ff2d95"/>
+        <line x1="-14" y1="0" x2="14" y2="0" stroke="#fff" stroke-width="2"/>
+        <line x1="0" y1="-14" x2="0" y2="14" stroke="#fff" stroke-width="2"/>
+      </g>
+      <!-- nexus -->
+      <circle cx="300" cy="220" r="14" fill="#80deea"/>
     </g>
 
-    <line x1="28" y1="216" x2="532" y2="216" stroke="#1c2235"/>
-    <text x="28" y="240" fill="#8a93a6" font-size="10" font-style="italic">Five rows. Five things you'll remember about this run.</text>
+    <!-- toast in top-right -->
+    <g transform="translate(380,40)">
+      <rect width="200" height="80" rx="6" fill="#0f1320" stroke="#ff8a80" stroke-width="1.5"/>
+      <rect x="0" y="0" width="3" height="80" fill="#ff8a80"/>
+      <text x="14" y="20" fill="#ff8a80" font-size="9" font-weight="bold" letter-spacing="2">NEW ENEMY</text>
+      <text x="14" y="38" fill="#fff" font-size="14" font-weight="bold">AEGIS</text>
+      <text x="14" y="56" fill="#9aa6b2" font-size="10">Reflects single-target damage.</text>
+      <text x="14" y="70" fill="#64ffda" font-size="10" font-style="italic">Bypass with AoE / chain.</text>
+    </g>
+
+    <!-- arrow pointing to enemy -->
+    <line x1="380" y1="80" x2="240" y2="135" stroke="#ff8a80" stroke-opacity="0.4" stroke-width="1" stroke-dasharray="4 3"/>
   </svg>
-  <figcaption>Death-screen recap. Each row is a story beat — a sentence the player can say out loud later.</figcaption>
+  <figcaption>4-second toast in the top-right. Dismissable. Never shows again for that enemy. The data lives in the existing <code>_discoveredIds</code> set.</figcaption>
 </figure>
 
-<p>The Nexus Breached screen today says <em>"Floor 14 · 287 kills · 412 gold."</em> That's the same recap whether the player got chewed up by a Splinter cascade on F8 or held until the Hivefather mid-fight on F15. The run had a shape; the recap shows none of it.</p>
-
-<h3>Proposal</h3>
-<p>Replace the header line with a five-row recap card on the death screen.</p>
-<p>All fields are already trackable from existing GameState fields:</p>
-<ul>
-  <li><code>peakFloor</code> — already known (<code>floor</code> at death).</li>
-  <li><code>longestPhase</code> — track <code>(phase, floor, duration)</code> as a high-water mark in <code>_updatePhase</code>.</li>
-  <li><code>bestKillStreak</code> — <code>_lastKillAt</code> already tracks streak; capture max each run.</li>
-  <li><code>worstDamage</code> — record largest single <code>damageNexus(amount)</code> call this run with its source enemy type and floor.</li>
-  <li><code>embersEarned</code> — already in <code>meta.lastEmbersEarned</code>.</li>
-</ul>
-
-<h3>Why five rows, not twenty</h3>
-<p>Five is the number of beats a player can actually remember. Twenty is a stat dump. Each row is a <em>story beat</em> — a thing the player can later say out loud about the run.</p>
-
-<h2>5. Daily Descent — one seed, one day</h2>
-<p>Every run today is independent: random modifiers, random Crucibles, random Architect echoes. There's no shared experience between two players, no "did you see what F12 rolled today," no reason to play a <em>specific</em> run.</p>
-
-<h3>Proposal — Daily Descent button</h3>
-<p>A second button on the title screen (next to <em>Begin Descent</em>): <strong>Daily Descent</strong>. Tapping it starts a run with:</p>
-<ul>
-  <li>A seed derived from <code>YYYY-MM-DD</code> (UTC).</li>
-  <li>The same modifier rolls, Crucible rolls, and boon offers for every player on that date.</li>
-  <li>A separate "Daily Best" stat tracked in <code>meta_state</code> per date — peak floor + embers.</li>
-  <li>One attempt per day; resetting requires waiting until UTC midnight.</li>
-</ul>
-
-<h3>Why daily, not weekly or arbitrary seeds</h3>
-<ul>
-  <li><em>Daily</em> is the cadence every other game with this feature uses (Spelunky, Slay the Spire, Balatro). Players already know the contract.</li>
-  <li>A new seed every day is a forcing function to come back tomorrow.</li>
-  <li>One attempt per day creates pressure — <em>this run matters</em> — without needing leaderboards or accounts.</li>
-</ul>
-
-<h3>What stays out of scope</h3>
-<ul>
-  <li><strong>No leaderboards.</strong> Single-player descent (per v1's contract). Daily Best is local.</li>
-  <li><strong>No daily challenge modifiers.</strong> The seed <em>is</em> the challenge — same modifiers everyone else got.</li>
-  <li><strong>No streak rewards.</strong> A streak system implies retention loops we haven't designed yet. v2.5 territory.</li>
-</ul>
-
-<h3>Implementation</h3>
-<p><code>math.Random(seed)</code> already exists in <code>GameState</code> — replace the <code>_rng</code> constructor with a daily-derived seed when the run is daily. Add a <code>bool isDaily</code> flag to GameState. Add one row to MetaState:</p>
-
-<pre>Map&lt;String, ({int floor, int embers})&gt; _dailyBests = {};</pre>
-
-<p>That's it. The whole feature is a button, a seeded RNG, and one persistence field.</p>
-
-<h2>6. Build order</h2>
-<p>Strict priority. If you only have a week, ship #1 and #4.</p>
-<ol>
-  <li><strong>Architect Echoes (Endless)</strong> <em>(4 days)</em> — biggest player-retention payoff per dev-day; fixes the "F25 is a wall" complaint.</li>
-  <li><strong>Run summary recap</strong> <em>(2 days)</em> — small surface, high "memorability" return. Most of the data already exists.</li>
-  <li><strong>Reward rooms every 5 floors + 3 new boons</strong> <em>(3 days)</em> — answers v1.5 open Q2; the Modifier Preview Lens unlocks #3's UI.</li>
-  <li><strong>In-run Codex slate</strong> <em>(2 days)</em> — closes the v1.5 discovery loop the death-screen gating left half-open.</li>
-  <li><strong>Daily Descent</strong> <em>(2-3 days)</em> — last because it's net-new feature surface; the previous four polish what already exists.</li>
-</ol>
-<p>Total: ~13-14 working days. Two ~one-week increments, same cadence as v1.5.</p>
-
-<h2>7. Player-incentive checklist</h2>
+<h3>Counter-tip catalog</h3>
 <table>
-  <thead>
-    <tr><th>Hook</th><th>v2 addition</th></tr>
-  </thead>
+  <thead><tr><th>Enemy</th><th>Toast copy</th></tr></thead>
   <tbody>
-    <tr><td>Numbers go up</td><td>Endless ember scaling; daily best PR; expanded boon pool</td></tr>
-    <tr><td>Surprise / discovery</td><td>Architect echoes rotate mechanics; new boon types; codex slate exposes recent unlocks</td></tr>
-    <tr><td>Visible identity</td><td>Run summary names the run's beats; daily seed gives every run a <em>name</em> (the date)</td></tr>
-    <tr><td>Meta progress</td><td>Reward rooms more often → more permanent-feeling boons per descent</td></tr>
-    <tr><td>Mastery achievement</td><td>Echo Codex tier; F90 four-stack Architect as the new ceiling; daily streak (visible, not rewarded)</td></tr>
+    <tr><td>Aegis</td>          <td><em>Reflects single-target damage. Bypass with AoE / chain.</em></td></tr>
+    <tr><td>Wraith</td>         <td><em>Phases out for 1s after each hit. Use DOTs or frost.</em></td></tr>
+    <tr><td>Cinder-Drinker</td> <td><em>Heals from Hex damage. Finish with Edge or Daemon.</em></td></tr>
+    <tr><td>Splinter</td>       <td><em>Divides on death. Execute or wide AoE.</em></td></tr>
+    <tr><td>Sutra-bound</td>    <td><em>Heals nearby enemies. Kill priority.</em></td></tr>
+    <tr><td>Sigil-bearer</td>   <td><em>Drops a hazard glyph on death. Kill at the edges.</em></td></tr>
+  </tbody>
+</table>
+<p>Discovery without explanation is just frustration. The toast turns "why am I taking damage?" into "oh, I need to AoE."</p>
+
+<h2>4. Codex Bestiary + Crucibles tabs</h2>
+
+<figure>
+  <span class="fig-label">Figure 4 — Bestiary grid</span>
+  <svg viewBox="0 0 600 280" width="600" aria-label="Bestiary grid mockup">
+    <!-- header -->
+    <text x="20" y="28" fill="#9aa6b2" font-size="10" font-weight="bold" letter-spacing="3">BESTIARY · 4 / 11 DISCOVERED</text>
+
+    <!-- cells: 4 columns x 3 rows -->
+    <!-- discovered: basic -->
+    <g transform="translate(20,50)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#64ffda" stroke-opacity="0.5"/>
+      <circle cx="22" cy="30" r="12" fill="#ff2d95"/>
+      <text x="42" y="26" fill="#fff" font-size="10" font-weight="bold">BASIC</text>
+      <text x="42" y="42" fill="#9aa6b2" font-size="8">Standard</text>
+      <text x="42" y="52" fill="#64ffda" font-size="8" font-style="italic">+5 found</text>
+    </g>
+    <!-- discovered: fast -->
+    <g transform="translate(160,50)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#64ffda" stroke-opacity="0.5"/>
+      <circle cx="22" cy="30" r="9" fill="#00e5ff"/>
+      <text x="42" y="26" fill="#fff" font-size="10" font-weight="bold">FAST</text>
+      <text x="42" y="42" fill="#9aa6b2" font-size="8">Hard to track</text>
+      <text x="42" y="52" fill="#64ffda" font-size="8" font-style="italic">+5 found</text>
+    </g>
+    <!-- discovered: aegis -->
+    <g transform="translate(300,50)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#ff8a80" stroke-opacity="0.7"/>
+      <circle cx="22" cy="30" r="11" fill="#ff2d95"/>
+      <line x1="11" y1="30" x2="33" y2="30" stroke="#fff" stroke-width="1.5"/>
+      <line x1="22" y1="19" x2="22" y2="41" stroke="#fff" stroke-width="1.5"/>
+      <text x="42" y="26" fill="#fff" font-size="10" font-weight="bold">AEGIS</text>
+      <text x="42" y="42" fill="#9aa6b2" font-size="8">Reflects single-target</text>
+      <text x="42" y="52" fill="#64ffda" font-size="8" font-style="italic">+5 found</text>
+    </g>
+    <!-- undiscovered: wraith -->
+    <g transform="translate(440,50)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#1c2235"/>
+      <circle cx="22" cy="30" r="11" fill="#1c2235"/>
+      <text x="42" y="26" fill="#3a4257" font-size="10" font-weight="bold">???</text>
+      <text x="42" y="42" fill="#3a4257" font-size="8">Undiscovered</text>
+    </g>
+
+    <!-- row 2 -->
+    <!-- discovered: tank -->
+    <g transform="translate(20,120)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#64ffda" stroke-opacity="0.5"/>
+      <circle cx="22" cy="30" r="14" fill="#7c4dff"/>
+      <text x="42" y="26" fill="#fff" font-size="10" font-weight="bold">TANK</text>
+      <text x="42" y="42" fill="#9aa6b2" font-size="8">Slow, bulky</text>
+      <text x="42" y="52" fill="#64ffda" font-size="8" font-style="italic">+5 found</text>
+    </g>
+    <!-- undiscovered series -->
+    <g transform="translate(160,120)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#1c2235"/>
+      <circle cx="22" cy="30" r="11" fill="#1c2235"/>
+      <text x="42" y="26" fill="#3a4257" font-size="10" font-weight="bold">???</text>
+    </g>
+    <g transform="translate(300,120)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#1c2235"/>
+      <circle cx="22" cy="30" r="11" fill="#1c2235"/>
+      <text x="42" y="26" fill="#3a4257" font-size="10" font-weight="bold">???</text>
+    </g>
+    <g transform="translate(440,120)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#1c2235"/>
+      <circle cx="22" cy="30" r="11" fill="#1c2235"/>
+      <text x="42" y="26" fill="#3a4257" font-size="10" font-weight="bold">???</text>
+    </g>
+
+    <!-- row 3 -->
+    <g transform="translate(20,190)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#1c2235"/>
+      <circle cx="22" cy="30" r="11" fill="#1c2235"/>
+      <text x="42" y="26" fill="#3a4257" font-size="10" font-weight="bold">???</text>
+    </g>
+    <g transform="translate(160,190)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#1c2235"/>
+      <circle cx="22" cy="30" r="11" fill="#1c2235"/>
+      <text x="42" y="26" fill="#3a4257" font-size="10" font-weight="bold">???</text>
+    </g>
+    <!-- boss undiscovered -->
+    <g transform="translate(300,190)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#ffd166" stroke-opacity="0.4" stroke-dasharray="3 3"/>
+      <circle cx="22" cy="30" r="13" fill="#1c2235" stroke="#ffd166" stroke-opacity="0.4"/>
+      <text x="42" y="26" fill="#ffd166" font-size="10" font-weight="bold" opacity="0.5">BOSS · ???</text>
+      <text x="42" y="42" fill="#3a4257" font-size="8">Defeat to unlock</text>
+    </g>
+    <g transform="translate(440,190)">
+      <rect width="130" height="60" rx="6" fill="#0f1320" stroke="#ffd166" stroke-opacity="0.4" stroke-dasharray="3 3"/>
+      <circle cx="22" cy="30" r="13" fill="#1c2235" stroke="#ffd166" stroke-opacity="0.4"/>
+      <text x="42" y="26" fill="#ffd166" font-size="10" font-weight="bold" opacity="0.5">BOSS · ???</text>
+      <text x="42" y="42" fill="#3a4257" font-size="8">Defeat to unlock</text>
+    </g>
+  </svg>
+  <figcaption>Same grid pattern as the existing Inflection / Fusion tabs. Bosses get a dashed-gold frame even when undiscovered to tease their importance.</figcaption>
+</figure>
+
+<h3>Bestiary</h3>
+<ul>
+  <li>11 enemy entries (4 base + 6 new + 5 bosses + watcher-add).</li>
+  <li>Greyed out (<code>???</code>) until first encounter, then revealed with sprite + counter-tip from §3.</li>
+  <li>Each first-time entry pays <strong>+5 embers</strong>, same as Inflection / Fusion discoveries.</li>
+</ul>
+
+<h3>Crucibles</h3>
+<ul>
+  <li>8 Crucible event entries.</li>
+  <li>Greyed until lived through.</li>
+  <li>Each first encounter pays <strong>+5 embers</strong> plus a one-line description.</li>
+</ul>
+
+<h3>Codex completion</h3>
+<p>The Trinity Sigil 100% target now requires Bestiary and Crucibles complete too. Players who completed v3's Codex don't lose progress — they just have new tabs to fill.</p>
+
+<h2>5. Wire the two missing modifier effects</h2>
+
+<h3>Cipher Storm</h3>
+<p><em>"Random damage-type immunity rotates every 4s."</em></p>
+<p>Implementation: a <code>currentImmunity</code> field on <code>GameState</code> cycling through <code>DamageType</code> values every 4s when <code>cipherStorm</code> is active. <code>Enemy.takeDamage</code> checks <code>if (game.state.cipherStormImmunity == type) return;</code>. About 30 lines.</p>
+
+<h3>Stance Stutter</h3>
+<p><em>"Stance decays in 0.5s instead of 1s."</em></p>
+<p>Implementation: read the modifier set in the Stance decay timer. If <code>stanceStutter</code> active, halve the decay window. About 5 lines.</p>
+
+<p>Without these, two of the twelve chips lie about what they do — small but corrosive to player trust.</p>
+
+<h2>6. Floor reward room (post-boss, F10 and F20)</h2>
+<p>After the player clears F10 (Glass Sovereign) and F20 (Cipher Twin), present a <strong>reward room</strong> — three boons, pick one. Optional but high-leverage.</p>
+
+<h3>Boon options (rolled from a pool of ~8)</h3>
+<ul>
+  <li>+5% max Nexus HP for the rest of the run</li>
+  <li>+1 Reroll for the rest of the run</li>
+  <li>Instant Inflection on a skill of your choice</li>
+  <li>+25 gold instantly</li>
+  <li>Halve the cost of one Heretic Cant in the future</li>
+  <li>Skip the next Heretic Cant offer (banish it)</li>
+  <li>+1 Sutra mark on a random owned archetype</li>
+  <li>Reveal the next floor's modifier early</li>
+</ul>
+
+<h3>Why two reward rooms, not five</h3>
+<ul>
+  <li>Every floor would feel pacing-fatiguing.</li>
+  <li>F10 and F20 are the natural "halfway" beats. F25 is the finale (already has a reward via §1).</li>
+  <li>Two rooms gives the system room to expand without overwhelming v2 scope.</li>
+</ul>
+
+<h2>7. Build order</h2>
+<p>Strict priority: each item ships independently. If you only have a week, ship #1, #2, #3.</p>
+<ol>
+  <li><strong>Tiered boss rewards</strong> <em>(2 days)</em> — biggest player payoff per dev-day.</li>
+  <li><strong>Boss telegraph + arena dim</strong> <em>(2 days)</em> — sells the moment.</li>
+  <li><strong>First-encounter counter tips</strong> <em>(2 days)</em> — closes the teaching gap.</li>
+  <li><strong>Codex Bestiary + Crucibles tabs</strong> <em>(2-3 days)</em> — closes the discovery loop.</li>
+  <li><strong>Wire Cipher Storm + Stance Stutter</strong> <em>(½ day each)</em> — finish what the catalog promises.</li>
+  <li><strong>Floor reward room (F10/F20)</strong> <em>(3-4 days)</em> — last because boss rewards already carry weight.</li>
+</ol>
+<p>Total: ~10-12 working days. Ship in two ~one-week increments.</p>
+
+<h2>8. Player-incentive checklist</h2>
+<table>
+  <thead><tr><th>Hook</th><th>v2 addition</th></tr></thead>
+  <tbody>
+    <tr><td>Numbers go up</td>        <td>Tiered boss rewards (embers, sutra marks); reward room boons</td></tr>
+    <tr><td>Surprise / discovery</td> <td>Bestiary fills as you play; Cipher Storm rotation creates moment-to-moment variance</td></tr>
+    <tr><td>Visible identity</td>     <td>Boss telegraph names the fight; arena dim sells it</td></tr>
+    <tr><td>Meta progress</td>        <td>Boss rewards are <em>visible</em> additions to permanent state</td></tr>
+    <tr><td>Mastery achievement</td>  <td>F25 first-clear unlocks; Bestiary 100%</td></tr>
   </tbody>
 </table>
 
-<h2>8. What v2 deliberately avoids</h2>
+<h2>9. What v2 deliberately avoids</h2>
 <ul>
-  <li><strong>No new bosses, enemies, or modifiers.</strong> Same v1 catalog. v2 expands the <em>frame</em>, not the content.</li>
-  <li><strong>No leaderboards or accounts.</strong> Daily Descent is local.</li>
-  <li><strong>No active player abilities.</strong> Auto-RPG holds.</li>
-  <li><strong>No mid-run save/restart.</strong> Death is final, including for daily attempts.</li>
-  <li><strong>No new permanent-unlock entries.</strong> The v1.5 unlock queue has 5; that's the trophy set.</li>
-  <li><strong>No streak rewards or login bonuses.</strong> v2.5 territory if it ships at all.</li>
+  <li><strong>No new bosses, enemies, or modifiers.</strong> v1's catalog is enough. v2 finishes; doesn't expand.</li>
+  <li><strong>No new Crucible events.</strong> Eight is enough.</li>
+  <li><strong>No active player abilities</strong> during boss fights. Auto-RPG holds.</li>
+  <li><strong>No mid-run save/restart for boss retries.</strong> Death = restart.</li>
+  <li><strong>No leaderboards or social features.</strong> Single-player descent.</li>
+  <li><strong>No tutorial overlay.</strong> The first-encounter toast (§3) <em>is</em> the tutorial — it teaches in context.</li>
 </ul>
 
-<h2>9. Open questions for playtesting</h2>
+<h2>10. Open questions for playtesting</h2>
 <ol>
-  <li><strong>Echo cadence</strong> — every 5 floors (F30/F35/F40/F45) or every 10 (F30/F40/F50)? Five is the v1 cadence; ten lets each echo breathe longer.</li>
-  <li><strong>Stack limit</strong> — four stacks (F90 ceiling) suggested. Drop to three if F90 is unreachable in practice; raise to five if streamers complain about the wall.</li>
-  <li><strong>Daily Descent retries</strong> — one attempt is dramatic but punishing. Allow a single retry if the run ends before F5? Verify with non-hardcore players.</li>
-  <li><strong>Reward room cadence</strong> — every 5 floors might be too frequent. If pacing fatigues, drop F15.</li>
-  <li><strong>Codex slate keybind</strong> — tap-only, or also a keyboard shortcut on desktop? Mobile is the primary target.</li>
-  <li><strong>Run summary social share</strong> — eventually, <em>PEAK FLOOR</em> is the kind of stat players screenshot. Does the recap card need to render cleanly when screenshot? Probably yes, but not a blocker for v2.</li>
+  <li><strong>F25 permanent unlock list</strong> — how many entries? Suggest ~5 for v2, expandable later.</li>
+  <li><strong>Reward room frequency</strong> — F10/F20 only, or every boss after F10? Two feels right; verify.</li>
+  <li><strong>Counter tip toast duration</strong> — 4 seconds suggested. Long enough to read, short enough not to occlude.</li>
+  <li><strong>Sutra-mark picker after F10</strong> — mid-floor or end-of-run? Mid-floor is more rewarding; end-of-run less disruptive.</li>
+  <li><strong>Boss telegraph vs floor entry card</strong> — both surface info. Verify they don't pile up on boss floors.</li>
+  <li><strong>Cipher Storm immunity duration</strong> — 4s suggested; tune by feel.</li>
 </ol>
 
-<p class="footer">— five items · two-and-a-half weeks · one descent that no longer ends at F25 —</p>
+<p class="footer">— six items · two weeks · one finished v1 —</p>
 
 </main>
 </body>

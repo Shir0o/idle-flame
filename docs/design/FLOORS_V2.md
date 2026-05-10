@@ -1,228 +1,259 @@
-# Floors v2 — Past the Architect
+# Floors v2 — Finishing the Texture
 
-*Next-step pass for **Zenith Zero: Idle Descent**.*
-*Picks up where Floors v1.5 ends.*
+*Polish pass for **Zenith Zero: Idle Descent**.*
+*Closes the texture gaps left by Floors v1.*
 
 ---
 
 ## 0. Why this exists
 
-Floors v1.5 closed the *texture* gaps inside the F1→F25 arc. The framework now teaches itself: bosses telegraph, new enemies surface counter tips, the Codex tracks discoveries, the modifier catalog is fully wired, and F10/F20 hand out reward-room boons.
+The Floors v1 commit landed the entire framework: three phases per floor, twelve modifiers, all five bosses with mechanics, six new enemy archetypes with full combat behavior. That is *more than what was scoped*.
 
-What v1.5 deliberately did not address:
+What's missing is **texture** — the small layer that makes the framework feel finished from the player's seat:
 
-- **F25 is a wall, not a horizon.** The Architect respawns on F30, F35, F40 with the same fight and a flat ember reward. There's no reason to keep going except a bigger number.
-- **The reward room is a one-shot.** Two rooms across a 25-floor descent. The pool collapsed from 8 boons to 5 after we dropped the un-buildable ones in v1.5.
-- **Discovery is gated to the death screen.** A new Bestiary entry pays embers and hides until the player dies. The discovery loop runs once per run.
-- **Run end is anonymous.** The Nexus Breached panel shows floor, kill count, gold, embers — and nothing about *what the run was*. No memorable beats. No "I cleared three Hivebreaks" recap.
-- **Every run is the same shuffle.** Modifiers and Crucibles roll independently each floor. There's no "today's challenge," no shared experience to compare against, no reason to play a *specific* run.
+- Bosses currently advance the floor and drop nothing. Beating the Watcher feels the same as killing 10 basics.
+- The Watcher just *appears* during Phase 3. There's no "boss fight!" beat, no name on screen, no mechanic hint.
+- A new player encountering an Aegis takes 50% chip damage with no idea why.
+- The Codex doesn't track enemies or Crucibles met, so the new content has no discovery loop.
+- Two modifiers (Cipher Storm, Stance Stutter) are in the enum but their effects aren't wired.
+- Big boss clears (F10, F20) feel structurally identical to F11 or F21.
 
-v2 is five items that turn the v1.5 framework into a **replayable** one. Total scope: ~2.5 weeks. The first three close gaps the v1.5 spec named in its own open-questions section. The last two introduce the smallest amount of new design needed to give the descent a horizon past F25.
+v2 is six small fixes that turn "lots of stuff happening" into "lots of stuff happening *that I understand and care about*." Total scope: ~2 weeks. None of this is new design — it's plumbing the v1 doc already promised but didn't ship.
 
-This doc is design-only. Build order in §6.
+This doc is design-only. Build order in §7.
 
 ---
 
-## 1. Endless mode — Architect Echoes (F26+)
+## 1. Tiered boss rewards
 
-> **Figure 1: Endless ladder** — F25 is the trophy clear; F26+ is the Echo arc, with the Architect respawning every 5 floors, each time wearing a borrowed mechanic from one of the four earlier bosses.
+> **Figure 1: Boss reward ladder** — five bosses, five distinct payouts. Beating each one *earns* something visible, not just "advance to next floor."
 
-Today, [`_grantBossReward`](../../lib/game/state/game_state.dart) at floor ≥ 30 falls into the `default` branch — a flat `50 + floor*5` ember payout and the same Architect fight. There's no ramp, no surprise, no reason F35 plays differently from F30.
+Today, [`registerKill`](../../lib/game/state/game_state.dart) advances the floor on a boss kill but grants no special reward. The boss is mechanically a tank-elite. There's no progression beat.
 
-### Proposal — Architect Echoes
+Restore the tiered payout from the v1 doc:
 
-Starting on F30, the Architect carries one **Echo modifier** drawn from the four earlier bosses' mechanics:
+| Floor | Boss | Reward | Why |
+|---|---|---|---|
+| 5  | The Watcher     | **+50 embers** (instant, banked to meta) | First boss; pure currency reward teaches the loop. |
+| 10 | Glass Sovereign | **+1 Sutra mark of player's choice** | Engages the Sutra system that exists but rarely converts. |
+| 15 | Hivefather      | **+1 Codex peek** (reveal one undiscovered Inflection or Triad name) | Engages Codex without forcing first-time encounters. |
+| 20 | Cipher Twin     | **A free Fusion offer at next level-up** | Engages Fusions; lets the player guarantee one for the run. |
+| 25 | The Architect   | **Permanent meta unlock** (e.g., Nexus skin, fourth Heretic Cant slot, +1 starting reroll) | The "I beat the game" trophy. Each F25 first-clear unlocks something different until the unlock list is exhausted. |
 
-| Echo of | Borrows | Telegraph hint |
-|---|---|---|
-| The Watcher     | Spawns 3 Daemon-shielded adds at 75/50/25% HP | *"Echo of the Watcher. The shielded adds return."* |
-| Glass Sovereign | Becomes splash-immune above 50% HP        | *"Echo of the Sovereign. Splash glances off."* |
-| Hivefather      | Periodically heals from any nearby adds   | *"Echo of the Hivefather. Sustain through the brood."* |
-| Cipher Twin     | Carries a permanent rotating immunity (3s window) | *"Echo of the Twin. Immunity rotates."* |
+### Implementation hints
 
-The echo cycles through the four in a fixed order — F30 Watcher, F35 Sovereign, F40 Hivefather, F45 Twin — then F50 returns to Watcher with a `+1` echo stack (a second mechanic layered on). The arc tops out at four stacks (F90), at which point the Architect carries all four mechanics simultaneously.
+- Rewards trigger on the `_advanceFloor()` call when `isBossFloor && isBoss`. There's already a branch at [game_state.dart](../../lib/game/state/game_state.dart) — slot the reward dispatch there.
+- The Sutra-mark choice should pop a small picker dialog (3 archetypes the player owns, or all 13 if no specifics).
+- The Fusion offer guarantee should set a flag (`_pendingGuaranteedFusion = true`) that `_rollUpgradeChoices` honors at the next level-up.
+- F25 unlocks need a queue. Track which permanent unlocks have been awarded; pull the next from a list. ~5 entries is enough for v2.
 
-### Endless rewards
+### Why this matters most
 
-- **Echo clears** pay `100 + (floor × 10)` embers — modest but compounding.
-- Each new echo *first-clear* adds an entry to the Codex (`echo:watcher`, etc.) and pays a one-time +25 ember bounty, same shape as Bestiary discoveries.
-- The F25 permanent unlock queue from v1.5 stays sealed (5 entries, claimed once each). Endless does *not* award unlocks — it's pure leaderboard-style depth.
+Idle games answer "what did I earn?" every two minutes. Today the answer at every boss is the same: "the next floor." This single change converts every 5th floor from a beat into a *milestone*.
+
+---
+
+## 2. Boss telegraph + arena dim
+
+When a boss spawns today, it appears in the same wave as everything else. Players who don't read the changelog won't realize what's happening until the boss is a third of the way down the screen.
+
+### Proposal — "BOSS INCOMING" entry beat
+
+When the spawner triggers [`_spawnBoss`](../../lib/game/components/enemy_spawner.dart):
+
+1. **Pause the spawn timer** for 1.5s.
+2. **Dim the rest of the screen** to 40% opacity using the same overlay technique as `_LevelUpPicker`.
+3. **Show a centered telegraph card** for 1.2s:
+   - Top line: `BOSS · F5` (gold, small caps)
+   - Middle line: `THE WATCHER` (large, white, glow)
+   - Bottom line: One-sentence mechanic — *"Daemon-shielded adds. AoE wins."*
+4. **Zoom the screen in slightly** (1.05×) for the duration of the boss fight; release on boss death.
+
+### Why this works
+
+- The telegraph **names the fight** — the player can later say "I lost on the Watcher" instead of "I lost on a hard floor."
+- The mechanic hint is a soft tutorial. After three runs, every player knows that AoE counters Watcher.
+- Arena dim is the same trick used by every action game. Players already know what it means: *this fight is different*.
+
+### Per-boss telegraph copy
+
+| Boss | One-line hint |
+|---|---|
+| The Watcher     | *"Daemon-shielded adds. AoE wins."* |
+| Glass Sovereign | *"Evasive and splash-immune. Edge focus wins."* |
+| Hivefather      | *"Drone broods. Sustain wins."* |
+| Cipher Twin     | *"Alternating immunities. Mixed paths win."* |
+| The Architect   | *"Everything you've learned. No hints."* |
+
+The Architect deliberately doesn't tell the player what to do — by F25 they should know.
+
+---
+
+## 3. First-encounter counter tips
+
+> **Figure 3: First-encounter toast** — a small corner chip with the enemy's name, one-line behavior, and the counter hint.
+
+Aegis reflects 50% of single-target damage to the Nexus. A new player will lose ~30% HP to this before figuring it out. That's punishing and *not in a fun way* — the game taught nothing.
+
+### Proposal
+
+The first time the player sees a given enemy archetype (tracked in `meta_state` discovery set), display a small toast in the top-right of the HUD for 4 seconds:
+
+```
+NEW ENEMY · AEGIS
+Reflects single-target damage.
+Bypass with AoE / chain.
+```
+
+The toast is dismissable (tap), auto-fades, and never shows again for that enemy type. The data model is the existing `_discoveredIds` set in `meta_state.dart` — add `'enemy:<type>'` keys.
+
+### Counter-tip catalog
+
+| Enemy | Toast copy |
+|---|---|
+| Aegis           | *Reflects single-target damage. Bypass with AoE / chain.* |
+| Wraith          | *Phases out for 1s after each hit. Use DOTs or frost.* |
+| Cinder-Drinker  | *Heals from Hex damage. Finish with Edge or Daemon.* |
+| Splinter        | *Divides on death. Execute or wide AoE.* |
+| Sutra-bound     | *Heals nearby enemies. Kill priority.* |
+| Sigil-bearer    | *Drops a hazard glyph on death. Kill at the edges.* |
+
+Same treatment for the four base types is optional but cheap (one toast each, four extra strings).
 
 ### Why this matters
 
-The longest-tail player today has nothing to chase past F25 except more embers, which the meta-shop can already drown in. Endless turns the post-F25 tail into a *content* arc — different fight, different counter, different Codex row to fill.
+Discovery without explanation is just frustration. The toast turns "why am I taking damage?" into "oh, I need to AoE." It also reinforces the path identities — *Cinder-Drinker* is a soft tutorial for "Hex isn't always the answer."
 
 ---
 
-## 2. Reward rooms every five floors past F10
+## 4. Codex Bestiary + Crucibles tabs
 
-The v1.5 doc explicitly flagged this as open question #2: *"F10/F20 only, or every boss after F10?"* Two rooms gave players a taste; five would let the system breathe.
+The Memory-Core today tracks Archetypes, Fusions, Inflections (per the v3 work). It doesn't track enemies or Crucible events met — so all the new v1 content has no discovery loop, no completionist target, no ember reward for first encounters.
 
 ### Proposal
 
-Trigger the post-boss reward room after **every** boss starting at F10 — F10, F15, F20, F25, and every 5 floors in Endless. F5 stays clean (the Watcher reward is already a payout beat; piling a boon room on top would dilute the F10 milestone).
+Add two tabs to the Codex screen ([meta_screen.dart](../../lib/ui/meta_screen.dart)):
 
-### Boon pool expansion (5 → 8)
+#### Bestiary
 
-The pool shrank to 5 working boons after v1.5 dropped `revealModifier`, `halveCantCost`, and `skipNextCant` were trimmed/wired. Add three new boons designed to actually fit existing systems:
+- 11 enemy entries (4 base + 6 new + bosses are visible after first sighting).
+- Greyed out (`???`) until first encounter, then revealed with sprite + counter-tip from §3.
+- Each first-time entry pays **+5 embers**, same as Inflection/Fusion discoveries.
 
-| Boon | Effect | Hooks into |
-|---|---|---|
-| **Inflection Spark** | Next level-up offers an Inflection on a skill of your choice. | `_rollUpgradeChoices` — set `_pendingInflectionSkillChoice = true`. |
-| **Path Resonance** | +1 stack toward your dominant path's tier (one-time, this run). | `dominantPath` already computed; nudge `pathScores` directly. |
-| **Modifier Preview Lens** | The next floor's modifier is shown in the HUD chip strip *before* you commit to advancing. | New: pre-roll `_advanceFloor`'s modifier set into a `previewModifiers` field; HUD reads it during the inter-floor beat. |
+> **Figure 4: Bestiary grid** — a 3-column grid of enemy cells, alternating discovered (bright with sprite) and undiscovered (silhouette + ???).
 
-The lens is the v1.5 *Prescience Core* boon, but this time with the inter-floor preview UI it needs to mean something. Build it once; reuse it in §3 below.
+#### Crucibles
 
-### Pacing risk
+- 8 Crucible event entries.
+- Greyed out until the player has lived through one.
+- Each first encounter pays **+5 embers** plus a one-line description ("*Hivebreak: 8 seconds of fast spawns. Tests sustain."*)
 
-Five rooms in a 25-floor descent is one every five floors — same cadence as the modifier rolls. Playtest for fatigue; if it pulls the player out too often, drop F15 and keep F10/F20/F25.
+### Codex completion
 
----
+The "Trinity Sigil" 100% target now requires Bestiary and Crucibles complete too. Players who completed v3's Codex don't lose progress — they just have new tabs to fill.
 
-## 3. In-run Codex slate
+### Implementation hint
 
-> **Figure 3: In-run codex slate** — a corner button on the HUD opens a translucent panel listing recently discovered Bestiary and Crucible entries, plus the current run's modifier history.
-
-Right now the Codex (with v1.5's Bestiary and Crucibles tabs) is reachable only through the Nexus Breached death panel. A new player who just discovered the Aegis can't go look at what they discovered until they die.
-
-### Proposal
-
-Add a **codex slate** opened by a small icon in the HUD's top-left, next to the floor chip. Opening it pauses the run (same overlay treatment as the level-up picker) and shows three sections:
-
-1. **This run** — modifiers seen, Crucibles survived, bosses cleared. Resets each run.
-2. **Recent discoveries** — last 5 Codex entries unlocked (any tab), with the +5 ember toast inline.
-3. **Bestiary peek** — same grid as the death-screen Bestiary, read-only, scrollable.
-
-The Boons / Keystones / Meta-shop tabs are **not** in the slate — those are deliberately gated to the death screen. The slate is *reference* during a run, not *progression*.
-
-### Why pause-not-overlay
-
-If the slate doesn't pause, the player takes damage while reading and the slate becomes a punishment. Pause matches every existing modal in the game (level-up, fusion, cant, sutra picker, reward room).
-
-### Implementation
-
-The data is all already in `MetaState` and `GameState`. The new surface is one widget in `lib/ui/hud.dart`. Reuse `_BestiaryList` and `_CrucibleList` from `meta_screen.dart` directly — they already accept a `MetaState` and render read-only.
+Reuse `_CodexGrid` and `_CodexItem` patterns from the existing meta screen. The data is two static catalogs (already exist for enemies in `EnemyType`, for Crucibles in `CrucibleEvent`).
 
 ---
 
-## 4. Run summary recap
+## 5. Wire the two missing modifier effects
 
-The Nexus Breached screen today says *"Floor 14 · 287 kills · 412 gold."* That's the same recap whether the player got chewed up by a Splinter cascade on F8 or held until the Hivefather mid-fight on F15. The run had a shape; the recap shows none of it.
+Two of the twelve modifiers from the v1 doc are in the enum and HUD chip list but appear unwired:
 
-### Proposal
+### Cipher Storm
 
-Replace the header line with a five-row recap card on the death screen:
+> *"Random damage-type immunity rotates every 4s."*
 
-```
-RUN 47                                    F14 · 287 kills
+Implementation: a `currentImmunity` field on `GameState` cycling through `DamageType` values every 4s when `cipherStorm` is active. `Enemy.takeDamage` checks `if (game.state.cipherStormImmunity == type) return;`. About 30 lines.
 
-PEAK FLOOR        F14 (Hivefather)
-LONGEST PHASE     F12 Crucible · 41s
-BEST KILL STREAK  18 in 6.2s
-WORST DAMAGE      Splinter cascade · F11 · 28% HP
-EMBERS EARNED     412
-```
+### Stance Stutter
 
-All fields are already trackable from existing GameState fields:
+> *"Stance decays in 0.5s instead of 1s."*
 
-- `peakFloor` — already known (`floor` at death).
-- `longestPhase` — track `(phase, floor, duration)` as a high-water mark in `_updatePhase`.
-- `bestKillStreak` — `_lastKillAt` already tracks streak; capture max each run.
-- `worstDamage` — record largest single `damageNexus(amount)` call this run with its source enemy type and floor.
-- `embersEarned` — already in `meta.lastEmbersEarned`.
+Implementation: read the modifier set in the Stance decay timer. If `stanceStutter` active, halve the decay window. About 5 lines.
 
-### Why five rows, not twenty
-
-Five is the number of beats a player can actually remember. Twenty is a stat dump. Each row is a *story beat* — a thing the player can later say out loud about the run. ("I almost survived the Hivefather, but a Splinter cascade did me in on 11.")
+These are small and bring the modifier catalog to fully shipped. Without them, two of the twelve chips lie about what they do — small but corrosive to player trust.
 
 ---
 
-## 5. Daily Descent — one seed, one day
+## 6. Floor reward room (post-boss, F10 and F20)
 
-Every run today is independent: random modifiers, random Crucibles, random Architect echoes. There's no shared experience between two players, no "did you see what F12 rolled today," no reason to play a *specific* run.
+Optional but high-leverage. After the player clears F10 (Glass Sovereign) and F20 (Cipher Twin), instead of advancing immediately to the next floor, present a **reward room** — three boons, pick one:
 
-### Proposal — Daily Descent button
+### Boon options (rolled from a pool of ~8)
 
-A second button on the title screen (next to *Begin Descent*): **Daily Descent**. Tapping it starts a run with:
+- *+5% max Nexus HP for the rest of the run*
+- *+1 Reroll for the rest of the run*
+- *Instant Inflection on a skill of your choice*
+- *+25 gold instantly*
+- *Halve the cost of one Heretic Cant in the future*
+- *Skip the next Heretic Cant offer (banish it)*
+- *+1 Sutra mark on a random owned archetype*
+- *Reveal the next floor's modifier early*
 
-- A seed derived from `YYYY-MM-DD` (UTC).
-- The same modifier rolls, Crucible rolls, and boon offers for every player on that date.
-- A separate "Daily Best" stat tracked in `meta_state` per date — peak floor + embers.
-- One attempt per day; resetting requires waiting until UTC midnight.
+### Why two reward rooms, not five
 
-### Why daily, not weekly or arbitrary seeds
+- Every floor would feel pacing-fatiguing.
+- F10 and F20 are the natural "halfway" beats. F25 is the finale (already has a reward via §1).
+- Two rooms gives the system room to expand without overwhelming v2 scope.
 
-- *Daily* is the cadence every other game with this feature uses (Spelunky, Slay the Spire, Balatro). Players already know the contract.
-- A new seed every day is a forcing function to come back tomorrow.
-- One attempt per day creates pressure — *this run matters* — without needing leaderboards or accounts.
+### Why this isn't already in v1
 
-### What stays out of scope
-
-- **No leaderboards.** Single-player descent (per v1's contract). Daily Best is local.
-- **No daily challenge modifiers.** The seed *is* the challenge — same modifiers everyone else got.
-- **No streak rewards.** A streak system implies retention loops we haven't designed yet. v2.5 territory.
-
-### Implementation
-
-`math.Random(seed)` already exists in `GameState` — replace the `_rng` constructor with a daily-derived seed when the run is daily. Add a `bool isDaily` flag to GameState. Add one row to MetaState:
-
-```dart
-Map<String, ({int floor, int embers})> _dailyBests = {};
-```
-
-That's it. The whole feature is a button, a seeded RNG, and one persistence field.
+It was step 10 in the v1 build order — explicitly the lowest priority. v2 can either include it (3-4 days) or push it to v3 if the rest of v2 takes longer than expected.
 
 ---
 
-## 6. Build order
+## 7. Build order
 
-Strict priority. If you only have a week, ship #1 and #4.
+Strict priority: each item ships independently. If you only have a week, ship #1, #2, #3.
 
-1. **Architect Echoes (Endless)** *(4 days)* — biggest player-retention payoff per dev-day; fixes the "F25 is a wall" complaint.
-2. **Run summary recap** *(2 days)* — small surface, high "memorability" return. Most of the data already exists.
-3. **Reward rooms every 5 floors + 3 new boons** *(3 days)* — answers v1.5 open Q2; the Modifier Preview Lens unlocks #3's UI.
-4. **In-run Codex slate** *(2 days)* — closes the v1.5 discovery loop the death-screen gating left half-open.
-5. **Daily Descent** *(2-3 days)* — last because it's net-new feature surface; the previous four polish what already exists.
+1. **Tiered boss rewards** *(2 days)* — biggest player payoff per dev-day.
+2. **Boss telegraph + arena dim** *(2 days)* — sells the moment.
+3. **First-encounter counter tips** *(2 days)* — closes the teaching gap.
+4. **Codex Bestiary + Crucibles tabs** *(2-3 days)* — closes the discovery loop.
+5. **Wire Cipher Storm + Stance Stutter** *(½ day each)* — finish what the catalog promises.
+6. **Floor reward room (F10/F20)** *(3-4 days)* — last because boss rewards from #1 already carry weight.
 
-Total: ~13-14 working days. Two ~one-week increments, same cadence as v1.5.
+Total: ~10-12 working days. Ship in two ~one-week increments.
 
 ---
 
-## 7. Player-incentive checklist
+## 8. Player-incentive checklist
 
 Same five hooks. v2 reinforces:
 
 | Hook | v2 addition |
 |---|---|
-| Numbers go up | Endless ember scaling; daily best PR; expanded boon pool |
-| Surprise / discovery | Architect echoes rotate mechanics; new boon types; codex slate exposes recent unlocks |
-| Visible identity | Run summary names the run's beats; daily seed gives every run a *name* (the date) |
-| Meta progress | Reward rooms more often → more permanent-feeling boons per descent |
-| Mastery achievement | Echo Codex tier; F90 four-stack Architect as the new ceiling; daily streak (visible, not rewarded) |
+| Numbers go up | Tiered boss rewards (embers, sutra marks); reward room boons |
+| Surprise / discovery | Bestiary fills as you play; Cipher Storm rotation creates moment-to-moment variance |
+| Visible identity | Boss telegraph names the fight; arena dim sells it |
+| Meta progress | Boss rewards are *visible* additions to permanent state |
+| Mastery achievement | F25 first-clear unlocks; Bestiary 100% |
 
 ---
 
-## 8. What v2 deliberately avoids
+## 9. What v2 deliberately avoids
 
-- **No new bosses, enemies, or modifiers.** Same v1 catalog. v2 expands the *frame*, not the content.
-- **No leaderboards or accounts.** Daily Descent is local.
-- **No active player abilities.** Auto-RPG holds.
-- **No mid-run save/restart.** Death is final, including for daily attempts. (One attempt per day is the contract.)
-- **No new permanent-unlock entries.** The v1.5 unlock queue has 5; that's the trophy set. Endless intentionally does not gate behind unlocks.
-- **No streak rewards or login bonuses.** v2.5 territory if it ships at all.
-
----
-
-## 9. Open questions for playtesting
-
-1. **Echo cadence** — every 5 floors (F30/F35/F40/F45) or every 10 (F30/F40/F50)? Five is the v1 cadence; ten lets each echo breathe longer. Playtest both.
-2. **Stack limit** — four stacks (F90 ceiling) suggested. Drop to three if F90 is unreachable in practice; raise to five if streamers complain about the wall.
-3. **Daily Descent retries** — one attempt is dramatic but punishing. Allow a single retry if the run ends before F5? Verify with non-hardcore players.
-4. **Reward room cadence** — every 5 floors might be too frequent. If pacing fatigues, drop F15.
-5. **Codex slate keybind** — tap-only, or also a keyboard shortcut on desktop? Mobile is the primary target; desktop may not justify the binding.
-6. **Run summary social share** — eventually, *PEAK FLOOR* is the kind of stat players screenshot. Does the recap card need to render cleanly when screenshot? Probably yes, but not a blocker for v2.
+- **No new bosses, enemies, or modifiers.** v1's catalog is enough. v2 finishes; doesn't expand.
+- **No new Crucible events.** Eight is enough.
+- **No active player abilities** during boss fights. Auto-RPG holds.
+- **No mid-run save/restart for boss retries.** If a player dies on F25 they restart the run. That's the contract.
+- **No leaderboards or social features.** Single-player descent.
+- **No tutorial overlay.** The first-encounter toast (§3) is *the* tutorial — it teaches in context. A separate tutorial flow is its own scope and lives in a later release.
 
 ---
 
-*End of v2 — five items, two-and-a-half weeks, one descent that no longer ends at F25.*
+## 10. Open questions for playtesting
+
+1. **F25 permanent unlock list** — how many entries? Suggest ~5 for v2, expandable later. Once exhausted, fall back to embers.
+2. **Reward room frequency** — F10/F20 only, or every boss after F10? Two feels right but verify.
+3. **Counter tip toast duration** — 4 seconds suggested. Long enough to read, short enough not to occlude gameplay. Verify with playtesters who skip text.
+4. **Sutra-mark picker after F10** — does the dialog interrupt the run mid-floor, or wait until run end? Mid-floor is more rewarding (immediate gratification); end-of-run is less disruptive.
+5. **Boss telegraph vs floor entry card** — both surface info. Could the boss telegraph replace the floor entry card on boss floors, or do both? Probably both, but verify they don't pile up.
+6. **Cipher Storm immunity duration** — 4s suggested. If it ends up frustrating, raise to 6s. If too easy to play around, drop to 3s.
+
+---
+
+*End of v2 — six items, two weeks, one finished v1.*
