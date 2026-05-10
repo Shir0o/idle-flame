@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Skill Tree v3 — Depth Per Skill</title>
+<style>
+  :root {
+    --bg: #07080f;
+    --panel: #0f1320;
+    --panel-2: #131a2e;
+    --ink: #e6edf3;
+    --dim: #8a93a6;
+    --rule: #1c2235;
+    --accent: #64ffda;
+    --edge:   #00e5ff;
+    --daemon: #ff2d95;
+    --hex:    #b388ff;
+    --frost:  #80deea;
+    --gold:   #ffd166;
+  }
+  html, body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 12% 10%, rgba(0,229,255,0.08), transparent 35%),
+      radial-gradient(circle at 88% 18%, rgba(255,45,149,0.08), transparent 40%),
+      radial-gradient(circle at 50% 95%, rgba(179,136,255,0.08), transparent 45%);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+  }
+  main { max-width: 880px; margin: 40px auto; padding: 0 28px 80px; }
+  h1, h2, h3 { color: #fff; font-weight: 800; letter-spacing: -0.01em; }
+  h1 {
+    font-size: 2.2rem;
+    margin-top: 0.2em;
+    background: linear-gradient(90deg, var(--edge) 0%, var(--daemon) 50%, var(--hex) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.4em;
+    padding-top: 0.6em;
+    border-top: 1px solid var(--rule);
+    letter-spacing: 0.02em;
+  }
+  h3 { font-size: 1.05rem; color: var(--accent); margin-top: 1.4em; letter-spacing: 0.04em; text-transform: uppercase; }
+  h4 { font-size: 0.95rem; color: var(--dim); margin-top: 1.2em; letter-spacing: 0.05em; text-transform: uppercase; }
+  p, li { color: var(--ink); }
+  em { color: var(--dim); font-style: italic; }
+  strong { color: #fff; }
+  hr { border: none; border-top: 1px solid var(--rule); margin: 2em 0; }
+  code {
+    background: var(--panel);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.92rem;
+    background: rgba(15,19,32,0.5);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { color: var(--dim); font-weight: 600; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.08em; }
+  tr.path-edge   td:first-child { color: var(--edge);   font-weight: 800; letter-spacing: 0.05em; }
+  tr.path-daemon td:first-child { color: var(--daemon); font-weight: 800; letter-spacing: 0.05em; }
+  tr.path-hex    td:first-child { color: var(--hex);    font-weight: 800; letter-spacing: 0.05em; }
+  ul, ol { padding-left: 1.4em; }
+  li { margin-bottom: 0.4em; }
+  .lede { color: var(--dim); font-style: italic; margin-top: -0.6em; }
+  .footer { color: var(--dim); margin-top: 4em; text-align: center; font-size: 0.85em; letter-spacing: 0.05em; }
+  .callout {
+    background: rgba(100,255,218,0.05);
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 4px;
+    margin: 1.2em 0;
+  }
+  .callout strong { color: var(--accent); }
+  figure {
+    margin: 1.8em 0;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 18px 12px;
+    text-align: center;
+  }
+  figure svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  figcaption {
+    color: var(--dim);
+    font-size: 0.82em;
+    font-style: italic;
+    margin-top: 8px;
+    letter-spacing: 0.02em;
+  }
+  .fig-label {
+    font-size: 0.72em;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .swatch { display: inline-block; width: 0.7em; height: 0.7em; border-radius: 50%; margin-right: 0.35em; vertical-align: baseline; }
+  .sw-edge   { background: var(--edge);   box-shadow: 0 0 6px var(--edge); }
+  .sw-daemon { background: var(--daemon); box-shadow: 0 0 6px var(--daemon); }
+  .sw-hex    { background: var(--hex);    box-shadow: 0 0 6px var(--hex); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Skill Tree v3 — Depth Per Skill</h1>
+<p class="lede">Builds on v2 (Three Paths). Same vibe: neon cyberpunk · katana · magitech.</p>
+
+<!-- Header trinity sigil -->
+<figure style="background:transparent; border:none; padding:0; margin: 0 0 1.2em;">
+<svg viewBox="0 0 480 80" width="480" height="80" aria-hidden="true">
+  <defs>
+    <filter id="hg" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+  <!-- connecting line -->
+  <line x1="100" y1="40" x2="380" y2="40" stroke="#1c2235" stroke-width="1"/>
+  <!-- Edge hex -->
+  <g transform="translate(100,40)">
+    <polygon points="0,-22 19,-11 19,11 0,22 -19,11 -19,-11" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1.5" filter="url(#hg)"/>
+    <polygon points="0,-22 19,-11 19,11 0,22 -19,11 -19,-11" fill="none" stroke="#00e5ff" stroke-width="1.5"/>
+    <text y="4" text-anchor="middle" fill="#00e5ff" font-size="10" font-weight="bold" letter-spacing="2">EDGE</text>
+  </g>
+  <!-- Daemon hex -->
+  <g transform="translate(240,40)">
+    <polygon points="0,-22 19,-11 19,11 0,22 -19,11 -19,-11" fill="rgba(255,45,149,0.08)" stroke="#ff2d95" stroke-width="1.5" filter="url(#hg)"/>
+    <polygon points="0,-22 19,-11 19,11 0,22 -19,11 -19,-11" fill="none" stroke="#ff2d95" stroke-width="1.5"/>
+    <text y="3" text-anchor="middle" fill="#ff2d95" font-size="9" font-weight="bold" letter-spacing="1.5">DAEMON</text>
+  </g>
+  <!-- Hex hex -->
+  <g transform="translate(380,40)">
+    <polygon points="0,-22 19,-11 19,11 0,22 -19,11 -19,-11" fill="rgba(179,136,255,0.08)" stroke="#b388ff" stroke-width="1.5" filter="url(#hg)"/>
+    <polygon points="0,-22 19,-11 19,11 0,22 -19,11 -19,-11" fill="none" stroke="#b388ff" stroke-width="1.5"/>
+    <text y="4" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="bold" letter-spacing="2">HEX</text>
+  </g>
+</svg>
+</figure>
+
+<hr>
+
+<h2>0. Where v2 left us</h2>
+<p>The v2 work landed cleanly: EDGE/DAEMON/HEX paths, four-tier path apex effects, nine Fusion Forms, five Heretic Cants, the Sigil Matrix, the Codex, Sutras, and Awakening. The skill <em>catalog</em> now has clear identity and clear progression.</p>
+<p>But the catalog is also <strong>lean</strong>: 13 archetypes × 5 levels = 65 atomic decisions per run. Compared to a Hades or Vampire Survivors, that's small. The v2 work bought us <strong>breadth</strong> (paths, fusions, cants, codex). v3 buys <strong>depth</strong>: how interesting is each individual pick?</p>
+<p>Three new systems multiply per-pick variety without adding new archetypes:</p>
+<ol>
+  <li><strong>Inflections</strong> — per-level mini-mods, picked at every level-up.</li>
+  <li><strong>Triads</strong> — named three-archetype synergies that sit between Fusions and base synergies.</li>
+  <li><strong>Path Signatures</strong> — Stance · Bandwidth · Cinder — unique resources per path that change how each path <em>plays</em>.</li>
+</ol>
+<p>It also closes three small loose ends from v2.</p>
+
+<h2>1. Closing v2 loose ends</h2>
+
+<h3>1a. Sutra perks at marks 5 / 10 / 25</h3>
+<p>Today, each Sutra mark gives a flat +1% to that archetype's primary stat. The v2 plan promised milestone perks — those are missing.</p>
+
+<figure>
+  <span class="fig-label">Figure 1 — Sutra progression rail</span>
+  <svg viewBox="0 0 600 200" width="600" aria-label="Sutra progression rail">
+    <!-- track -->
+    <line x1="40" y1="100" x2="560" y2="100" stroke="#1c2235" stroke-width="4" stroke-linecap="round"/>
+    <!-- filled portion (Sutra 7) -->
+    <line x1="40" y1="100" x2="195" y2="100" stroke="#64ffda" stroke-width="4" stroke-linecap="round"/>
+    <!-- milestone 5 -->
+    <g transform="translate(155,100)">
+      <circle r="11" fill="#0f1320" stroke="#64ffda" stroke-width="2"/>
+      <text y="4" fill="#64ffda" text-anchor="middle" font-size="10" font-weight="bold">5</text>
+      <text y="-26" fill="#fff" text-anchor="middle" font-size="11" font-weight="bold">QoL PERK</text>
+      <text y="34" fill="#9aa6b2" text-anchor="middle" font-size="10">"Chains never miss"</text>
+    </g>
+    <!-- milestone 10 -->
+    <g transform="translate(310,100)">
+      <circle r="11" fill="#0f1320" stroke="#8a93a6" stroke-width="2"/>
+      <text y="4" fill="#8a93a6" text-anchor="middle" font-size="10" font-weight="bold">10</text>
+      <text y="-26" fill="#fff" text-anchor="middle" font-size="11" font-weight="bold">MECHANICAL</text>
+      <text y="34" fill="#9aa6b2" text-anchor="middle" font-size="10">"Drones respawn 50% faster"</text>
+    </g>
+    <!-- milestone 25 -->
+    <g transform="translate(540,100)">
+      <circle r="11" fill="#0f1320" stroke="#ffd166" stroke-width="2"/>
+      <text y="4" fill="#ffd166" text-anchor="middle" font-size="10" font-weight="bold">25</text>
+      <text y="-26" fill="#ffd166" text-anchor="middle" font-size="11" font-weight="bold">FLOURISH</text>
+      <text y="34" fill="#9aa6b2" text-anchor="middle" font-size="10">"Novas leave afterglow"</text>
+    </g>
+    <!-- you are here -->
+    <g transform="translate(195,100)">
+      <circle r="6" fill="#64ffda"/>
+      <text y="-18" fill="#64ffda" text-anchor="middle" font-size="9" font-style="italic">you are here · 7</text>
+    </g>
+  </svg>
+  <figcaption>Mark 5 = quality of life. Mark 10 = mechanical change. Mark 25 = visible flourish.</figcaption>
+</figure>
+
+<table>
+  <thead><tr><th>Mark</th><th>Archetype example</th><th>Perk</th></tr></thead>
+  <tbody>
+    <tr><td>5</td>  <td>Chain</td>      <td>Chains can never miss.</td></tr>
+    <tr><td>5</td>  <td>Frost</td>      <td>Slow stacks once before decaying.</td></tr>
+    <tr><td>10</td> <td>Mothership</td> <td>Drones respawn 50% faster.</td></tr>
+    <tr><td>10</td> <td>Sentinel</td>   <td>Blades pierce the first enemy they hit.</td></tr>
+    <tr><td>25</td> <td>Nova</td>       <td>Novas leave a 1s afterglow that re-pulses.</td></tr>
+    <tr><td>25</td> <td>Bounty</td>     <td>Gold drops compound (each kill within 2s adds 5%).</td></tr>
+  </tbody>
+</table>
+<p>Pattern: 5 = small QoL, 10 = noticeable mechanical change, 25 = passive flourish that visibly changes how the skill <em>plays</em>. Builds anticipation — at Sutra 4 the player is already counting.</p>
+
+<h3>1b. Near-orbit offer weighting</h3>
+<p>The current <code>_offerWeight</code> ignores synergy. Add a small ×1.5 multiplier when the archetype's partner is owned and the archetype itself isn't yet picked — i.e., the player is <strong>one step from a synergy unlock</strong>. The picker feels like it noticed your build.</p>
+
+<h3>1c. Trinity Awakening rings on the Nexus core</h3>
+<p>Per-path Awakening already grants a flag. Render three concentric rings tinted to path colors around the Nexus when the corresponding flag is set. Small art lift; players show their Nexus in screenshots.</p>
+
+<h2>2. Inflections — per-level mini-mods</h2>
+
+<figure>
+  <span class="fig-label">Figure 2 — Inflection fork</span>
+  <svg viewBox="0 0 600 280" width="600" aria-label="Inflection fork">
+    <!-- top card: Chain Lv 2 -->
+    <g transform="translate(220,12)">
+      <rect width="160" height="62" rx="8" fill="#0f1320" stroke="#00e5ff" stroke-width="1.5"/>
+      <rect x="6" y="6" width="22" height="22" rx="4" fill="rgba(0,229,255,0.15)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="36" y="22" fill="#fff" font-size="13" font-weight="bold">Chain Lv 2</text>
+      <text x="36" y="38" fill="#9aa6b2" font-size="10">+1 chain target</text>
+      <text x="80" y="55" fill="#64ffda" text-anchor="middle" font-size="9" font-style="italic">base bump applied</text>
+    </g>
+    <!-- fork lines -->
+    <path d="M 300 74 L 300 105" stroke="#64ffda" stroke-width="1.5" fill="none"/>
+    <path d="M 300 105 L 160 105 L 160 138" stroke="#64ffda" stroke-width="1.5" fill="none"/>
+    <path d="M 300 105 L 440 105 L 440 138" stroke="#64ffda" stroke-width="1.5" fill="none"/>
+    <text x="300" y="120" fill="#64ffda" text-anchor="middle" font-size="10" font-style="italic">+ choose one Inflection</text>
+    <!-- left: Volatile -->
+    <g transform="translate(80,140)">
+      <rect width="160" height="86" rx="8" fill="#0f1320" stroke="#ffd166" stroke-width="1.2"/>
+      <text x="80" y="22" fill="#ffd166" text-anchor="middle" font-size="12" font-weight="bold" letter-spacing="1.5">VOLATILE</text>
+      <line x1="20" y1="32" x2="140" y2="32" stroke="#ffd166" stroke-opacity="0.3"/>
+      <text x="80" y="50" fill="#fff" text-anchor="middle" font-size="11">Final chain jump</text>
+      <text x="80" y="66" fill="#fff" text-anchor="middle" font-size="11">always crits.</text>
+      <text x="80" y="80" fill="#8a93a6" text-anchor="middle" font-size="9">stat-shift</text>
+    </g>
+    <!-- right: Greedy -->
+    <g transform="translate(360,140)">
+      <rect width="160" height="86" rx="8" fill="#0f1320" stroke="#ffd166" stroke-width="1.2"/>
+      <text x="80" y="22" fill="#ffd166" text-anchor="middle" font-size="12" font-weight="bold" letter-spacing="1.5">GREEDY</text>
+      <line x1="20" y1="32" x2="140" y2="32" stroke="#ffd166" stroke-opacity="0.3"/>
+      <text x="80" y="50" fill="#fff" text-anchor="middle" font-size="11">Gold drops scale</text>
+      <text x="80" y="66" fill="#fff" text-anchor="middle" font-size="11">with chain length.</text>
+      <text x="80" y="80" fill="#8a93a6" text-anchor="middle" font-size="9">trigger-shift</text>
+    </g>
+    <text x="300" y="262" fill="#9aa6b2" text-anchor="middle" font-size="10" font-style="italic">Inflection persists for the rest of the run. By Lv 5, four Inflections stack on the same skill.</text>
+  </svg>
+  <figcaption>The base bump applies as today. Two micro-mod cards layer onto the same pick.</figcaption>
+</figure>
+
+<h3>The mechanic</h3>
+<ul>
+  <li>The <strong>base bump</strong> still happens (unchanged from v2).</li>
+  <li>The pick screen also presents <strong>two random Inflections</strong> drawn from a small per-archetype pool.</li>
+  <li>The player picks one Inflection, which attaches to the skill for the rest of the run.</li>
+  <li>Inflections persist across levels — by Lv 5 you've stacked four Inflections on the same skill.</li>
+</ul>
+<p>Inflections are <strong>never offered in isolation</strong>. They're a sub-decision tied to a skill pick.</p>
+
+<h3>Why this matters most</h3>
+<ul>
+  <li><strong>Per-skill variety multiplies.</strong> With 5 levels and ~6 Inflections per archetype, a single skill has thousands of possible build paths. Most are noise; enough are flavorful that every run feels different.</li>
+  <li><strong>No new archetype design work.</strong> Inflections reuse existing skill code paths — they're toggles on the existing math.</li>
+  <li><strong>The picker becomes interesting on level 1.</strong> Today the only meaningful pick is between archetypes. Inflections give every level-up a real choice.</li>
+</ul>
+
+<h3>Catalog shape (~6 per archetype, ~78 total)</h3>
+<p>Three flavors so each skill draws a balanced set:</p>
+<ul>
+  <li><strong>Stat-shift</strong> — change the math (more crit, less radius).</li>
+  <li><strong>Trigger-shift</strong> — change <em>when</em> it fires (on-kill, on-low-HP).</li>
+  <li><strong>Synergy-shift</strong> — change which other archetypes it pairs with.</li>
+</ul>
+
+<h4>Examples — Chain (Edge)</h4>
+<table>
+  <thead><tr><th>Inflection</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><strong style="color:var(--gold)">Volatile</strong></td>     <td>Final jump in a chain crits.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Greedy</strong></td>       <td>Gold drops scale with chain length.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Quiet Edge</strong></td>   <td>Chains don't trigger Hex synergies, but jump twice as fast.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Echoblade</strong></td>    <td>First jump repeats once.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Tetherbias</strong></td>   <td>−1 jump count, +50% damage per jump.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Glyph-tagged</strong></td> <td>Each jump inscribes a sigil (synergy with Hex Mage tier).</td></tr>
+  </tbody>
+</table>
+
+<h4>Examples — Frost (Hex)</h4>
+<table>
+  <thead><tr><th>Inflection</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><strong style="color:var(--gold)">Brittle</strong></td>     <td>Chilled enemies take +20% from Edge skills.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Lingering</strong></td>   <td>Chill duration doubles, slow halved.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Frostbite</strong></td>   <td>Chilled enemies tick for tiny damage.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Cracked Glass</strong></td><td>First hit on a chilled enemy ignores armor.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Coldfront</strong></td>   <td>Chill propagates between adjacent enemies.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Snowblind</strong></td>   <td>Chilled enemies miss attacks 10% of the time.</td></tr>
+  </tbody>
+</table>
+
+<h4>Examples — Mothership (Daemon)</h4>
+<table>
+  <thead><tr><th>Inflection</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><strong style="color:var(--gold)">Carrier-class</strong></td><td>−1 drone count, drones do double damage.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Swarm-class</strong></td>  <td>+2 drones, drones do 60% damage each.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Reactor-bias</strong></td> <td>Drones boost firewall lane intensity.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Flare</strong></td>        <td>Drones explode on death for AoE.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Network-link</strong></td> <td>Drones share kill-credit with bounty for streak stacks.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Glitchsigil</strong></td>  <td>Drones occasionally fire a hex bolt.</td></tr>
+  </tbody>
+</table>
+
+<h3>How they appear in the picker</h3>
+<p>The pick screen still shows three skill cards. If the player owns the skill being offered, the card grows a <strong>small "Inflection" sub-row</strong> with two micro-cards. Selecting the skill <em>and</em> the Inflection happens as one tap.</p>
+
+<h3>Inflection rarity</h3>
+<p>Most Inflections are <strong>common</strong> — small flavorful tweaks. A few per archetype should be <strong>rare</strong> (gold-bordered, ~1 in 10 rolls) and represent build-defining mods. Rares go in the Codex.</p>
+
+<h3>Codex integration</h3>
+<p>Add an "Inflections" tab to the Memory-Core. ~78 entries to discover. Each first-time pick awards a small ember bonus.</p>
+
+<h2>3. Triads — three-archetype synergies</h2>
+
+<figure>
+  <span class="fig-label">Figure 3 — Triad constellation (Storm Triad)</span>
+  <svg viewBox="0 0 600 320" width="600" aria-label="Storm Triad constellation">
+    <defs>
+      <filter id="nodeglow"><feGaussianBlur stdDeviation="3"/></filter>
+    </defs>
+    <!-- triangle outer -->
+    <polygon points="300,42 80,265 520,265" fill="rgba(255,209,102,0.04)" stroke="rgba(255,209,102,0.4)" stroke-width="1" stroke-dasharray="4 4"/>
+    <!-- node Chain (top, Edge cyan) -->
+    <g transform="translate(300,42)">
+      <circle r="34" fill="rgba(0,229,255,0.18)" filter="url(#nodeglow)"/>
+      <circle r="32" fill="#0f1320" stroke="#00e5ff" stroke-width="2"/>
+      <text y="-3" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="bold">CHAIN</text>
+      <text y="13" text-anchor="middle" fill="#8a93a6" font-size="9" letter-spacing="1.2">EDGE</text>
+    </g>
+    <!-- node Nova (bottom-left, magenta-purple) -->
+    <g transform="translate(80,265)">
+      <circle r="34" fill="rgba(255,45,149,0.18)" filter="url(#nodeglow)"/>
+      <circle r="32" fill="#0f1320" stroke="#ff2d95" stroke-width="2"/>
+      <text y="-3" text-anchor="middle" fill="#ff2d95" font-size="11" font-weight="bold">NOVA</text>
+      <text y="13" text-anchor="middle" fill="#8a93a6" font-size="9" letter-spacing="1.2">HEX</text>
+    </g>
+    <!-- node Frost (bottom-right, light cyan) -->
+    <g transform="translate(520,265)">
+      <circle r="34" fill="rgba(128,222,234,0.18)" filter="url(#nodeglow)"/>
+      <circle r="32" fill="#0f1320" stroke="#80deea" stroke-width="2"/>
+      <text y="-3" text-anchor="middle" fill="#80deea" font-size="11" font-weight="bold">FROST</text>
+      <text y="13" text-anchor="middle" fill="#8a93a6" font-size="9" letter-spacing="1.2">HEX</text>
+    </g>
+    <!-- center label -->
+    <g transform="translate(300,180)">
+      <rect x="-110" y="-32" width="220" height="64" rx="10" fill="#0f1320" stroke="#ffd166" stroke-width="1.2"/>
+      <text y="-12" fill="#ffd166" text-anchor="middle" font-size="14" font-weight="bold" letter-spacing="2.5">STORM TRIAD</text>
+      <text y="6" fill="#fff" text-anchor="middle" font-size="10">Chain hops chill;</text>
+      <text y="20" fill="#fff" text-anchor="middle" font-size="10">novas in chilled clusters → ice storms.</text>
+    </g>
+  </svg>
+  <figcaption>Three archetype nodes; the named Triad sits at the centroid. Six Triads live in the design.</figcaption>
+</figure>
+
+<h3>The mechanic</h3>
+<p>When you own three specific archetypes at level ≥1, a named <strong>Triad</strong> activates. Each has a unique effect distinct from any individual skill or Fusion. Triads are <strong>passive</strong> and logged in the Codex.</p>
+<p>This sits between today's pair-synergies and Fusions. Where Fusions are <em>picked</em> (added to the slot pool), Triads are <em>unlocked</em> (passively granted by your composition).</p>
+
+<h3>Pure-path Triads (reward focus)</h3>
+<table>
+  <thead><tr><th>Triad</th><th>Path</th><th>Archetypes</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr class="path-edge">  <td>Quicksilver</td>        <td>Edge-pure</td>   <td>barrage + chain + focus</td>     <td>Each barrage hit reduces chain cooldown by 0.5s; focus damage stacks per chain hop.</td></tr>
+    <tr class="path-daemon"><td>Sovereign Network</td>  <td>Daemon-pure</td> <td>mothership + firewall + meteor</td><td>Drones patrol firewall lanes; meteor impacts spawn a drone on the lane.</td></tr>
+    <tr class="path-hex">   <td>Spirit Choir</td>       <td>Hex-pure</td>    <td>nova + frost + summon</td>       <td>Summons emit nova pulses on attack; frost-shattered enemies under a summon-pulse spawn ice meteors.</td></tr>
+  </tbody>
+</table>
+
+<h3>Mixed-path Triads (reward breadth)</h3>
+<table>
+  <thead><tr><th>Triad</th><th>Archetypes</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><strong style="color:var(--gold)">Storm Triad</strong></td>     <td>chain + nova + frost</td>           <td>Chain hops chill; novas detonating inside chilled clusters become ice storms.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Iron Cathedral</strong></td>  <td>sentinel + firewall + rupture</td>  <td>Sentinel blades patrol firewall lanes; lane-trapped enemies are auto-executed at 30% HP.</td></tr>
+    <tr><td><strong style="color:var(--gold)">Hellgate Choir</strong></td>  <td>snake + summon + firewall</td>      <td>Summoned spirits ignite snakes on contact; snakes hatch directly from firewall edges.</td></tr>
+  </tbody>
+</table>
+
+<h3>Discovery</h3>
+<p>Triads are <strong>hidden in the Codex</strong> until first triggered ("???") with the path-color-mix of the requirement showing as a hint. Players reverse-engineer the triggering combos from the color hint — that's the discovery loop.</p>
+
+<h2>4. Path Signatures — unique resource per path</h2>
+
+<figure>
+  <span class="fig-label">Figure 4 — Path resource HUD strip</span>
+  <svg viewBox="0 0 600 240" width="600" aria-label="Path resource HUD">
+    <!-- EDGE: Stance pips -->
+    <g transform="translate(30,30)">
+      <text fill="#00e5ff" font-size="11" font-weight="bold" letter-spacing="2">EDGE — STANCE</text>
+      <g transform="translate(0,28)">
+        <circle cx="14" cy="0" r="9" fill="#00e5ff"/>
+        <circle cx="38" cy="0" r="9" fill="#00e5ff"/>
+        <circle cx="62" cy="0" r="9" fill="#00e5ff"/>
+        <circle cx="86" cy="0" r="9" fill="none" stroke="#00e5ff" stroke-opacity="0.4" stroke-width="1.5"/>
+        <circle cx="110" cy="0" r="9" fill="none" stroke="#00e5ff" stroke-opacity="0.4" stroke-width="1.5"/>
+      </g>
+      <text y="62" fill="#9aa6b2" font-size="10">3/5 — next strike crits at 5</text>
+    </g>
+    <!-- DAEMON: Bandwidth bar -->
+    <g transform="translate(30,110)">
+      <text fill="#ff2d95" font-size="11" font-weight="bold" letter-spacing="2">DAEMON — BANDWIDTH</text>
+      <rect x="0" y="20" width="240" height="12" rx="6" fill="none" stroke="#ff2d95" stroke-opacity="0.4" stroke-width="1.5"/>
+      <rect x="0" y="20" width="144" height="12" rx="6" fill="#ff2d95" fill-opacity="0.85"/>
+      <text y="56" fill="#9aa6b2" font-size="10">60/100 — drone spawn costs 10</text>
+    </g>
+    <!-- HEX: Cinder meter (full, glowing) -->
+    <g transform="translate(30,190)">
+      <defs>
+        <linearGradient id="cinder-fill" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#ffd166"/>
+          <stop offset="100%" stop-color="#b388ff"/>
+        </linearGradient>
+        <filter id="cinder-glow"><feGaussianBlur stdDeviation="2"/></filter>
+      </defs>
+      <text fill="#b388ff" font-size="11" font-weight="bold" letter-spacing="2">HEX — CINDER</text>
+      <rect x="-2" y="18" width="244" height="16" rx="8" fill="url(#cinder-fill)" filter="url(#cinder-glow)" opacity="0.5"/>
+      <rect x="0" y="20" width="240" height="12" rx="6" fill="url(#cinder-fill)"/>
+      <text y="56" fill="#ffd166" font-size="10" font-weight="bold">FULL — next Hex cast doubles</text>
+    </g>
+  </svg>
+  <figcaption>Three resources, three rhythms. Edge focuses, Daemon manages, Hex pools.</figcaption>
+</figure>
+
+<p>Paths today are tags. They group archetypes, drive tier bonuses, and color the matrix. They don't <em>change how the path plays</em>. v3 fixes that.</p>
+
+<h3><span class="swatch sw-edge"></span>EDGE — Stance</h3>
+<p>Successive hits on the same target build a <strong>Stance counter</strong> (1–5). Stance decays after ~1s without a hit. Spending Stance:</p>
+<ul>
+  <li>3 Stance: next blade strike crits.</li>
+  <li>5 Stance: next blade strike triggers a path-tier-scaled cleave.</li>
+</ul>
+<p>Stance encourages <strong>target focus</strong> — the sword fantasy made mechanical.</p>
+
+<h3><span class="swatch sw-daemon"></span>DAEMON — Bandwidth</h3>
+<p>A passive pool (max 100, refills from kills at ~5 per kill). Daemon effects <em>consume</em> Bandwidth:</p>
+<ul>
+  <li>Mothership drone spawn: 10 Bandwidth.</li>
+  <li>Firewall lane: 20 Bandwidth.</li>
+  <li>Meteor strike: 30 Bandwidth.</li>
+</ul>
+<p>If empty, Daemon effects continue at 50% rate. Daemon becomes a <strong>management</strong> path — skilled play looks like timing meteor drops to coincide with full Bandwidth.</p>
+
+<h3><span class="swatch sw-hex"></span>HEX — Cinder</h3>
+<p>A meter that <strong>builds from any kill</strong>. At full (100), the next Hex cast is <strong>doubled</strong> for free — a Nova becomes a screen-wide pulse, a Frost becomes a freeze, a Summon spawns two spirits. After firing, Cinder resets.</p>
+<p>Hex becomes a <strong>pacing</strong> path — save Cinder for boss waves, then unleash.</p>
+
+<h3>How the three feel different</h3>
+<table>
+  <thead><tr><th>Path</th><th>Mode</th><th>Player verb</th></tr></thead>
+  <tbody>
+    <tr class="path-edge">  <td>EDGE</td>   <td>Stance</td>    <td>Focus and <em>commit</em>.</td></tr>
+    <tr class="path-daemon"><td>DAEMON</td> <td>Bandwidth</td> <td>Manage and <em>time</em>.</td></tr>
+    <tr class="path-hex">   <td>HEX</td>    <td>Cinder</td>    <td>Save and <em>unleash</em>.</td></tr>
+  </tbody>
+</table>
+<p>Three paths, three completely different play loops. A run committed to Edge feels nothing like a run committed to Hex — even with the same engine underneath.</p>
+
+<h2>5. Build order</h2>
+<ol>
+  <li><strong>Sutra perks at 5/10/25</strong> <em>(½ day)</em> — close v2.</li>
+  <li><strong>Near-orbit offer weighting</strong> <em>(½ day)</em> — close v2.</li>
+  <li><strong>Trinity Awakening rings</strong> <em>(1 day, art-light)</em> — close v2.</li>
+  <li><strong>Triads</strong> <em>(2–3 days)</em> — high-impact, low surface area; ship before Inflections so Inflections can reference Triad gates.</li>
+  <li><strong>Inflections (commons only)</strong> <em>(1–2 weeks)</em> — full system with ~4 commons per archetype. Hold rares for follow-up.</li>
+  <li><strong>Inflections (rares + Codex tab)</strong> <em>(3–4 days after #5)</em> — completes the discovery loop.</li>
+  <li><strong>Path Signatures: HUD widget</strong> <em>(2 days)</em> — meter visuals only, no mechanics yet. Ship to surface the concept.</li>
+  <li><strong>Path Signatures: Stance / Bandwidth / Cinder mechanics</strong> <em>(2–3 weeks)</em> — biggest change; do it last. Each resource is a separate sprint.</li>
+</ol>
+<p>Total roadmap if shipped serially: ~6–8 weeks. The first three items are a good two-day patch.</p>
+
+<h2>6. Player-incentive checklist</h2>
+<table>
+  <thead><tr><th>Hook</th><th>v3 addition</th></tr></thead>
+  <tbody>
+    <tr><td>Numbers go up</td>        <td>Sutra perks at milestones; Stance crit multipliers</td></tr>
+    <tr><td>Surprise / discovery</td> <td>Triads hidden in Codex; rare Inflections gold-bordered</td></tr>
+    <tr><td>Visible identity</td>     <td>Path Signature HUD bars; Awakening rings; Inflection-flavored projectile VFX</td></tr>
+    <tr><td>Meta progress</td>        <td>Sutra perks visibly unlock; Codex Inflection tab grows</td></tr>
+    <tr><td>Mastery achievement</td>  <td>Stance-5 cleave moments; Cinder-saved boss kills; full Triad codex</td></tr>
+  </tbody>
+</table>
+
+<h2>7. What v3 deliberately avoids</h2>
+<ul>
+  <li><strong>No new archetypes.</strong> Still thirteen. The 5/4/4 split must stay clean.</li>
+  <li><strong>No new Fusions.</strong> Nine is enough; new triadic ideas become Triads.</li>
+  <li><strong>No active abilities.</strong> All Path Signatures activate passively — Stance auto-procs, Cinder auto-doubles. Active button-presses break the auto-RPG loop.</li>
+  <li><strong>No skill respec mid-run.</strong> Inflections lock for the run. Decisions stay weighty.</li>
+  <li><strong>No Inflection trees.</strong> Flat catalog. Trees within trees is depth-fatigue.</li>
+</ul>
+
+<h2>8. Open questions for playtesting</h2>
+<ol>
+  <li><strong>How many Inflections per archetype?</strong> Six suggested. Five may feel sparse, eight bloat.</li>
+  <li><strong>Triad activation threshold</strong> — level ≥1 each, or level ≥2 each?</li>
+  <li><strong>Stance decay timing</strong> — 1s feels right but verify against attack cadences.</li>
+  <li><strong>Bandwidth max</strong> — 100 is a clean number. Adjust by feel.</li>
+  <li><strong>Cinder ultimate radius</strong> — does a Cinder-empowered Nova clear the screen? If yes, players will sandbag every wave for it; that's intended but verify it doesn't trivialize floor pacing.</li>
+  <li><strong>Should Inflections bias toward synergy?</strong> Same near-orbit trick from §1b applied one layer down.</li>
+</ol>
+
+<p class="footer">— three resources · six triads · seventy-eight inflections —</p>
+
+</main>
+</body>
+</html>

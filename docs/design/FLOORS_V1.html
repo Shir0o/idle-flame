@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Floors v1 — The Descent Has Texture</title>
+<style>
+  :root {
+    --bg: #07080f;
+    --panel: #0f1320;
+    --panel-2: #131a2e;
+    --ink: #e6edf3;
+    --dim: #8a93a6;
+    --rule: #1c2235;
+    --accent: #64ffda;
+    --edge:   #00e5ff;
+    --daemon: #ff2d95;
+    --hex:    #b388ff;
+    --frost:  #80deea;
+    --gold:   #ffd166;
+    --warn:   #ff8a80;
+  }
+  html, body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 12% 10%, rgba(0,229,255,0.08), transparent 35%),
+      radial-gradient(circle at 88% 18%, rgba(255,45,149,0.08), transparent 40%),
+      radial-gradient(circle at 50% 95%, rgba(179,136,255,0.08), transparent 45%);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 0; padding: 0; line-height: 1.6;
+  }
+  main { max-width: 880px; margin: 40px auto; padding: 0 28px 80px; }
+  h1, h2, h3, h4 { color: #fff; font-weight: 800; letter-spacing: -0.01em; }
+  h1 {
+    font-size: 2.2rem;
+    margin-top: 0.2em;
+    background: linear-gradient(90deg, var(--edge) 0%, var(--daemon) 50%, var(--hex) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.4em;
+    padding-top: 0.6em;
+    border-top: 1px solid var(--rule);
+    letter-spacing: 0.02em;
+  }
+  h3 { font-size: 1.05rem; color: var(--accent); margin-top: 1.4em; letter-spacing: 0.04em; text-transform: uppercase; }
+  h4 { font-size: 0.92rem; color: var(--dim); margin-top: 1.2em; letter-spacing: 0.05em; text-transform: uppercase; }
+  p, li { color: var(--ink); }
+  em { color: var(--dim); font-style: italic; }
+  strong { color: #fff; }
+  hr { border: none; border-top: 1px solid var(--rule); margin: 2em 0; }
+  code {
+    background: var(--panel);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.92rem;
+    background: rgba(15,19,32,0.5);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { color: var(--dim); font-weight: 600; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.08em; }
+  tr.boss td:first-child { color: var(--gold); font-weight: 800; }
+  tr.boss td:nth-child(2) { color: #fff; font-weight: 700; }
+  ul, ol { padding-left: 1.4em; }
+  li { margin-bottom: 0.4em; }
+  .lede { color: var(--dim); font-style: italic; margin-top: -0.6em; }
+  .footer { color: var(--dim); margin-top: 4em; text-align: center; font-size: 0.85em; letter-spacing: 0.05em; }
+  figure {
+    margin: 1.8em 0;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 18px 12px;
+    text-align: center;
+  }
+  figure svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  figcaption {
+    color: var(--dim); font-size: 0.82em; font-style: italic;
+    margin-top: 8px; letter-spacing: 0.02em;
+  }
+  .fig-label {
+    font-size: 0.72em; color: var(--accent);
+    font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; display: block; margin-bottom: 4px;
+  }
+  .swatch { display: inline-block; width: 0.7em; height: 0.7em; border-radius: 50%; margin-right: 0.35em; vertical-align: baseline; }
+  .sw-edge   { background: var(--edge);   box-shadow: 0 0 6px var(--edge); }
+  .sw-daemon { background: var(--daemon); box-shadow: 0 0 6px var(--daemon); }
+  .sw-hex    { background: var(--hex);    box-shadow: 0 0 6px var(--hex); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Floors v1 — The Descent Has Texture</h1>
+<p class="lede">First-stage design for the floor / enemy / boss layer of <strong>Zenith Zero: Idle Descent</strong>. Same vibe as the skill tree work: neon cyberpunk · katana · magitech.</p>
+
+<!-- Header descent sigil: ladder + boss markers -->
+<figure style="background:transparent; border:none; padding:0; margin: 0 0 1.2em;">
+<svg viewBox="0 0 480 80" width="480" height="80" aria-hidden="true">
+  <defs>
+    <linearGradient id="hdr-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00e5ff"/>
+      <stop offset="50%" stop-color="#ff2d95"/>
+      <stop offset="100%" stop-color="#b388ff"/>
+    </linearGradient>
+  </defs>
+  <line x1="40" y1="40" x2="440" y2="40" stroke="url(#hdr-grad)" stroke-width="2" opacity="0.45"/>
+  <!-- floor markers -->
+  <g>
+    <circle cx="80" cy="40" r="4" fill="#64ffda"/>
+    <text x="80" y="62" text-anchor="middle" fill="#9aa6b2" font-size="9">F1</text>
+  </g>
+  <g>
+    <circle cx="160" cy="40" r="6" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+    <text x="160" y="62" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="bold">F5</text>
+    <text x="160" y="22" text-anchor="middle" fill="#ffd166" font-size="8">WATCHER</text>
+  </g>
+  <g>
+    <circle cx="240" cy="40" r="6" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+    <text x="240" y="62" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="bold">F10</text>
+    <text x="240" y="22" text-anchor="middle" fill="#ffd166" font-size="8">SOVEREIGN</text>
+  </g>
+  <g>
+    <circle cx="320" cy="40" r="6" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+    <text x="320" y="62" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="bold">F15</text>
+    <text x="320" y="22" text-anchor="middle" fill="#ffd166" font-size="8">HIVEFATHER</text>
+  </g>
+  <g>
+    <circle cx="400" cy="40" r="8" fill="#0f1320" stroke="#ff2d95" stroke-width="2"/>
+    <text x="400" y="62" text-anchor="middle" fill="#ff2d95" font-size="9" font-weight="bold">F25</text>
+    <text x="400" y="22" text-anchor="middle" fill="#ff2d95" font-size="8">ARCHITECT</text>
+  </g>
+</svg>
+</figure>
+
+<hr>
+
+<h2>0. Why this exists</h2>
+<p>The skill system is now deep. Three Paths, 13 archetypes, 5 levels each, ~53 Inflections, 7 Triads, 9 Fusions, 3 Path Signatures, Sutras, Awakening. The build side asks the player thousands of small questions per run.</p>
+<p>The <strong>fight side</strong> asks one: <em>more floor = more HP</em>.</p>
+<p>Today there are four enemy archetypes — <code>basic / fast / tank / elite</code> — gradually unlocked by floor (3, 5, 8). Every floor has the same shape: kill 10 enemies, advance, reroll a level-up. There are no boss floors, no floor archetypes, no enemy abilities, no "this floor wants you to play differently."</p>
+<p>All that build variety has nothing to push against. A Hex-Cinder build, an Edge-Stance build, and a Daemon-Bandwidth build all face the same drip-fed enemy stream. The variety doesn't <em>test</em> anything.</p>
+<p>Floors v1 fixes that. Three new layers, each shippable independently:</p>
+<ol>
+  <li><strong>Wave structure inside a floor</strong> — a 30s shaped encounter, not a kill counter.</li>
+  <li><strong>Floor modifiers</strong> — Slay-the-Spire-style global tweaks rolled per floor.</li>
+  <li><strong>Boss floors + enemy archetypes</strong> — named encounters every 5 floors with mechanics that <em>require</em> the player's build to engage with them.</li>
+</ol>
+
+<h2>1. Wave structure — turn each floor into a 30-second story</h2>
+
+<figure>
+  <span class="fig-label">Figure 1 — Floor wave timeline</span>
+  <svg viewBox="0 0 640 240" width="640" aria-label="Floor wave timeline showing three phases">
+    <defs>
+      <linearGradient id="phase1" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#64ffda" stop-opacity="0.05"/>
+        <stop offset="100%" stop-color="#64ffda" stop-opacity="0.25"/>
+      </linearGradient>
+      <linearGradient id="phase2" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#ff2d95" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#ff2d95" stop-opacity="0.4"/>
+      </linearGradient>
+      <linearGradient id="phase3" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#ffd166" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#ffd166" stop-opacity="0.55"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Phase blocks -->
+    <rect x="40"  y="60" width="190" height="40" fill="url(#phase1)" stroke="#64ffda" stroke-opacity="0.5" rx="4"/>
+    <rect x="230" y="60" width="220" height="40" fill="url(#phase2)" stroke="#ff2d95" stroke-opacity="0.5" rx="4"/>
+    <rect x="450" y="60" width="160" height="40" fill="url(#phase3)" stroke="#ffd166" stroke-opacity="0.6" rx="4"/>
+
+    <!-- Phase labels above -->
+    <text x="135" y="48" text-anchor="middle" fill="#64ffda" font-size="11" font-weight="bold" letter-spacing="2">TRICKLE</text>
+    <text x="340" y="48" text-anchor="middle" fill="#ff2d95" font-size="11" font-weight="bold" letter-spacing="2">PRESS</text>
+    <text x="530" y="48" text-anchor="middle" fill="#ffd166" font-size="11" font-weight="bold" letter-spacing="2">CRUCIBLE</text>
+
+    <!-- Enemy markers in Phase 1: sparse small dots -->
+    <g fill="#ff2d95" opacity="0.7">
+      <circle cx="80"  cy="80" r="3.5"/>
+      <circle cx="120" cy="80" r="3.5"/>
+      <circle cx="170" cy="80" r="3.5"/>
+      <circle cx="210" cy="80" r="3.5"/>
+    </g>
+    <!-- Enemy markers in Phase 2: denser + a tank -->
+    <g fill="#ff2d95" opacity="0.85">
+      <circle cx="245" cy="80" r="3.5"/>
+      <circle cx="265" cy="80" r="3.5"/>
+      <circle cx="285" cy="80" r="3.5"/>
+      <circle cx="320" cy="78" r="6"/>  <!-- tank -->
+      <circle cx="350" cy="80" r="3.5"/>
+      <circle cx="375" cy="80" r="3.5"/>
+      <circle cx="395" cy="80" r="3.5"/>
+      <circle cx="425" cy="80" r="3.5"/>
+    </g>
+    <!-- Crucible marker: stylized event -->
+    <g transform="translate(530,80)">
+      <polygon points="0,-12 11,-4 7,9 -7,9 -11,-4" fill="#0f1320" stroke="#ffd166" stroke-width="1.5"/>
+      <text y="3" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="bold">!</text>
+    </g>
+
+    <!-- Time axis -->
+    <line x1="40" y1="120" x2="610" y2="120" stroke="#1c2235" stroke-width="1"/>
+    <g fill="#8a93a6" font-size="9" font-family="monospace" text-anchor="middle">
+      <line x1="40"  y1="118" x2="40"  y2="126" stroke="#8a93a6"/><text x="40"  y="138">0s</text>
+      <line x1="230" y1="118" x2="230" y2="126" stroke="#8a93a6"/><text x="230" y="138">10s</text>
+      <line x1="450" y1="118" x2="450" y2="126" stroke="#8a93a6"/><text x="450" y="138">22s</text>
+      <line x1="610" y1="118" x2="610" y2="126" stroke="#8a93a6"/><text x="610" y="138">32s</text>
+    </g>
+
+    <!-- Phase descriptions -->
+    <g font-size="10" fill="#9aa6b2">
+      <text x="135" y="170" text-anchor="middle">3-4 enemies</text>
+      <text x="135" y="184" text-anchor="middle">resources build</text>
+      <text x="340" y="170" text-anchor="middle">7-9 enemies + 1 tank</text>
+      <text x="340" y="184" text-anchor="middle">build plays itself</text>
+      <text x="530" y="170" text-anchor="middle">named event</text>
+      <text x="530" y="184" text-anchor="middle">build is tested</text>
+    </g>
+
+    <!-- Resource labels at right of phase 1 -->
+    <text x="135" y="216" text-anchor="middle" fill="#64ffda" font-size="9" font-style="italic">Bandwidth · Cinder fill here</text>
+    <text x="530" y="216" text-anchor="middle" fill="#ffd166" font-size="9" font-style="italic">Cinder spent here</text>
+  </svg>
+  <figcaption>Each floor becomes a 32-second three-act fight. Resources fill in the lull, get spent at the climax.</figcaption>
+</figure>
+
+<h3>Today</h3>
+<p><code>killsPerFloor = 10</code> ([game_state.dart:149](lib/game/state/game_state.dart)). The spawner emits one enemy every 1.8s with a slowly-shifting type mix. After 10 kills the floor advances. Pacing is flat — every second of the floor feels identical to every other second.</p>
+
+<h3>Three phases per floor</h3>
+<ul>
+  <li><strong>Phase 1 — Trickle</strong> <em>(0–10s)</em> — 3-4 basic/fast enemies, sparse spawn. Generates Bandwidth (Daemon) and Cinder (Hex) for the rest of the floor.</li>
+  <li><strong>Phase 2 — Press</strong> <em>(10–22s)</em> — sustained spawn — 7-9 enemies including 1-2 tanks. Dense enough to require AoE / chain / firewall lane. This is where the build <em>plays itself</em>.</li>
+  <li><strong>Phase 3 — Crucible</strong> <em>(22–32s)</em> — one named event from the catalog. Rolled at floor entry. Phase 3 is what gives a floor its <strong>personality</strong>.</li>
+</ul>
+
+<h3>Crucible event catalog</h3>
+<table>
+  <thead><tr><th>Crucible</th><th>What happens</th><th>Tests</th></tr></thead>
+  <tbody>
+    <tr><td><strong style="color:var(--gold)">Pressure</strong></td>     <td>One Tank spawns, +5 basics in support</td>          <td>AoE, finishers</td></tr>
+    <tr><td><strong style="color:var(--gold)">Hivebreak</strong></td>    <td>Continuous Fast spawn for 8s</td>                   <td>Sustained DPS, slow effects</td></tr>
+    <tr><td><strong style="color:var(--gold)">Sigil Storm</strong></td>  <td>4 Sigil-bearers (see §3) appear</td>                <td>Movement-aware play, Hex Cinder</td></tr>
+    <tr><td><strong style="color:var(--gold)">Eclipse</strong></td>      <td>All enemies frozen 2s, then sprint</td>              <td>Burst windows, Cinder-saved nukes</td></tr>
+    <tr><td><strong style="color:var(--gold)">Quiet</strong></td>        <td>No enemies for 8s; bonus gold if no damage taken</td><td>Cooldown management, breather</td></tr>
+    <tr><td><strong style="color:var(--gold)">Fractal Pack</strong></td> <td>2 Splinters (see §3)</td>                            <td>Execute / Rupture builds</td></tr>
+    <tr><td><strong style="color:var(--gold)">Last Cant</strong></td>    <td>A Heretic Cant offer mid-fight</td>                  <td>Build pivots</td></tr>
+    <tr><td><strong style="color:var(--gold)">Boss Echo</strong></td>    <td>1 mini-version of the next boss</td>                 <td>Telegraph / preparation</td></tr>
+  </tbody>
+</table>
+
+<h2>2. Floor modifiers — small global tweaks rolled per floor</h2>
+
+<figure>
+  <span class="fig-label">Figure 2 — Floor entry card</span>
+  <svg viewBox="0 0 600 280" width="600" aria-label="Floor entry card showing modifiers and crucible">
+    <defs>
+      <filter id="cardglow"><feGaussianBlur stdDeviation="3"/></filter>
+    </defs>
+    <!-- main card -->
+    <rect x="80" y="20" width="440" height="240" rx="12" fill="#0f1320" stroke="#64ffda" stroke-opacity="0.5" stroke-width="1.5"/>
+    <!-- floor badge -->
+    <g transform="translate(120,60)">
+      <rect x="-30" y="-22" width="60" height="44" rx="6" fill="#64ffda" fill-opacity="0.1" stroke="#64ffda" stroke-width="1.5"/>
+      <text y="-2" text-anchor="middle" fill="#9aa6b2" font-size="9" letter-spacing="2">FLOOR</text>
+      <text y="14" text-anchor="middle" fill="#fff" font-size="18" font-weight="bold">7</text>
+    </g>
+    <text x="180" y="50" fill="#fff" font-size="17" font-weight="bold" letter-spacing="0.5">Descend</text>
+    <text x="180" y="68" fill="#9aa6b2" font-size="11">+ kill 10 to advance · 32s phase clock</text>
+
+    <!-- divider -->
+    <line x1="100" y1="100" x2="500" y2="100" stroke="#1c2235" stroke-width="1"/>
+
+    <!-- modifier label -->
+    <text x="100" y="125" fill="#9aa6b2" font-size="9" letter-spacing="2">MODIFIERS</text>
+
+    <!-- modifier chips -->
+    <g transform="translate(100,135)">
+      <!-- chip 1: restriction -->
+      <rect width="180" height="34" rx="6" fill="#0f1320" stroke="#ff8a80" stroke-width="1.2"/>
+      <circle cx="14" cy="17" r="5" fill="#ff8a80"/>
+      <text x="26" y="14" fill="#ff8a80" font-size="10" font-weight="bold" letter-spacing="1">BANDWIDTH BLACK-OUT</text>
+      <text x="26" y="27" fill="#9aa6b2" font-size="9">Daemon costs 2× this floor</text>
+    </g>
+    <g transform="translate(296,135)">
+      <!-- chip 2: boon -->
+      <rect width="180" height="34" rx="6" fill="#0f1320" stroke="#64ffda" stroke-width="1.2"/>
+      <circle cx="14" cy="17" r="5" fill="#64ffda"/>
+      <text x="26" y="14" fill="#64ffda" font-size="10" font-weight="bold" letter-spacing="1">ECHO TIDE</text>
+      <text x="26" y="27" fill="#9aa6b2" font-size="9">First 5 enemies proc twice</text>
+    </g>
+
+    <!-- gold bonus -->
+    <g transform="translate(100,180)">
+      <text fill="#ffd166" font-size="10" font-weight="bold" letter-spacing="1">+50% GOLD</text>
+      <text x="78" y="0" fill="#9aa6b2" font-size="10">— accepted hard modifier</text>
+    </g>
+
+    <!-- crucible preview -->
+    <g transform="translate(100,200)">
+      <text fill="#9aa6b2" font-size="9" letter-spacing="2">CRUCIBLE</text>
+    </g>
+    <g transform="translate(100,210)">
+      <rect width="376" height="34" rx="6" fill="#0f1320" stroke="#ffd166" stroke-width="1.2"/>
+      <polygon points="20,17 28,11 36,17 28,23" fill="#ffd166"/>
+      <text x="50" y="14" fill="#ffd166" font-size="11" font-weight="bold" letter-spacing="1">SIGIL STORM</text>
+      <text x="50" y="27" fill="#9aa6b2" font-size="9">4 Sigil-bearers · prefer chill / kill at edges</text>
+    </g>
+  </svg>
+  <figcaption>Floor entry surfaces everything the player needs to know: modifiers, gold trade-off, what the Crucible will be.</figcaption>
+</figure>
+
+<p>Slay-the-Spire-ish. At the start of each floor, <strong>0–2 modifiers</strong> are rolled. They show on the HUD as small chips next to the floor badge. They affect only that floor.</p>
+<ul>
+  <li><strong>Restrictions</strong> — make a path harder (Bandwidth Black-out, Cinder Damp).</li>
+  <li><strong>Pressures</strong> — make enemies harder (Quickening, Solar Flare).</li>
+  <li><strong>Boons</strong> — give the player something (Echo Tide, Discount Kit).</li>
+</ul>
+<p>Players can't reroll modifiers, but accepting a hard one <strong>boosts that floor's gold drop by 50%</strong>. Trade-off creates micro-decisions: do I push through Bandwidth Black-out for the gold, or play conservatively?</p>
+
+<h3>Initial catalog (12)</h3>
+<table>
+  <thead><tr><th>Modifier</th><th>Type</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><strong style="color:var(--warn)">Bandwidth Black-out</strong></td><td>Restriction</td><td>Daemon effects cost 2× Bandwidth this floor.</td></tr>
+    <tr><td><strong style="color:var(--warn)">Cinder Damp</strong></td>        <td>Restriction</td><td>Cinder fills at half rate this floor.</td></tr>
+    <tr><td><strong style="color:var(--warn)">Stance Stutter</strong></td>     <td>Restriction</td><td>Stance decays in 0.5s instead of 1s.</td></tr>
+    <tr><td><strong style="color:var(--daemon)">Quickening</strong></td>       <td>Pressure</td>   <td>Enemies move 25% faster.</td></tr>
+    <tr><td><strong style="color:var(--daemon)">Solar Flare</strong></td>      <td>Pressure</td>   <td>All enemies spawn with a one-hit shield.</td></tr>
+    <tr><td><strong style="color:var(--daemon)">Veil of Ash</strong></td>      <td>Pressure</td>   <td>Damage numbers and HP bars hidden this floor.</td></tr>
+    <tr><td><strong style="color:var(--daemon)">Heretic Tide</strong></td>     <td>Pressure</td>   <td>Floor 5 cant rule applies even if not on a multiple of 5.</td></tr>
+    <tr><td><strong style="color:var(--daemon)">Cipher Storm</strong></td>     <td>Pressure</td>   <td>Random damage-type immunity rotates every 4s.</td></tr>
+    <tr><td><strong style="color:var(--accent)">Echo Tide</strong></td>        <td>Boon</td>       <td>Skills proc twice on the first 5 enemies of the floor.</td></tr>
+    <tr><td><strong style="color:var(--accent)">Discount Kit</strong></td>     <td>Boon</td>       <td>Heretic Cant offers don't deduct HP.</td></tr>
+    <tr><td><strong style="color:var(--accent)">Mana Bloom</strong></td>       <td>Boon</td>       <td>Cinder bar starts at 50% on floor entry.</td></tr>
+    <tr><td><strong style="color:var(--accent)">Glyph Cache</strong></td>      <td>Boon</td>       <td>Floor reward includes a guaranteed Inflection roll.</td></tr>
+  </tbody>
+</table>
+
+<h2>3. Boss floors + enemy archetypes</h2>
+
+<figure>
+  <span class="fig-label">Figure 3 — Boss roster ladder</span>
+  <svg viewBox="0 0 640 380" width="640" aria-label="Boss roster ladder showing F5 through F25">
+    <defs>
+      <linearGradient id="ladder-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#64ffda" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#ff2d95" stop-opacity="0.6"/>
+      </linearGradient>
+    </defs>
+    <!-- vertical rail -->
+    <line x1="120" y1="40" x2="120" y2="350" stroke="url(#ladder-grad)" stroke-width="2"/>
+
+    <!-- Floor 5 -->
+    <g transform="translate(120,60)">
+      <circle r="14" fill="#0f1320" stroke="#ffd166" stroke-width="2"/>
+      <text y="4" text-anchor="middle" fill="#ffd166" font-size="10" font-weight="bold">F5</text>
+      <text x="34" y="-8" fill="#fff" font-size="12" font-weight="bold" letter-spacing="1">THE WATCHER</text>
+      <text x="34" y="8" fill="#9aa6b2" font-size="10">Daemon-shielded adds. Tests AoE / Chain / Hex Cinder.</text>
+      <text x="34" y="22" fill="#64ffda" font-size="9" font-style="italic">reward: +50 embers</text>
+    </g>
+
+    <!-- Floor 10 -->
+    <g transform="translate(120,130)">
+      <circle r="14" fill="#0f1320" stroke="#ffd166" stroke-width="2"/>
+      <text y="4" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="bold">F10</text>
+      <text x="34" y="-8" fill="#fff" font-size="12" font-weight="bold" letter-spacing="1">GLASS SOVEREIGN</text>
+      <text x="34" y="8" fill="#9aa6b2" font-size="10">Fast, evasive, splash-immune. Tests Edge focus.</text>
+      <text x="34" y="22" fill="#64ffda" font-size="9" font-style="italic">reward: 1 Sutra mark of choice</text>
+    </g>
+
+    <!-- Floor 15 -->
+    <g transform="translate(120,200)">
+      <circle r="14" fill="#0f1320" stroke="#ffd166" stroke-width="2"/>
+      <text y="4" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="bold">F15</text>
+      <text x="34" y="-8" fill="#fff" font-size="12" font-weight="bold" letter-spacing="1">HIVEFATHER</text>
+      <text x="34" y="8" fill="#9aa6b2" font-size="10">Slow tank, drone broods. Tests sustained AoE.</text>
+      <text x="34" y="22" fill="#64ffda" font-size="9" font-style="italic">reward: Codex preview</text>
+    </g>
+
+    <!-- Floor 20 -->
+    <g transform="translate(120,270)">
+      <circle r="14" fill="#0f1320" stroke="#ffd166" stroke-width="2"/>
+      <text y="4" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="bold">F20</text>
+      <text x="34" y="-8" fill="#fff" font-size="12" font-weight="bold" letter-spacing="1">CIPHER TWIN</text>
+      <text x="34" y="8" fill="#9aa6b2" font-size="10">Two linked enemies. Daemon-immune ↔ Hex-immune.</text>
+      <text x="34" y="22" fill="#64ffda" font-size="9" font-style="italic">reward: free Fusion offer</text>
+    </g>
+
+    <!-- Floor 25 - bigger, magenta -->
+    <g transform="translate(120,340)">
+      <circle r="18" fill="#0f1320" stroke="#ff2d95" stroke-width="2.5"/>
+      <text y="4" text-anchor="middle" fill="#ff2d95" font-size="9" font-weight="bold">F25</text>
+      <text x="40" y="-10" fill="#ff2d95" font-size="13" font-weight="bold" letter-spacing="1">THE ARCHITECT</text>
+      <text x="40" y="6" fill="#9aa6b2" font-size="10">All four mechanics compressed. The "did your build come together" test.</text>
+      <text x="40" y="20" fill="#ffd166" font-size="9" font-style="italic">reward: permanent meta unlock</text>
+    </g>
+  </svg>
+  <figcaption>Five bosses, five lessons. Each one teaches a build axis the player will need at F25.</figcaption>
+</figure>
+
+<h3>Boss design rules</h3>
+<ol>
+  <li><strong>Bosses telegraph their mechanic.</strong> Player sees what's coming on floor entry — name, sprite, one-line description. No hidden gotchas.</li>
+  <li><strong>Bosses are beatable by every build.</strong> A pure-Edge run can beat the Watcher; it just takes longer. Bosses <em>favor</em> certain builds; they don't <em>require</em> them.</li>
+  <li><strong>Boss kills drop a guaranteed reward.</strong> See ladder above.</li>
+  <li><strong>Boss arenas dim the rest of the screen.</strong> Visual signal that this fight is different.</li>
+</ol>
+
+<h3>Six new enemy archetypes</h3>
+
+<figure>
+  <span class="fig-label">Figure 4 — Enemy counter matrix</span>
+  <svg viewBox="0 0 640 320" width="640" aria-label="Enemy counter matrix">
+    <!-- header row -->
+    <g font-size="10" fill="#8a93a6" letter-spacing="1.5">
+      <text x="220" y="36" font-weight="bold" text-anchor="middle">COUNTERS</text>
+      <text x="180" y="56" text-anchor="middle"><tspan fill="#00e5ff">EDGE</tspan></text>
+      <text x="290" y="56" text-anchor="middle"><tspan fill="#ff2d95">DAEMON</tspan></text>
+      <text x="400" y="56" text-anchor="middle"><tspan fill="#b388ff">HEX</tspan></text>
+      <text x="510" y="56" text-anchor="middle">OTHER</text>
+    </g>
+
+    <!-- helper for circles -->
+    <!-- Aegis -->
+    <g transform="translate(20,80)">
+      <text x="0" y="14" fill="#fff" font-size="11" font-weight="bold">AEGIS</text>
+      <text x="0" y="28" fill="#9aa6b2" font-size="9">reflects single-target</text>
+      <circle cx="160" cy="20" r="5" fill="#00e5ff" fill-opacity="0.2"/>
+      <circle cx="270" cy="20" r="6" fill="#ff2d95"/>
+      <circle cx="380" cy="20" r="6" fill="#b388ff"/>
+      <text x="490" y="24" fill="#9aa6b2" font-size="9">AoE / chain</text>
+    </g>
+    <!-- Wraith -->
+    <g transform="translate(20,120)">
+      <text x="0" y="14" fill="#fff" font-size="11" font-weight="bold">WRAITH</text>
+      <text x="0" y="28" fill="#9aa6b2" font-size="9">phases on hit</text>
+      <circle cx="160" cy="20" r="6" fill="#00e5ff"/>
+      <circle cx="270" cy="20" r="5" fill="#ff2d95" fill-opacity="0.3"/>
+      <circle cx="380" cy="20" r="6" fill="#b388ff"/>
+      <text x="490" y="24" fill="#9aa6b2" font-size="9">DOTs · Sentinel</text>
+    </g>
+    <!-- Cinder-Drinker -->
+    <g transform="translate(20,160)">
+      <text x="0" y="14" fill="#fff" font-size="11" font-weight="bold">CINDER-DRINKER</text>
+      <text x="0" y="28" fill="#9aa6b2" font-size="9">heals from Hex</text>
+      <circle cx="160" cy="20" r="6" fill="#00e5ff"/>
+      <circle cx="270" cy="20" r="6" fill="#ff2d95"/>
+      <circle cx="380" cy="20" r="5" fill="#b388ff" fill-opacity="0.2"/>
+      <text x="490" y="24" fill="#9aa6b2" font-size="9">non-Hex finisher</text>
+    </g>
+    <!-- Splinter -->
+    <g transform="translate(20,200)">
+      <text x="0" y="14" fill="#fff" font-size="11" font-weight="bold">SPLINTER</text>
+      <text x="0" y="28" fill="#9aa6b2" font-size="9">divides on death</text>
+      <circle cx="160" cy="20" r="5" fill="#00e5ff" fill-opacity="0.4"/>
+      <circle cx="270" cy="20" r="5" fill="#ff2d95" fill-opacity="0.4"/>
+      <circle cx="380" cy="20" r="5" fill="#b388ff" fill-opacity="0.4"/>
+      <text x="490" y="24" fill="#9aa6b2" font-size="9">execute · large AoE</text>
+    </g>
+    <!-- Sutra-bound -->
+    <g transform="translate(20,240)">
+      <text x="0" y="14" fill="#fff" font-size="11" font-weight="bold">SUTRA-BOUND</text>
+      <text x="0" y="28" fill="#9aa6b2" font-size="9">heals nearby</text>
+      <circle cx="160" cy="20" r="6" fill="#00e5ff"/>
+      <circle cx="270" cy="20" r="6" fill="#ff2d95"/>
+      <circle cx="380" cy="20" r="5" fill="#b388ff" fill-opacity="0.3"/>
+      <text x="490" y="24" fill="#9aa6b2" font-size="9">priority targeting</text>
+    </g>
+    <!-- Sigil-bearer -->
+    <g transform="translate(20,280)">
+      <text x="0" y="14" fill="#fff" font-size="11" font-weight="bold">SIGIL-BEARER</text>
+      <text x="0" y="28" fill="#9aa6b2" font-size="9">drops hazard glyph</text>
+      <circle cx="160" cy="20" r="6" fill="#00e5ff"/>
+      <circle cx="270" cy="20" r="5" fill="#ff2d95" fill-opacity="0.3"/>
+      <circle cx="380" cy="20" r="6" fill="#b388ff"/>
+      <text x="490" y="24" fill="#9aa6b2" font-size="9">kill at edges</text>
+    </g>
+
+    <!-- legend -->
+    <g transform="translate(20,310)" font-size="9" fill="#8a93a6">
+      <circle cx="6" cy="-3" r="5" fill="#fff"/>
+      <text x="18" y="0">strong</text>
+      <circle cx="68" cy="-3" r="4" fill="#fff" fill-opacity="0.3"/>
+      <text x="80" y="0">weak</text>
+    </g>
+  </svg>
+  <figcaption>Six new enemies, each a counter test for a path. They appear in normal floors before they appear in bosses — the game teaches them small-scale first.</figcaption>
+</figure>
+
+<h2>4. The Codex — close the discovery loop</h2>
+<p>The Memory-Core already lists Archetypes, Fusions, Inflections. Add two tabs:</p>
+<ul>
+  <li><strong>Bestiary</strong> — every enemy type met for the first time. Shows sprite + counter-tip ("vulnerable to: Edge / DOT").</li>
+  <li><strong>Crucibles</strong> — the 8 Crucible events; greyed out until first encountered.</li>
+</ul>
+<p>First-time entries pay embers, same as Inflections / Fusions. Codex 100% (Trinity Sigil from v2) now requires all enemy and Crucible discoveries too. Long-tail completion target stays the same shape — just deeper.</p>
+
+<h2>5. Floor reward structure</h2>
+<ul>
+  <li><strong>Normal floor</strong> — one level-up offer (today).</li>
+  <li><strong>Crucible-survived without damage</strong> — bonus 25 gold.</li>
+  <li><strong>Boss floor</strong> — guaranteed reward (per §3) + level-up.</li>
+  <li><strong>Floor multiple of 10 (post-boss)</strong> — floor reward room: pick one of two boons (e.g., +5% max HP for run, or +1 reroll, or instant Inflection).</li>
+</ul>
+
+<h2>6. Build order</h2>
+<ol>
+  <li><strong>Boss floor scaffolding + The Watcher (F5)</strong> <em>(3-4 days)</em> — one boss to validate the loop.</li>
+  <li><strong>New enemy archetypes — Aegis, Splinter, Sigil-bearer</strong> <em>(2-3 days)</em> — three most build-discriminating ones.</li>
+  <li><strong>Wave structure — Phases 1/2/3</strong> <em>(1 week)</em> — phase timer + HUD reflection.</li>
+  <li><strong>Floor modifiers — top 6 only</strong> <em>(3-4 days)</em> — flavor-impactful set first.</li>
+  <li><strong>Crucible event catalog — full 8</strong> <em>(1 week)</em> — Phase 3 gets real variety.</li>
+  <li><strong>Bosses 10 / 15 / 20</strong> <em>(2-3 weeks)</em> — Sovereign, Hivefather, Cipher Twin.</li>
+  <li><strong>Remaining enemies — Wraith, Cinder-Drinker, Sutra-bound</strong> <em>(1 week)</em>.</li>
+  <li><strong>Floor 25 — The Architect</strong> <em>(2-3 weeks)</em> — final boss; ship last.</li>
+  <li><strong>Codex bestiary + crucible tabs</strong> <em>(2-3 days)</em>.</li>
+  <li><strong>Floor reward room (post-boss F10/20)</strong> <em>(3-4 days)</em>.</li>
+</ol>
+<p>Total roadmap if shipped serially: ~10-12 weeks. Steps 1-4 land within a sprint and already dramatically change how a run feels.</p>
+
+<h2>7. Player-incentive checklist</h2>
+<table>
+  <thead><tr><th>Hook</th><th>Floors v1 addition</th></tr></thead>
+  <tbody>
+    <tr><td>Numbers go up</td>        <td>Boss kill rewards (embers, sutra marks); Crucible-clean gold bonus</td></tr>
+    <tr><td>Surprise / discovery</td> <td>Bestiary; Crucibles hidden until met; modifier rolls</td></tr>
+    <tr><td>Visible identity</td>     <td>Boss telegraphs match the player's build identity</td></tr>
+    <tr><td>Meta progress</td>        <td>Boss rewards (especially F25 unlock); Codex enemy/crucible completion</td></tr>
+    <tr><td>Mastery achievement</td>  <td>"Beat F25 with a single-path build"; "Survive Solar Flare without damage"</td></tr>
+  </tbody>
+</table>
+
+<h2>8. What v1 deliberately avoids</h2>
+<ul>
+  <li><strong>No multiplayer raids, no shared bosses.</strong> Single-player descent stays.</li>
+  <li><strong>No procedural enemy generation.</strong> Every enemy is hand-designed.</li>
+  <li><strong>No branching floor paths (Slay-the-Spire map).</strong> Linear descent; variation lives in encounter mix, not topology.</li>
+  <li><strong>No timed runs, daily bosses, or leaderboards.</strong> v1 is structural; time-pressure layers later.</li>
+  <li><strong>No active player abilities for boss fights.</strong> Auto-RPG loop holds; bosses are tested by <em>build composition</em>, not reflexes.</li>
+</ul>
+
+<h2>9. Open questions for playtesting</h2>
+<ol>
+  <li><strong>Floor duration</strong> — phases sum to ~32s. Right pace? Idle norm is 30-60s per "step."</li>
+  <li><strong>Modifier frequency</strong> — 0-2 per floor. Should later floors guarantee at least 1?</li>
+  <li><strong>Boss difficulty curve</strong> — Watcher (F5) ~any build. Architect (F25) commitment-required. Middle three proportional.</li>
+  <li><strong>Crucible "Last Cant"</strong> — interrupting a fight with a Cant offer is a rhythm break. Test love-vs-hate.</li>
+  <li><strong>Aegis reflection</strong> — 50% reflect feels right; tune by Edge oppression level.</li>
+  <li><strong>Boss reward scaling</strong> — does F25 permanent unlock create a "first clear forever" cliff? Spread across F10/15/20/25?</li>
+  <li><strong>Should bosses respawn as elites in later floors?</strong> Fun callback or cheapening?</li>
+</ol>
+
+<p class="footer">— three phases · twelve modifiers · five bosses · six new enemies —</p>
+
+</main>
+</body>
+</html>

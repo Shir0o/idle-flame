@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Skill Tree v2 — The Three Paths</title>
+<style>
+  :root {
+    --bg: #07080f;
+    --panel: #0f1320;
+    --ink: #e6edf3;
+    --dim: #8a93a6;
+    --rule: #1c2235;
+    --accent: #64ffda;
+    --edge:   #00e5ff;   /* chrome cyan */
+    --daemon: #ff2d95;   /* neon magenta */
+    --hex:    #b388ff;   /* electric violet */
+    --gold:   #ffd166;
+    --warn:   #ff8a80;
+  }
+  html, body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 12% 10%, rgba(0,229,255,0.08), transparent 35%),
+      radial-gradient(circle at 88% 18%, rgba(255,45,149,0.08), transparent 40%),
+      radial-gradient(circle at 50% 95%, rgba(179,136,255,0.08), transparent 45%);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+  }
+  main {
+    max-width: 860px;
+    margin: 40px auto;
+    padding: 0 28px 80px;
+  }
+  h1, h2, h3 {
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  h1 {
+    font-size: 2.2rem;
+    margin-top: 0.2em;
+    background: linear-gradient(90deg, var(--edge) 0%, var(--daemon) 50%, var(--hex) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.4em;
+    padding-top: 0.6em;
+    border-top: 1px solid var(--rule);
+    letter-spacing: 0.02em;
+  }
+  h3 { font-size: 1.05rem; color: var(--accent); margin-top: 1.4em; letter-spacing: 0.04em; text-transform: uppercase; }
+  p, li { color: var(--ink); }
+  em { color: var(--dim); font-style: italic; }
+  strong { color: #fff; }
+  hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 2em 0;
+  }
+  blockquote {
+    border-left: 3px solid var(--accent);
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    color: var(--dim);
+    background: rgba(100,255,218,0.04);
+  }
+  code {
+    background: var(--panel);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.92rem;
+    background: rgba(15,19,32,0.5);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { color: var(--dim); font-weight: 600; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.08em; }
+  tr.path-edge   td:first-child { color: var(--edge);   font-weight: 800; letter-spacing: 0.05em; }
+  tr.path-daemon td:first-child { color: var(--daemon); font-weight: 800; letter-spacing: 0.05em; }
+  tr.path-hex    td:first-child { color: var(--hex);    font-weight: 800; letter-spacing: 0.05em; }
+  tr.fusion td:first-child { color: var(--gold); font-weight: 800; }
+  tr.fusion td:nth-child(1) {
+    text-shadow: 0 0 8px rgba(255,209,102,0.4);
+  }
+  ul, ol { padding-left: 1.4em; }
+  li { margin-bottom: 0.4em; }
+  .lede { color: var(--dim); font-style: italic; margin-top: -0.6em; }
+  .footer { color: var(--dim); margin-top: 4em; text-align: center; font-size: 0.85em; letter-spacing: 0.05em; }
+  .callout {
+    background: rgba(100,255,218,0.05);
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 4px;
+    margin: 1.2em 0;
+  }
+  .callout strong { color: var(--accent); }
+  .path-block {
+    margin: 1.5em 0;
+    padding: 1.2em 1.4em;
+    border-radius: 8px;
+    background: var(--panel);
+    border-left: 4px solid;
+  }
+  .path-edge   { border-left-color: var(--edge);   box-shadow: 0 0 24px rgba(0,229,255,0.06); }
+  .path-daemon { border-left-color: var(--daemon); box-shadow: 0 0 24px rgba(255,45,149,0.06); }
+  .path-hex    { border-left-color: var(--hex);    box-shadow: 0 0 24px rgba(179,136,255,0.06); }
+  .path-block h3 { margin-top: 0; }
+  .path-edge h3   { color: var(--edge); }
+  .path-daemon h3 { color: var(--daemon); }
+  .path-hex h3    { color: var(--hex); }
+  .swatch {
+    display: inline-block;
+    width: 0.75em; height: 0.75em;
+    border-radius: 50%;
+    margin-right: 0.4em;
+    vertical-align: baseline;
+  }
+  .sw-edge   { background: var(--edge);   box-shadow: 0 0 8px var(--edge); }
+  .sw-daemon { background: var(--daemon); box-shadow: 0 0 8px var(--daemon); }
+  .sw-hex    { background: var(--hex);    box-shadow: 0 0 8px var(--hex); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Skill Tree v2 — The Three Paths</h1>
+<p class="lede">Next-stage design for the skill system in <strong>Zenith Zero: Idle Descent</strong>. Maintains the established vibe: neon cyberpunk · katana · magitech.</p>
+
+<hr>
+
+<h2>0. Why this exists</h2>
+<p>The skill system is the entire game. There is no map, no narrative arm, no gear loop. Every minute a player spends with the build is a minute spent with the skill picker. So the picker has to do four jobs at once:</p>
+<ol>
+  <li><strong>Identity</strong> — give the player a build that feels like <em>theirs</em>.</li>
+  <li><strong>Discovery</strong> — leave things to find: hidden cants, named hybrids, "wait, that worked?" moments.</li>
+  <li><strong>Mastery</strong> — reward the long tail with permanent meta progress, not just bigger numbers.</li>
+  <li><strong>Pacing</strong> — make every level-up a real decision, not a roll.</li>
+</ol>
+<p>Skill Tree v1 (just merged) gave us tiers, evolutions, and six synergies. That was <em>plumbing</em>. Skill Tree v2 turns that plumbing into a <strong>destination</strong> — three named paths with personality, a fusion layer, and meta hooks that pull the player back tomorrow.</p>
+<p>This doc is design-only. No code yet. The recommended build order is in §8.</p>
+
+<h2>1. The Three Paths</h2>
+<p>The fiction is already <strong>sword × tech × magic</strong> — a trio. The 13 archetypes split cleanly along it. v2 promotes that trio into the <em>primary</em> organizing layer.</p>
+
+<table>
+  <thead><tr><th>Path</th><th>Trope</th><th>Archetypes</th><th>Identity</th></tr></thead>
+  <tbody>
+    <tr class="path-edge">  <td><span class="swatch sw-edge"></span>EDGE</td>     <td>The blade — neon katana, monowire, chrome saber</td>   <td>chain, barrage, sentinel, focus, rupture</td><td>Strike-and-cut. Tempo, multi-hit, finishers.</td></tr>
+    <tr class="path-daemon"><td><span class="swatch sw-daemon"></span>DAEMON</td> <td>The grid — drones, firewalls, orbital strikes</td>     <td>mothership, firewall, meteor, bounty</td>     <td>Systems and infrastructure. Lanes, network, economy.</td></tr>
+    <tr class="path-hex">   <td><span class="swatch sw-hex"></span>HEX</td>      <td>The arcana — sigils, sutras, summoned spirits</td>     <td>nova, frost, snake, summon</td>               <td>Elemental ward and spirit. Zones, control, presence.</td></tr>
+  </tbody>
+</table>
+
+<p>This mirrors the names already in the skill catalog: <em>Neon Katana Chain, Plasma Wakizashi, Overclocked Iaido</em> (Edge); <em>Tactical Mothership, Rune Firewall, Orbital Spellblade, Soulcoin Brand</em> (Daemon); <em>Mana Reactor Nova, Cryo Hex Ash, Fire Snake Ignite, Fire Wolf Spirit</em> (Hex).</p>
+
+<h3>Why three, not four</h3>
+<ul>
+  <li>The trio is already in the player's head from the cosmetic naming. A four-school redesign breaks that intuition.</li>
+  <li>Three paths gives only three pair combinations (§3 fusions), keeping the named-hybrid set small enough to handcraft.</li>
+</ul>
+
+<h3>Path color and visual signature</h3>
+<p>Each path inherits a single dominant color and VFX signature. This carries forward into the picker, in-world effects, and the Nexus core itself:</p>
+<ul>
+  <li><span class="swatch sw-edge"></span><strong style="color:var(--edge)">EDGE</strong> — chrome white-cyan · afterimage slashes · sparkflash</li>
+  <li><span class="swatch sw-daemon"></span><strong style="color:var(--daemon)">DAEMON</strong> — magenta-violet · glitch lattice · drone-trail</li>
+  <li><span class="swatch sw-hex"></span><strong style="color:var(--hex)">HEX</strong> — gold-violet · runic glow · ofuda paper streamers</li>
+</ul>
+<p>When a player's build leans into one path, the <strong>Nexus core recolors</strong> to match. Cheapest possible "my build looks cool" hook; pays for the entire categorization layer.</p>
+
+<h2>2. Path Tiers (set bonuses)</h2>
+<p>Total <strong>archetype levels</strong> inside a path unlock tiered passive bonuses. These are global; they don't cost a pick, they're earned by your distribution.</p>
+
+<div class="path-block path-edge">
+  <h3>EDGE — The Way of the Blade</h3>
+  <table>
+    <thead><tr><th>Tier</th><th>Levels</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Initiate</td>    <td>3</td>  <td>Killed enemies leave a fading chrome afterimage (visual only).</td></tr>
+      <tr><td>Adept</td>       <td>7</td>  <td>Every 5th hit performs a phantom slash — single hit on the nearest two enemies.</td></tr>
+      <tr><td>Master</td>      <td>12</td> <td>A permanent <strong>Spectral Katana</strong> orbits the Nexus and cuts on contact.</td></tr>
+      <tr><td>Sword-saint</td> <td>18</td> <td><strong>Iaido Draw</strong> — every 30s, time freezes for a single frame; all on-screen enemies suffer one massive cut.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="path-block path-daemon">
+  <h3>DAEMON — The Grid Below</h3>
+  <table>
+    <thead><tr><th>Tier</th><th>Levels</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Initiate</td> <td>3</td>  <td>A single passive companion drone trails the Nexus.</td></tr>
+      <tr><td>Operator</td> <td>7</td>  <td>All drone, meteor, and firewall effects gain +20% range.</td></tr>
+      <tr><td>Sysop</td>    <td>12</td> <td>A <strong>Satellite Uplink</strong> fires every 3s at the deepest enemy on screen.</td></tr>
+      <tr><td>Root</td>     <td>18</td> <td><strong>Network Crash</strong> — once per floor, every enemy suffers system-failure damage.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="path-block path-hex">
+  <h3>HEX — The Sigil Path</h3>
+  <table>
+    <thead><tr><th>Tier</th><th>Levels</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Initiate</td>  <td>3</td>  <td>Every kill drops a tiny rune-spark (cosmetic + small mana refund).</td></tr>
+      <tr><td>Adept</td>     <td>7</td>  <td>Kills leave a lingering glyph that re-procs your most recent Hex effect.</td></tr>
+      <tr><td>Mage</td>      <td>12</td> <td>A permanent <strong>Ward Circle</strong> surrounds the Nexus — enemies inside are slowed and burned.</td></tr>
+      <tr><td>Ascendant</td> <td>18</td> <td><strong>Awakened Sigil</strong> — channeling a cataclysm spell paints the floor in your dominant element.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Why this works for an idle game</h3>
+<ul>
+  <li>Numbers go up <em>visibly</em> as you stack a path — every level-up has a downstream effect, not just a stat bump.</li>
+  <li>Two ways to play: <strong>wide</strong> (touch all three paths, take Initiate everywhere) vs <strong>deep</strong> (one path to Sword-saint/Root/Ascendant). Both valid; both feel different.</li>
+  <li>Players naturally start asking "what does the next tier do?" — that's the curiosity loop idle games run on.</li>
+</ul>
+
+<div class="callout">
+  <strong>Design rule:</strong> Tier effects must be mechanically distinct from their archetype skills. <em>Edge Master being "+30% blade damage" is boring stat creep. Edge Master being "a permanent Spectral Katana orbits the Nexus" is a new mechanic the player didn't have a minute ago.</em> Aim for new verbs, not bigger numbers.
+</div>
+
+<h2>3. Fusion Forms — named cross-path skills</h2>
+<p>Once a run has at least one archetype evolved (level 5 + evolution chosen) in <strong>two different paths</strong>, the picker may offer a <strong>Fusion Form</strong> — a unique cross-path skill that doesn't exist in the normal catalog. Rare, named, build-defining.</p>
+
+<h3>EDGE × DAEMON — <em>Cyber-Saber</em> (chrome lit by network glow)</h3>
+<table>
+  <thead><tr><th>Fusion</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr class="fusion"><td>Monowire Cascade</td> <td>Chain hops shred drone armor — chains gain +1 jump per active mothership drone.</td></tr>
+    <tr class="fusion"><td>Chrome Iaido</td>     <td>Barrage attack rate scales with current drone count.</td></tr>
+    <tr class="fusion"><td>Killcode Edge</td>    <td>Rupture executes inscribe binary on the next blade strike — that strike crits guaranteed and refunds 1 mana.</td></tr>
+  </tbody>
+</table>
+
+<h3>EDGE × HEX — <em>Runeblade</em> (sword wreathed in sigil)</h3>
+<table>
+  <thead><tr><th>Fusion</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr class="fusion"><td>Glyphblade Cant</td>  <td>Each chain hop inscribes a sigil node; closing the loop triggers a small nova.</td></tr>
+    <tr class="fusion"><td>Phantom Frost</td>    <td>Sentinel blades carry a frost charge — first hit chills, second shatters.</td></tr>
+    <tr class="fusion"><td>Hexcut Mantra</td>    <td>Every 3rd barrage hit applies a Snake-burn DOT for 3s.</td></tr>
+  </tbody>
+</table>
+
+<h3>DAEMON × HEX — <em>Magitech</em> (sigil-marked drones, runic lattice)</h3>
+<table>
+  <thead><tr><th>Fusion</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr class="fusion"><td>Sigil Reactor</td>      <td>Firewall lanes double Nova radius for any pulse cast inside them.</td></tr>
+    <tr class="fusion"><td>Hexnet Drones</td>      <td>Mothership drones inherit your active Summon spirit's aura.</td></tr>
+    <tr class="fusion"><td>Bountysoul Ledger</td>  <td>Frost kills inscribe gold sigils on the floor — stepping on one as Nexus doubles your gold for 3s.</td></tr>
+  </tbody>
+</table>
+
+<h3>How they appear</h3>
+<ul>
+  <li>Always offered as the <strong>rarest</strong> card in the pick screen, with a distinct gold/holographic frame and a <strong>"FUSION"</strong> banner.</li>
+  <li>Only one Fusion per run unless a meta upgrade unlocks more — scarcity preserves them as memorable.</li>
+  <li>Logged permanently the first time the player ever sees one (Codex unlock — see §6).</li>
+</ul>
+
+<h2>4. Sutras &amp; Awakening — the long-tail meta hook</h2>
+<p>Idle games live or die on the answer to "what does my next run unlock?". Right now it's only embers and keystones. We need a deeper hook with vibe-correct naming.</p>
+
+<h3>Sutras (per-archetype mastery)</h3>
+<p>When you finish a run with an archetype <strong>evolved</strong>, you earn <strong>1 Sutra mark</strong> in that archetype. Sutras are permanent and stack across runs. The fiction: each successful evolution inscribes the technique into the Nexus' memory-core.</p>
+<p>Each Sutra mark gives, on subsequent runs:</p>
+<ul>
+  <li>+1% to that archetype's primary stat (cap: 25 marks = +25%)</li>
+  <li>A small visual flourish on the skill's projectile/effect (afterimage, glow, particle)</li>
+  <li>At 5 / 10 / 25 marks, unlock <strong>Sutra perks</strong> in the Meta screen — e.g., <em>"Chain Sutra X: chains can never miss"</em>, <em>"Mothership Sutra X: drones respawn 50% faster."</em></li>
+</ul>
+<p>A determined player chases 13 archetypes × 25 marks = 325 Sutra. Months of long tail from a tag and a counter.</p>
+
+<h3>Awakening (per-path prestige)</h3>
+<p>Once you have <strong>all archetypes in a path at Sutra 25</strong>, you may <strong>Awaken the path</strong>. Awakening resets that path's Sutras to 0 but grants:</p>
+<ul>
+  <li>A permanent <strong>path-glyph</strong> branded on your profile.</li>
+  <li>A new <strong>Awakened skill</strong> added to the catalog — e.g., <em>"Edge Awakening: at run start, all Edge archetypes begin at level 1; the Nexus carries a permanent katana model."</em></li>
+  <li>Cosmetic: the Nexus core gains a path-colored ring per Awakening (max three rings = full <strong>Trinity Awakening</strong>).</li>
+</ul>
+<p>Awakening is the <em>hardcore</em> hook: visible in screenshots, mechanically meaningful, narratively final.</p>
+
+<h2>5. The Sigil Matrix — visualization</h2>
+<p>The current picker is three cards on a dim overlay. Fine for v1. v2 deserves a richer surface because the system finally has structure to show.</p>
+<p>Replace (or augment) the level-up dialog with the <strong>Sigil Matrix</strong> — a triadic constellation, one cluster per path:</p>
+<ul>
+  <li>13 nodes arranged in three colored constellations.</li>
+  <li>Currently-owned skills glow at their level color.</li>
+  <li>Locked archetypes appear as dim sigils with their unlock condition.</li>
+  <li>Active synergy lines pulse between owned archetypes.</li>
+  <li>Path tiers appear as a colored ring around each cluster, brightening as you fill it.</li>
+  <li>Fusion Forms appear as floating starpoints <em>between</em> clusters once their cross-path conditions are met.</li>
+  <li>The Nexus icon sits at the center, its color shifting as your build commits.</li>
+</ul>
+<p>When a level-up triggers, three nodes pulse — those are the offers. The matrix collapses to a corner widget during gameplay so you can glance at it.</p>
+
+<h3>Why a matrix, not a tree</h3>
+<p>A <em>tree</em> implies linearity (A unlocks B unlocks C). The skill system isn't linear — it's combinatorial. A matrix shows <strong>all the choices and how they relate</strong>, which is exactly what an idle player wants to plan around between runs.</p>
+
+<h3>The "near orbit" rule for offers</h3>
+<p>Already partly implemented (tier gating). Extend it: among the available pool, weight slightly toward archetypes the player is <em>one step from synergy</em> (i.e., owns the partner already but not this one). The picker feels <em>responsive</em> — "the system knows what I'm building."</p>
+
+<h2>6. The Codex — discovery and completionism</h2>
+<p>A persistent meta screen listing every synergy, path tier, Fusion, and evolution the player has ever triggered. Frame it in-fiction as the <strong>Nexus Memory-Core</strong>.</p>
+<ul>
+  <li><strong>Greyed-out</strong> entries the player hasn't seen yet — they're a tease, not a spoiler. (<em>"???"</em> for unfound Fusions.)</li>
+  <li><strong>Filling the Codex pays embers.</strong> Every first-time discovery awards a small bonus.</li>
+  <li><strong>Codex 100% = Trinity Sigil</strong> — a profile badge worth chasing. Visible on leaderboards if those ever ship.</li>
+</ul>
+<p>Why this matters: it converts <em>random discovery</em> (which can feel like luck) into <em>predictable progress</em> (which feels like skill). And it gives a clear answer to "what's left to see in this game?" — currently, nothing.</p>
+
+<h2>7. Heretic Cants — run modifiers</h2>
+<p>Every 5 floors, instead of a level-up offer, give the player a <strong>Heretic Cant</strong> choice — three non-skill options that modify the rest of the run. The fiction: forbidden lines from the deeper system files.</p>
+<ul>
+  <li><em>Bloodprice:</em> +50% enemy damage, +50% gold drop.</li>
+  <li><em>Devotion:</em> future picks restricted to one path, but tier-up faster.</li>
+  <li><em>Diaspora:</em> future picks must rotate paths; weight bonus to unowned archetypes.</li>
+  <li><em>Greedglyph:</em> skip this floor's reward, double the next two.</li>
+  <li><em>Heretic's Bargain:</em> lose 20% Nexus HP now; gain a Fusion offer at next level-up.</li>
+</ul>
+<p>These are <strong>not skills</strong>. They're flavor injections that break up the level-up cadence and create stories. Idle games need stories — <em>"the run where I went all-in on Edge and almost died on floor 18, then a Killcode crit saved me."</em></p>
+<p>Cants should be <strong>optional</strong> — let the player skip if they want. Forcing rhythm breaks irritates players in flow.</p>
+
+<h2>8. Build order</h2>
+<p>Implement in this order. Each stage ships on its own and improves the game even if the next stage never lands.</p>
+<ol>
+  <li><strong>Paths as a tag.</strong> Add <code>path</code> field to <code>SkillArchetype</code> (Edge/Daemon/Hex). Display in picker tags, color the synergy lines, recolor the Nexus core based on dominant path. <em>~Half a day. Pure value.</em></li>
+  <li><strong>Path Tiers.</strong> Implement Initiate/Adept/Master/apex checks in <code>game_state.dart</code>, apply effects in components. <em>~2 days. Big perceived-depth boost.</em></li>
+  <li><strong>Fusion Forms.</strong> Add <code>fusionCatalog</code> parallel to <code>evolutionCatalog</code>. Insert as rare offer in <code>_rollUpgradeChoices</code> when conditions met. <em>~3 days. The "wow" moment per run.</em></li>
+  <li><strong>Codex.</strong> Track first-time discoveries in <code>meta_state.dart</code>, display on meta screen. Award embers per first-time. <em>~2 days. Long-tail retention.</em></li>
+  <li><strong>Sutras.</strong> Per-archetype counter in meta state, applied at run start. <em>~2 days. The long-term commitment hook.</em></li>
+  <li><strong>Awakening.</strong> Per-path prestige; lock-icon final form. <em>~2 days. For the dedicated 1%.</em></li>
+  <li><strong>Sigil Matrix UI.</strong> Replace picker dialog. <em>~1 week. Polish stage; defer until systems are stable.</em></li>
+  <li><strong>Heretic Cants.</strong> Run-modifier system. <em>~3 days. Latest because it touches floor pacing — risk highest.</em></li>
+</ol>
+<p>Don't try to ship it all at once. Paths alone (step 1) is worth shipping by itself.</p>
+
+<h2>9. Player-incentive checklist</h2>
+<table>
+  <thead><tr><th>Hook</th><th>What the player feels</th><th>Where in v2 it lives</th></tr></thead>
+  <tbody>
+    <tr><td>Numbers go up</td>        <td>"I can see my run getting stronger."</td>           <td>Path tiers; Sutra stacks</td></tr>
+    <tr><td>Surprise / discovery</td> <td>"Wait — that combo did <em>what</em>?"</td>       <td>Fusion Forms; Codex blanks</td></tr>
+    <tr><td>Visible identity</td>     <td>"This is <em>my</em> Edge build."</td>            <td>Nexus recoloring; Sigil Matrix</td></tr>
+    <tr><td>Meta progress</td>        <td>"I unlocked X for next run."</td>                  <td>Sutras; Awakening; Codex embers</td></tr>
+    <tr><td>Mastery achievement</td>  <td>"I did the thing only 1% of players do."</td>      <td>Trinity Awakening; Codex 100%</td></tr>
+  </tbody>
+</table>
+<p>Every system in this doc maps to at least one hook. If a future addition doesn't, it's probably noise.</p>
+
+<h2>10. Naming glossary</h2>
+<p>To keep the fiction tight, prefer these terms when adding identifiers:</p>
+<table>
+  <thead><tr><th>Concept</th><th>Code term</th><th>Player-facing term</th></tr></thead>
+  <tbody>
+    <tr><td>Path</td>                  <td><code>path</code></td>          <td>EDGE / DAEMON / HEX</td></tr>
+    <tr><td>Path tier</td>             <td><code>pathTier</code></td>      <td>Initiate / Adept / Master / <em>(path-specific apex)</em></td></tr>
+    <tr><td>Cross-path hybrid</td>     <td><code>fusion</code></td>        <td>Fusion Form</td></tr>
+    <tr><td>Per-archetype mastery</td> <td><code>sutra</code></td>         <td>Sutra mark</td></tr>
+    <tr><td>Per-path prestige</td>     <td><code>awakening</code></td>     <td>Awakening</td></tr>
+    <tr><td>Discovery log</td>         <td><code>codex</code></td>         <td>Memory-Core / Codex</td></tr>
+    <tr><td>Run modifier</td>          <td><code>cant</code> / <code>heretic</code></td> <td>Heretic Cant</td></tr>
+    <tr><td>Constellation UI</td>      <td><code>sigilMatrix</code></td>   <td>Sigil Matrix</td></tr>
+  </tbody>
+</table>
+<p>Avoid generic fantasy words (<em>element, school, perk, talent, mastery point, prestige token</em>). They erode the cyberpunk-katana-magitech voice.</p>
+
+<h2>11. What v2 deliberately does <em>not</em> add</h2>
+<ul>
+  <li><strong>No new archetypes.</strong> Thirteen is enough. Adding a 14th breaks the 5/4/4 path balance.</li>
+  <li><strong>No randomized rare cards beyond Fusions.</strong> Avoid loot-box feel. Discovery should be deterministic-once-conditions-met.</li>
+  <li><strong>No PvP, no synchronous multiplayer.</strong> Single-player descent; community comes from leaderboards and Codex pride.</li>
+  <li><strong>No paid currency.</strong> If monetization happens later, it should be cosmetic-only (skill skins, Nexus colors, Awakening rings). Mechanical depth stays free.</li>
+</ul>
+
+<h2>12. Open questions for playtesting</h2>
+<ol>
+  <li><strong>How rare should Fusion offers be?</strong> Once per run feels right; verify.</li>
+  <li><strong>Sutra cap</strong> — is 25 per archetype enough? Could be 50 if early balance feels too fast.</li>
+  <li><strong>Path tier scaling</strong> — does Master tier (12 levels) come too easily once a player commits? May need 14 or 15.</li>
+  <li><strong>Sigil Matrix as the <em>only</em> picker, or supplementary view?</strong> Some players hate big UIs; offer both modes.</li>
+  <li><strong>Heretic Cants</strong> — every 5 floors or every 10? 5 risks rhythm fatigue, 10 might feel forgotten.</li>
+  <li><strong>EDGE has 5 archetypes, DAEMON/HEX have 4.</strong> Adjust path tier thresholds to compensate, or let Edge naturally feel slightly stronger to fit the sword-fantasy?</li>
+</ol>
+
+<p class="footer">— Three Paths, one Nexus —</p>
+
+</main>
+</body>
+</html>
