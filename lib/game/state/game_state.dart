@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../components/enemy.dart' show DamageType;
 import 'mech_catalog.dart';
 import 'meta_state.dart';
 import 'skill_catalog.dart';
@@ -134,6 +135,22 @@ class GameState extends ChangeNotifier {
   int edgeStance = 0;
   double daemonBandwidth = 100.0;
   double hexCinder = 0.0;
+
+  // Boss reward toast state — read by the HUD and cleared by clearBossReward()
+  String? lastBossRewardLabel;
+  String? lastBossRewardSubtitle;
+
+  // Cipher Storm modifier — when active, a single damage type is immune for
+  // 4-second windows and rotates through the catalog. Null means no immunity
+  // active right now (either modifier off, or between rotations on entry).
+  DamageType? cipherStormImmunity;
+  double _cipherStormTimer = 0;
+  int _cipherStormCursor = 0;
+
+  // Tracks whether the Nexus has taken damage during the current Crucible
+  // phase. A clean Crucible (no damage taken) awards a 25-gold bonus on
+  // floor advance, per the Floors v1 reward structure.
+  bool _crucibleCleanRun = true;
 
   final Map<String, int> _skillLevels = {};
   final Map<SkillArchetype, int> _evolutions = {};
@@ -461,6 +478,32 @@ class GameState extends ChangeNotifier {
       _satelliteTimer += dt;
     }
 
+    if (activeModifiers.contains(FloorModifier.cipherStorm)) {
+      _cipherStormTimer += dt;
+      if (cipherStormImmunity == null || _cipherStormTimer >= 4.0) {
+        _cipherStormTimer = 0;
+        // Rotate through the offensive damage types only — basic stays
+        // damage-able so the auto-attack never freezes out completely.
+        const rotation = [
+          DamageType.nova,
+          DamageType.firewall,
+          DamageType.meteor,
+          DamageType.sentinel,
+          DamageType.mothership,
+          DamageType.rupture,
+          DamageType.hex,
+          DamageType.daemon,
+        ];
+        cipherStormImmunity = rotation[_cipherStormCursor % rotation.length];
+        _cipherStormCursor++;
+        notifyListeners();
+      }
+    } else if (cipherStormImmunity != null) {
+      cipherStormImmunity = null;
+      _cipherStormTimer = 0;
+      notifyListeners();
+    }
+
     if (!hasPendingLevelUp && !devPauseSpawning) {
       _updateFloorPhases(dt);
     }
@@ -483,8 +526,12 @@ class GameState extends ChangeNotifier {
     } else if (floorPhase == FloorPhase.press && floorTime >= 22.0) {
       floorPhase = FloorPhase.crucible;
       crucibleEvent ??= CrucibleEvent.values[_rng.nextInt(CrucibleEvent.values.length)];
+      _crucibleCleanRun = true;
       notifyListeners();
     } else if (floorPhase == FloorPhase.crucible && floorTime >= 32.0) {
+      if (_crucibleCleanRun && !isBossFloor) {
+        gold += 25;
+      }
       _advanceFloor();
     }
   }
@@ -497,6 +544,9 @@ class GameState extends ChangeNotifier {
     floorPhase = FloorPhase.trickle;
     crucibleEvent = null;
     _networkCrashUsedThisFloor = false; // Reset for new floor
+    cipherStormImmunity = null;
+    _cipherStormTimer = 0;
+    _cipherStormCursor = 0;
 
     activeModifiers.clear();
     if (!isBossFloor) {
@@ -584,7 +634,27 @@ class GameState extends ChangeNotifier {
     if (bloodprice) cantMultiplier *= 1.5;
     if (greedglyph) cantMultiplier *= 2.0;
 
-    return (base * bountyMultiplier * streakMultiplier * boostMultiplier * cantMultiplier).round();
+    // Floors v1 §2: accepting a hard floor modifier (restriction or pressure)
+    // boosts this floor's gold drop by 50%. Flat — doesn't stack with itself.
+    final modifierMultiplier = hasHardFloorModifier ? 1.5 : 1.0;
+
+    return (base * bountyMultiplier * streakMultiplier * boostMultiplier * cantMultiplier * modifierMultiplier).round();
+  }
+
+  // True when at least one "hard" floor modifier (restriction or pressure)
+  // is active. Boons are friendly and don't qualify.
+  bool get hasHardFloorModifier {
+    const hard = {
+      FloorModifier.bandwidthBlackout,
+      FloorModifier.cinderDamp,
+      FloorModifier.stanceStutter,
+      FloorModifier.quickening,
+      FloorModifier.solarFlare,
+      FloorModifier.veilOfAsh,
+      FloorModifier.hereticTide,
+      FloorModifier.cipherStorm,
+    };
+    return activeModifiers.any(hard.contains);
   }
 
   double get estimatedTimeToKill =>
@@ -656,11 +726,78 @@ class GameState extends ChangeNotifier {
     lifetimeKills += 1;
 
     if (isBossFloor && isBoss) {
+      _grantBossReward(floor);
       _advanceFloor();
     }
 
     notifyListeners();
     _saveSoon();
+  }
+
+  // Tiered boss-floor rewards. Called once per boss kill, before the floor
+  // advances. Sets lastBossRewardLabel for the HUD toast and dispatches the
+  // actual rewards (embers, sutras, fusion guarantees) into meta state.
+  void _grantBossReward(int floorBeingCleared) {
+    switch (floorBeingCleared) {
+      case 5:
+        meta.awardEmbers(50);
+        lastBossRewardLabel = 'WATCHER DEFEATED';
+        lastBossRewardSubtitle = '+50 embers';
+      case 10:
+        final sutraTarget = _highestNonMaxedArchetype();
+        meta.awardEmbers(50);
+        if (sutraTarget != null) {
+          meta.incrementSutra(sutraTarget);
+          lastBossRewardLabel = 'SOVEREIGN DEFEATED';
+          lastBossRewardSubtitle =
+              '+1 ${sutraTarget.label} sutra · +50 embers';
+        } else {
+          meta.awardEmbers(50); // fallback bonus when all sutras maxed
+          lastBossRewardLabel = 'SOVEREIGN DEFEATED';
+          lastBossRewardSubtitle = '+100 embers';
+        }
+      case 15:
+        meta.awardEmbers(100);
+        lastBossRewardLabel = 'HIVEFATHER DEFEATED';
+        lastBossRewardSubtitle = '+100 embers · codex resonance';
+      case 20:
+        _forceFusionNext = true;
+        meta.awardEmbers(150);
+        lastBossRewardLabel = 'CIPHER TWIN DEFEATED';
+        lastBossRewardSubtitle = 'fusion offer queued · +150 embers';
+      case 25:
+        meta.awardEmbers(500);
+        lastBossRewardLabel = 'ARCHITECT DEFEATED';
+        lastBossRewardSubtitle = '+500 embers · the descent is yours';
+      default:
+        // Architect respawns on floors 30+. Scale a smaller ember reward so
+        // late-game grinding still pays out without dwarfing the F25 trophy.
+        final reward = 50 + floorBeingCleared * 5;
+        meta.awardEmbers(reward);
+        lastBossRewardLabel = 'BOSS DEFEATED';
+        lastBossRewardSubtitle = '+$reward embers';
+    }
+  }
+
+  SkillArchetype? _highestNonMaxedArchetype() {
+    SkillArchetype? best;
+    int bestLevel = 0;
+    for (final archetype in SkillArchetype.values) {
+      if (meta.sutraCount(archetype) >= 25) continue;
+      final level = _archetypeLevel(archetype);
+      if (level > bestLevel) {
+        bestLevel = level;
+        best = archetype;
+      }
+    }
+    return best;
+  }
+
+  void clearBossReward() {
+    if (lastBossRewardLabel == null) return;
+    lastBossRewardLabel = null;
+    lastBossRewardSubtitle = null;
+    notifyListeners();
   }
 
   SkillPath? _lastPathPicked;
@@ -1002,6 +1139,9 @@ class GameState extends ChangeNotifier {
   void damageNexus(double amount) {
     if (isRunOver || amount <= 0 || godMode) return;
     nexusHp = math.max(0, math.min(nexusMaxHp, nexusHp) - amount);
+    if (floorPhase == FloorPhase.crucible) {
+      _crucibleCleanRun = false;
+    }
     if (isRunOver) {
       _clearPending();
       _awardEmbersForRun();

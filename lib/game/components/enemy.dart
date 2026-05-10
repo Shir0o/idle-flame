@@ -221,6 +221,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   void onMount() {
     super.onMount();
     game.activeEnemies.add(this);
+    game.state.meta.recordDiscovery('enemy:${type.name}');
     if (game.state.enemiesShielded) {
       _shielded = true;
     }
@@ -653,6 +654,15 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     DamageType type = DamageType.basic,
   }) {
     if (_dying || game.state.isRunOver) return;
+
+    // Cipher Storm: rotates a damage-type immunity through the catalog while
+    // the modifier is active. Blocks the damage entirely, but flashes the
+    // enemy so players can see what's being absorbed.
+    if (game.state.cipherStormImmunity == type) {
+      _flashTimer = 0.1;
+      _color = const Color(0xFFFFFFFF);
+      return;
+    }
 
     if (_shielded) {
       _shielded = false;

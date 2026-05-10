@@ -63,6 +63,7 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
     final event = game.state.crucibleEvent;
     if (event == null || event == _lastEvent) return;
     _lastEvent = event;
+    game.state.meta.recordDiscovery('crucible:${event.name}');
 
     switch (event) {
       case CrucibleEvent.pressure:

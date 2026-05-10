@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../game/components/enemy.dart';
 import '../game/state/game_state.dart';
 import '../game/state/meta_catalog.dart';
 import '../game/state/meta_state.dart';
@@ -487,8 +488,76 @@ class _CodexList extends StatelessWidget {
             discovered: meta.discoveredIds.contains(e.id),
           )).toList(),
         ),
+        const SizedBox(height: 16),
+        // Bestiary
+        const _CodexHeader(title: 'BESTIARY'),
+        _CodexGrid(
+          items: EnemyType.values.map((t) => _CodexItem(
+            id: 'enemy:${t.name}',
+            name: _enemyDisplayName(t),
+            icon: _isBoss(t) ? Icons.shield_moon : Icons.coronavirus,
+            color: _isBoss(t)
+                ? const Color(0xFFFFD166)
+                : const Color(0xFFFF8A80),
+            discovered: meta.discoveredIds.contains('enemy:${t.name}'),
+          )).toList(),
+        ),
+        const SizedBox(height: 16),
+        // Crucibles
+        const _CodexHeader(title: 'CRUCIBLES'),
+        _CodexGrid(
+          items: CrucibleEvent.values.map((c) => _CodexItem(
+            id: 'crucible:${c.name}',
+            name: _crucibleDisplayName(c),
+            icon: Icons.local_fire_department,
+            color: const Color(0xFFFF5252),
+            discovered: meta.discoveredIds.contains('crucible:${c.name}'),
+          )).toList(),
+        ),
       ],
     );
+  }
+
+  bool _isBoss(EnemyType t) {
+    return t == EnemyType.watcher ||
+        t == EnemyType.glassSovereign ||
+        t == EnemyType.hivefather ||
+        t == EnemyType.cipherTwin ||
+        t == EnemyType.architect;
+  }
+
+  String _enemyDisplayName(EnemyType t) {
+    return switch (t) {
+      EnemyType.basic => 'Basic',
+      EnemyType.fast => 'Fast',
+      EnemyType.tank => 'Tank',
+      EnemyType.elite => 'Elite',
+      EnemyType.aegis => 'Aegis',
+      EnemyType.splinter => 'Splinter',
+      EnemyType.sigilBearer => 'Sigil-Bearer',
+      EnemyType.wraith => 'Wraith',
+      EnemyType.cinderDrinker => 'Cinder-Drinker',
+      EnemyType.sutraBound => 'Sutra-Bound',
+      EnemyType.watcher => 'The Watcher',
+      EnemyType.glassSovereign => 'Glass Sovereign',
+      EnemyType.hivefather => 'Hivefather',
+      EnemyType.cipherTwin => 'Cipher Twin',
+      EnemyType.architect => 'The Architect',
+      EnemyType.watcherAdd => 'Watcher Drone',
+    };
+  }
+
+  String _crucibleDisplayName(CrucibleEvent e) {
+    return switch (e) {
+      CrucibleEvent.pressure => 'Pressure',
+      CrucibleEvent.hivebreak => 'Hivebreak',
+      CrucibleEvent.sigilStorm => 'Sigil Storm',
+      CrucibleEvent.eclipse => 'Eclipse',
+      CrucibleEvent.quiet => 'Quiet',
+      CrucibleEvent.fractalPack => 'Fractal Pack',
+      CrucibleEvent.lastCant => 'Last Cant',
+      CrucibleEvent.bossEcho => 'Boss Echo',
+    };
   }
 
   List<({String id, String name})> _allEvolutions() {
