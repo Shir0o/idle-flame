@@ -88,6 +88,7 @@ class Hud extends StatelessWidget {
         children: const [
           Positioned(left: 16, bottom: 16, child: _NexusHealthBar()),
           Positioned.fill(child: _WelcomeToast()),
+          Positioned.fill(child: _BossRewardToast()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _EvolutionPicker()),
           Positioned.fill(child: _FusionPicker()),
@@ -3201,6 +3202,116 @@ class _Panel extends StatelessWidget {
         ],
       ),
       child: child,
+    );
+  }
+}
+
+class _BossRewardToast extends StatefulWidget {
+  const _BossRewardToast();
+
+  @override
+  State<_BossRewardToast> createState() => _BossRewardToastState();
+}
+
+class _BossRewardToastState extends State<_BossRewardToast>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _offset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    );
+    _opacity = TweenSequence([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 15),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 70),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 15),
+    ]).animate(_controller);
+    _offset = Tween<Offset>(
+      begin: const Offset(0, 0.15),
+      end: const Offset(0, -0.05),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<GameState, ({String? label, String? subtitle})>(
+      selector: (_, state) =>
+          (label: state.lastBossRewardLabel, subtitle: state.lastBossRewardSubtitle),
+      builder: (context, data, _) {
+        if (data.label == null) return const SizedBox.shrink();
+        // Schedule the animation kickoff *after* this build pass completes
+        // so we don't mutate animation state during build (which can throw
+        // "setState() called during build" or restart unexpectedly on
+        // unrelated rebuilds).
+        if (!_controller.isAnimating && _controller.value == 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || _controller.isAnimating) return;
+            _controller.forward(from: 0).then((_) {
+              if (mounted) context.read<GameState>().clearBossReward();
+            });
+          });
+        }
+        return AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            if (_controller.value == 0) return const SizedBox.shrink();
+            return Align(
+              alignment: const Alignment(0, -0.5),
+              child: SlideTransition(
+                position: _offset,
+                child: FadeTransition(
+                  opacity: _opacity,
+                  child: _Panel(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.military_tech,
+                          color: Color(0xFFFFD166),
+                          size: 32,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          data.label!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2.5,
+                          ),
+                        ),
+                        if (data.subtitle != null) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            data.subtitle!,
+                            style: const TextStyle(
+                              color: Color(0xFFFFD166),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
