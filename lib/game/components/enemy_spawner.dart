@@ -188,7 +188,7 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
     game.state.bossTelegraphName = copy.name;
     game.state.bossTelegraphSubtitle = copy.hint;
     game.state.bossTelegraphPending = true;
-    game.state.notifyListeners();
+    game.state.notify();
 
     // 1.5s Pause/Telegraph
     add(
@@ -199,7 +199,7 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
           game.state.bossTelegraphPending = false;
           game.state.isBossActive = true;
           game.setBossZoom(true);
-          game.state.notifyListeners();
+          game.state.notify();
 
           final bossType = _bossForFloor(floor);
           final bossPos = Vector2(game.size.x / 2, game.size.y * 0.15);
