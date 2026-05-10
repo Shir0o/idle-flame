@@ -1173,13 +1173,16 @@ class _MenuHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.55),
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.4,
+          Flexible(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.55),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.4,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           if (onReset != null) ...[
@@ -1533,21 +1536,23 @@ class _ArchetypeSection extends StatelessWidget {
                   Expanded(
                     child: Row(
                       children: [
-                        Flexible(
+                        Expanded(
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                archetype.label.toUpperCase(),
-                                style: TextStyle(
-                                  color: color,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.2,
+                              Flexible(
+                                child: Text(
+                                  archetype.label.toUpperCase(),
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.2,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6),
                               Text(
                                 '$ownedCount/${skills.length}',
                                 style: TextStyle(
@@ -1559,7 +1564,7 @@ class _ArchetypeSection extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 8),
                         _BulkActionButton(
                           icon: Icons.last_page_rounded,
                           label: 'Max',
@@ -1573,7 +1578,6 @@ class _ArchetypeSection extends StatelessWidget {
                           color: const Color(0xFFFF8A80),
                           onTap: () => state.devResetArchetypeSkills(archetype),
                         ),
-                        const SizedBox(width: 4),
                       ],
                     ),
                   ),
@@ -2144,12 +2148,15 @@ class _ActionChip extends StatelessWidget {
             children: [
               Icon(icon, color: color, size: 14),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -2318,6 +2325,7 @@ class _PathResources extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: List.generate(5, (i) {
           final active = i < state.edgeStance;
           return Container(
