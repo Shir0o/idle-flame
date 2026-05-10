@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../components/enemy.dart' show DamageType;
+import '../components/enemy.dart' show DamageType, EnemyType;
 import 'mech_catalog.dart';
 import 'meta_state.dart';
 import 'skill_catalog.dart';
@@ -14,6 +14,16 @@ import 'triad_catalog.dart';
 import 'inflection_catalog.dart';
 
 enum FloorPhase { trickle, press, crucible }
+
+enum FloorBoon {
+  nexusHpBoost,
+  rerollPlus1,
+  gold25,
+  randomSutra,
+  revealModifier,
+  halveCantCost,
+  skipNextCant,
+}
 
 enum CrucibleEvent {
   pressure,
@@ -113,6 +123,7 @@ class GameState extends ChangeNotifier {
   int resetGeneration = 0;
   bool sessionWelcomeShown = false;
   bool bossSpawned = false;
+  bool isBossActive = false;
   double nexusHp = maxNexusHp;
   MechType selectedMech = MechType.standard;
 
@@ -139,6 +150,94 @@ class GameState extends ChangeNotifier {
   // Boss reward toast state — read by the HUD and cleared by clearBossReward()
   String? lastBossRewardLabel;
   String? lastBossRewardSubtitle;
+
+  // F10 Boss Reward Picker state
+  bool pendingSutraReward = false;
+  List<SkillArchetype> sutraRewardChoices = [];
+
+  // Boss Telegraph state
+  bool bossTelegraphPending = false;
+  String? bossTelegraphName;
+  String? bossTelegraphSubtitle;
+
+  // Counter Tip state
+  String? counterTipLabel;
+  String? counterTipSubtitle;
+  Timer? _counterTipTimer;
+
+  // Floor Reward Room state
+  bool pendingFloorReward = false;
+  List<FloorBoon> floorRewardChoices = [];
+
+  void triggerCounterTip(EnemyType type) {
+    final copy = _counterTipCopy(type);
+    if (copy == null) return;
+
+    _counterTipTimer?.cancel();
+    counterTipLabel = copy.label;
+    counterTipSubtitle = copy.subtitle;
+    notifyListeners();
+
+    _counterTipTimer = Timer(const Duration(seconds: 4), () {
+      counterTipLabel = null;
+      counterTipSubtitle = null;
+      notifyListeners();
+    });
+  }
+
+  void clearCounterTip() {
+    _counterTipTimer?.cancel();
+    counterTipLabel = null;
+    counterTipSubtitle = null;
+    notifyListeners();
+  }
+
+  ({String label, String subtitle})? _counterTipCopy(EnemyType type) {
+    return switch (type) {
+      EnemyType.aegis => (
+          label: 'AEGIS',
+          subtitle: 'Reflects single-target damage. Bypass with AoE / chain.'
+        ),
+      EnemyType.wraith => (
+          label: 'WRAITH',
+          subtitle: 'Phases out for 1s after each hit. Use DOTs or frost.'
+        ),
+      EnemyType.cinderDrinker => (
+          label: 'CINDER-DRINKER',
+          subtitle: 'Heals from Hex damage. Finish with Edge or Daemon.'
+        ),
+      EnemyType.splinter => (
+          label: 'SPLINTER',
+          subtitle: 'Divides on death. Execute or wide AoE.'
+        ),
+      EnemyType.sutraBound => (
+          label: 'SUTRA-BOUND',
+          subtitle: 'Heals nearby enemies. Kill priority.'
+        ),
+      EnemyType.sigilBearer => (
+          label: 'SIGIL-BEARER',
+          subtitle: 'Drops a hazard glyph on death. Kill at the edges.'
+        ),
+      // Base types optional but recommended per §3
+      EnemyType.basic => (
+          label: 'BASIC',
+          subtitle: 'Standard fodder. No special behaviors.'
+        ),
+      EnemyType.fast => (
+          label: 'FAST',
+          subtitle: 'High speed, low health. Priority for rapid fire.'
+        ),
+      EnemyType.tank => (
+          label: 'TANK',
+          subtitle: 'Slow with high health. Tests your DPS.'
+        ),
+      EnemyType.elite => (
+          label: 'ELITE',
+          subtitle: 'Stronger variant. Awards high gold.'
+        ),
+      _ => null,
+    };
+  }
 
   // Cipher Storm modifier — when active, a single damage type is immune for
   // 4-second windows and rotates through the catalog. Null means no immunity
@@ -221,7 +320,8 @@ class GameState extends ChangeNotifier {
       1 + meta.sutraCount(archetype) * 0.01;
 
   MechDefinition get mech => mechDefinitionFor(selectedMech);
-  double get nexusMaxHp => maxNexusHp;
+  late double _nexusMaxHp = maxNexusHp;
+  double get nexusMaxHp => _nexusMaxHp;
   double get heroDamage =>
       baseDamage *
       (1 + _archetypeLevel(SkillArchetype.focus) * 0.08) *
@@ -730,8 +830,15 @@ class GameState extends ChangeNotifier {
     lifetimeKills += 1;
 
     if (isBossFloor && isBoss) {
+      isBossActive = false;
       _grantBossReward(floor);
-      _advanceFloor();
+
+      if (floor == 10 || floor == 20) {
+        pendingFloorReward = true;
+        floorRewardChoices = _rollFloorBoonChoices();
+      } else {
+        _advanceFloor();
+      }
     }
 
     notifyListeners();
@@ -748,31 +855,59 @@ class GameState extends ChangeNotifier {
         lastBossRewardLabel = 'WATCHER DEFEATED';
         lastBossRewardSubtitle = '+50 embers';
       case 10:
-        final sutraTarget = _highestNonMaxedArchetype();
-        meta.awardEmbers(50);
-        if (sutraTarget != null) {
-          meta.incrementSutra(sutraTarget);
-          lastBossRewardLabel = 'SOVEREIGN DEFEATED';
-          lastBossRewardSubtitle =
-              '+1 ${sutraTarget.label} sutra · +50 embers';
+        // F10 Reward: +1 Sutra mark of player's choice
+        pendingSutraReward = true;
+        sutraRewardChoices = _rollSutraChoices();
+        lastBossRewardLabel = 'SOVEREIGN DEFEATED';
+        lastBossRewardSubtitle = 'Choose +1 Sutra Mark';
+      case 15:
+        // F15 Reward: +1 Codex peek (reveal one undiscovered Inflection or Triad)
+        final undiscovered = <String>[];
+        for (final inf in inflectionCatalog) {
+          if (!meta.discoveredIds.contains(inf.id)) undiscovered.add(inf.id);
+        }
+        for (final triad in triadCatalog) {
+          if (!meta.discoveredIds.contains(triad.id)) undiscovered.add(triad.id);
+        }
+
+        if (undiscovered.isNotEmpty) {
+          final targetId = undiscovered[_rng.nextInt(undiscovered.length)];
+          meta.recordDiscovery(targetId);
+          
+          String name = 'Unknown';
+          final infMatch = inflectionCatalog.firstWhereOrNull((i) => i.id == targetId);
+          if (infMatch != null) {
+            name = infMatch.name;
+          } else {
+            final triadMatch = triadCatalog.firstWhereOrNull((t) => t.id == targetId);
+            if (triadMatch != null) name = triadMatch.name;
+          }
+
+          lastBossRewardLabel = 'HIVEFATHER DEFEATED';
+          lastBossRewardSubtitle = 'Codex Peek: Revealed $name';
         } else {
-          meta.awardEmbers(50); // fallback bonus when all sutras maxed
-          lastBossRewardLabel = 'SOVEREIGN DEFEATED';
+          // Fallback if everything is already discovered
+          meta.awardEmbers(100);
+          lastBossRewardLabel = 'HIVEFATHER DEFEATED';
           lastBossRewardSubtitle = '+100 embers';
         }
-      case 15:
-        meta.awardEmbers(100);
-        lastBossRewardLabel = 'HIVEFATHER DEFEATED';
-        lastBossRewardSubtitle = '+100 embers · codex resonance';
       case 20:
+        // F20 Reward: Free Fusion offer at next level-up
         _forceFusionNext = true;
-        meta.awardEmbers(150);
         lastBossRewardLabel = 'CIPHER TWIN DEFEATED';
-        lastBossRewardSubtitle = 'fusion offer queued · +150 embers';
+        lastBossRewardSubtitle = 'Fusion offer guaranteed at next level-up';
       case 25:
-        meta.awardEmbers(500);
-        lastBossRewardLabel = 'ARCHITECT DEFEATED';
-        lastBossRewardSubtitle = '+500 embers · the descent is yours';
+        // F25 Reward: Permanent meta unlock
+        final unlock = meta.claimNextF25Unlock();
+        if (unlock != null) {
+          lastBossRewardLabel = 'ARCHITECT DEFEATED';
+          lastBossRewardSubtitle = 'PERMANENT UNLOCK: $unlock';
+        } else {
+          // Fallback if all permanent rewards are already unlocked
+          meta.awardEmbers(500);
+          lastBossRewardLabel = 'ARCHITECT DEFEATED';
+          lastBossRewardSubtitle = '+500 embers';
+        }
       default:
         // Architect respawns on floors 30+. Scale a smaller ember reward so
         // late-game grinding still pays out without dwarfing the F25 trophy.
@@ -783,18 +918,72 @@ class GameState extends ChangeNotifier {
     }
   }
 
-  SkillArchetype? _highestNonMaxedArchetype() {
-    SkillArchetype? best;
-    int bestLevel = 0;
+  List<SkillArchetype> _rollSutraChoices() {
+    // 3 archetypes the player owns, or all if none/few owned
+    final owned = <SkillArchetype>[];
     for (final archetype in SkillArchetype.values) {
-      if (meta.sutraCount(archetype) >= 25) continue;
-      final level = _archetypeLevel(archetype);
-      if (level > bestLevel) {
-        bestLevel = level;
-        best = archetype;
+      if (_archetypeLevel(archetype) > 0 && meta.sutraCount(archetype) < 25) {
+        owned.add(archetype);
       }
     }
-    return best;
+
+    if (owned.length <= 3) {
+      if (owned.isEmpty) {
+        // If none owned (rare at F10), show some random ones
+        return (SkillArchetype.values.toList()..shuffle(_rng)).take(3).toList();
+      }
+      return owned;
+    }
+
+    owned.shuffle(_rng);
+    return owned.take(3).toList();
+  }
+
+  void resolveSutraReward(SkillArchetype archetype) {
+    meta.incrementSutra(archetype);
+    pendingSutraReward = false;
+    sutraRewardChoices = [];
+    notifyListeners();
+  }
+
+  List<FloorBoon> _rollFloorBoonChoices() {
+    final pool = FloorBoon.values.toList()..shuffle(_rng);
+    return pool.take(3).toList();
+  }
+
+  void resolveFloorReward(FloorBoon boon) {
+    _applyFloorBoon(boon);
+    pendingFloorReward = false;
+    floorRewardChoices = [];
+    _advanceFloor();
+    notifyListeners();
+  }
+
+  void _applyFloorBoon(FloorBoon boon) {
+    switch (boon) {
+      case FloorBoon.nexusHpBoost:
+        _nexusMaxHp *= 1.05;
+        nexusHp = math.min(nexusMaxHp, nexusHp + nexusMaxHp * 0.05);
+      case FloorBoon.rerollPlus1:
+        rerollsRemaining += 1;
+      case FloorBoon.gold25:
+        gold += 25;
+      case FloorBoon.randomSutra:
+        final archetype = _randomOwnedArchetype();
+        meta.incrementSutra(archetype);
+      case FloorBoon.revealModifier:
+        _revealNextModifier = true;
+      case FloorBoon.halveCantCost:
+        _halveNextCantCost = true;
+      case FloorBoon.skipNextCant:
+        _skipNextCant = true;
+    }
+  }
+
+  SkillArchetype _randomOwnedArchetype() {
+    final owned = SkillArchetype.values.where((a) => _archetypeLevel(a) > 0).toList();
+    if (owned.isEmpty) return SkillArchetype.values[_rng.nextInt(SkillArchetype.values.length)];
+    return owned[_rng.nextInt(owned.length)];
   }
 
   void clearBossReward() {
@@ -1110,6 +1299,9 @@ class GameState extends ChangeNotifier {
   }
 
   bool _forceFusionNext = false;
+  bool _revealNextModifier = false;
+  bool _halveNextCantCost = false;
+  bool _skipNextCant = false;
 
   void selectCant(String id) {
     if (isRunOver || !_pendingCantIds.contains(id)) return;

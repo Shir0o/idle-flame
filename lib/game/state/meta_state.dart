@@ -15,20 +15,44 @@ class MetaState extends ChangeNotifier {
   final Set<String> _discoveredIds = {};
   final Map<SkillArchetype, int> _sutras = {};
   final Map<SkillPath, bool> _awakenings = {};
+  final Set<String> _f25Unlocks = {};
 
   Set<String> get discoveredIds => Set.unmodifiable(_discoveredIds);
+  Set<String> get f25Unlocks => Set.unmodifiable(_f25Unlocks);
+
+  static const List<String> f25UnlockPool = [
+    'Nexus Skin: Obsidian',
+    'Heretic Cant Slot +1',
+    'Starting Reroll +1',
+    'Starting Banish +1',
+    'Echo-Resonance Kit',
+  ];
+
+  String? claimNextF25Unlock() {
+    for (final unlock in f25UnlockPool) {
+      if (!_f25Unlocks.contains(unlock)) {
+        _f25Unlocks.add(unlock);
+        notifyListeners();
+        _save();
+        return unlock;
+      }
+    }
+    return null; // All unlocked
+  }
 
   int sutraCount(SkillArchetype archetype) => _sutras[archetype] ?? 0;
   bool hasSutraPerk(SkillArchetype archetype, int mark) => sutraCount(archetype) >= mark;
   bool isAwakened(SkillPath path) => _awakenings[path] ?? false;
 
-  void recordDiscovery(String id) {
+  bool recordDiscovery(String id, {int reward = 5}) {
     if (!_discoveredIds.contains(id)) {
       _discoveredIds.add(id);
-      embers += 50; // Bonus for new discovery
+      embers += reward; // Reward for new discovery
       notifyListeners();
       _save();
+      return true;
     }
+    return false;
   }
 
   void incrementSutra(SkillArchetype archetype) {
@@ -179,6 +203,9 @@ class MetaState extends ChangeNotifier {
     _awakenings
       ..clear()
       ..addAll(_decodeAwakenings(prefs.getStringList(_kAwakenings)));
+    _f25Unlocks
+      ..clear()
+      ..addAll(prefs.getStringList(_kF25Unlocks) ?? const []);
     notifyListeners();
   }
 
@@ -203,6 +230,7 @@ class MetaState extends ChangeNotifier {
       _kAwakenings,
       _awakenings.entries.where((e) => e.value).map((e) => e.key.name).toList(),
     );
+    await prefs.setStringList(_kF25Unlocks, _f25Unlocks.toList());
   }
 
   Future<void> wipe() async {
@@ -213,6 +241,7 @@ class MetaState extends ChangeNotifier {
     _discoveredIds.clear();
     _sutras.clear();
     _awakenings.clear();
+    _f25Unlocks.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kEmbers);
     await prefs.remove(_kUpgrades);
@@ -220,6 +249,7 @@ class MetaState extends ChangeNotifier {
     await prefs.remove(_kDiscovered);
     await prefs.remove(_kSutras);
     await prefs.remove(_kAwakenings);
+    await prefs.remove(_kF25Unlocks);
     notifyListeners();
   }
 
@@ -266,4 +296,5 @@ class MetaState extends ChangeNotifier {
   static const _kDiscovered = 'meta_discovered';
   static const _kSutras = 'meta_sutras';
   static const _kAwakenings = 'meta_awakenings';
+  static const _kF25Unlocks = 'meta_f25_unlocks';
 }

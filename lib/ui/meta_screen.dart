@@ -54,6 +54,10 @@ class _MetaScreenState extends State<MetaScreen> {
                           _BoonsList(meta: meta)
                         else if (_tab == 1)
                           _KeystonesList(meta: meta)
+                        else if (_tab == 2)
+                          _BestiaryList(meta: meta)
+                        else if (_tab == 3)
+                          _CrucibleList(meta: meta)
                         else
                           _CodexList(meta: meta),
                         const SizedBox(height: 16),
@@ -187,13 +191,15 @@ class _TabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        Expanded(child: _tab('Boons', 0)),
-        const SizedBox(width: 8),
-        Expanded(child: _tab('Keystones', 1)),
-        const SizedBox(width: 8),
-        Expanded(child: _tab('Codex', 2)),
+        _tab('Boons', 0),
+        _tab('Keystones', 1),
+        _tab('Bestiary', 2),
+        _tab('Crucibles', 3),
+        _tab('Codex', 4),
       ],
     );
   }
@@ -206,6 +212,7 @@ class _TabBar extends StatelessWidget {
         onTap: () => onChanged(index),
         borderRadius: BorderRadius.circular(6),
         child: Container(
+          width: 80,
           padding: const EdgeInsets.symmetric(vertical: 8),
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -225,7 +232,7 @@ class _TabBar extends StatelessWidget {
               color: active
                   ? const Color(0xFFFF8A00)
                   : Colors.white.withValues(alpha: 0.7),
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -410,6 +417,61 @@ class _KeystoneRow extends StatelessWidget {
   }
 }
 
+class _BestiaryList extends StatelessWidget {
+  const _BestiaryList({required this.meta});
+  final MetaState meta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _CodexHeader(title: 'ENEMY BESTIARY'),
+        _CodexGrid(
+          items: EnemyType.values
+              .where((t) => t != EnemyType.watcherAdd)
+              .map((t) => _CodexItem(
+                    id: 'enemy:${t.name}',
+                    name: _enemyDisplayName(t),
+                    icon: _isBoss(t) ? Icons.shield_moon : Icons.coronavirus,
+                    color: _isBoss(t)
+                        ? const Color(0xFFFFD166)
+                        : const Color(0xFFFF8A80),
+                    discovered: meta.discoveredIds.contains('enemy:${t.name}'),
+                  ))
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _CrucibleList extends StatelessWidget {
+  const _CrucibleList({required this.meta});
+  final MetaState meta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _CodexHeader(title: 'CRUCIBLE EVENTS'),
+        _CodexGrid(
+          items: CrucibleEvent.values
+              .map((c) => _CodexItem(
+                    id: 'crucible:${c.name}',
+                    name: _crucibleDisplayName(c),
+                    icon: Icons.local_fire_department,
+                    color: const Color(0xFFFF5252),
+                    discovered: meta.discoveredIds.contains('crucible:${c.name}'),
+                  ))
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
 class _CodexList extends StatelessWidget {
   const _CodexList({required this.meta});
   final MetaState meta;
@@ -488,76 +550,8 @@ class _CodexList extends StatelessWidget {
             discovered: meta.discoveredIds.contains(e.id),
           )).toList(),
         ),
-        const SizedBox(height: 16),
-        // Bestiary
-        const _CodexHeader(title: 'BESTIARY'),
-        _CodexGrid(
-          items: EnemyType.values.map((t) => _CodexItem(
-            id: 'enemy:${t.name}',
-            name: _enemyDisplayName(t),
-            icon: _isBoss(t) ? Icons.shield_moon : Icons.coronavirus,
-            color: _isBoss(t)
-                ? const Color(0xFFFFD166)
-                : const Color(0xFFFF8A80),
-            discovered: meta.discoveredIds.contains('enemy:${t.name}'),
-          )).toList(),
-        ),
-        const SizedBox(height: 16),
-        // Crucibles
-        const _CodexHeader(title: 'CRUCIBLES'),
-        _CodexGrid(
-          items: CrucibleEvent.values.map((c) => _CodexItem(
-            id: 'crucible:${c.name}',
-            name: _crucibleDisplayName(c),
-            icon: Icons.local_fire_department,
-            color: const Color(0xFFFF5252),
-            discovered: meta.discoveredIds.contains('crucible:${c.name}'),
-          )).toList(),
-        ),
       ],
     );
-  }
-
-  bool _isBoss(EnemyType t) {
-    return t == EnemyType.watcher ||
-        t == EnemyType.glassSovereign ||
-        t == EnemyType.hivefather ||
-        t == EnemyType.cipherTwin ||
-        t == EnemyType.architect;
-  }
-
-  String _enemyDisplayName(EnemyType t) {
-    return switch (t) {
-      EnemyType.basic => 'Basic',
-      EnemyType.fast => 'Fast',
-      EnemyType.tank => 'Tank',
-      EnemyType.elite => 'Elite',
-      EnemyType.aegis => 'Aegis',
-      EnemyType.splinter => 'Splinter',
-      EnemyType.sigilBearer => 'Sigil-Bearer',
-      EnemyType.wraith => 'Wraith',
-      EnemyType.cinderDrinker => 'Cinder-Drinker',
-      EnemyType.sutraBound => 'Sutra-Bound',
-      EnemyType.watcher => 'The Watcher',
-      EnemyType.glassSovereign => 'Glass Sovereign',
-      EnemyType.hivefather => 'Hivefather',
-      EnemyType.cipherTwin => 'Cipher Twin',
-      EnemyType.architect => 'The Architect',
-      EnemyType.watcherAdd => 'Watcher Drone',
-    };
-  }
-
-  String _crucibleDisplayName(CrucibleEvent e) {
-    return switch (e) {
-      CrucibleEvent.pressure => 'Pressure',
-      CrucibleEvent.hivebreak => 'Hivebreak',
-      CrucibleEvent.sigilStorm => 'Sigil Storm',
-      CrucibleEvent.eclipse => 'Eclipse',
-      CrucibleEvent.quiet => 'Quiet',
-      CrucibleEvent.fractalPack => 'Fractal Pack',
-      CrucibleEvent.lastCant => 'Last Cant',
-      CrucibleEvent.bossEcho => 'Boss Echo',
-    };
   }
 
   List<({String id, String name})> _allEvolutions() {
@@ -568,6 +562,48 @@ class _CodexList extends StatelessWidget {
     });
     return list;
   }
+}
+
+bool _isBoss(EnemyType t) {
+  return t == EnemyType.watcher ||
+      t == EnemyType.glassSovereign ||
+      t == EnemyType.hivefather ||
+      t == EnemyType.cipherTwin ||
+      t == EnemyType.architect;
+}
+
+String _enemyDisplayName(EnemyType t) {
+  return switch (t) {
+    EnemyType.basic => 'Basic',
+    EnemyType.fast => 'Fast',
+    EnemyType.tank => 'Tank',
+    EnemyType.elite => 'Elite',
+    EnemyType.aegis => 'Aegis',
+    EnemyType.splinter => 'Splinter',
+    EnemyType.sigilBearer => 'Sigil-Bearer',
+    EnemyType.wraith => 'Wraith',
+    EnemyType.cinderDrinker => 'Cinder-Drinker',
+    EnemyType.sutraBound => 'Sutra-Bound',
+    EnemyType.watcher => 'The Watcher',
+    EnemyType.glassSovereign => 'Glass Sovereign',
+    EnemyType.hivefather => 'Hivefather',
+    EnemyType.cipherTwin => 'Cipher Twin',
+    EnemyType.architect => 'The Architect',
+    EnemyType.watcherAdd => 'Watcher Drone',
+  };
+}
+
+String _crucibleDisplayName(CrucibleEvent e) {
+  return switch (e) {
+    CrucibleEvent.pressure => 'Pressure',
+    CrucibleEvent.hivebreak => 'Hivebreak',
+    CrucibleEvent.sigilStorm => 'Sigil Storm',
+    CrucibleEvent.eclipse => 'Eclipse',
+    CrucibleEvent.quiet => 'Quiet',
+    CrucibleEvent.fractalPack => 'Fractal Pack',
+    CrucibleEvent.lastCant => 'Last Cant',
+    CrucibleEvent.bossEcho => 'Boss Echo',
+  };
 }
 
 class _CodexHeader extends StatelessWidget {

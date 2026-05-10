@@ -60,6 +60,8 @@ class ZenithZeroGame extends FlameGame {
   Enemy? rightmostEnemy;
   VisualLoadTier visualLoadTier = VisualLoadTier.normal;
 
+  double _targetZoom = 1.0;
+
   @override
   Color backgroundColor() => Colors.black;
 
@@ -150,6 +152,19 @@ class ZenithZeroGame extends FlameGame {
         camera.viewfinder.position = Vector2.zero();
       }
     }
+
+    if (camera.viewfinder.zoom != _targetZoom) {
+      final zoomSpeed = dt * 1.5;
+      if ((camera.viewfinder.zoom - _targetZoom).abs() < zoomSpeed) {
+        camera.viewfinder.zoom = _targetZoom;
+      } else {
+        camera.viewfinder.zoom += (camera.viewfinder.zoom < _targetZoom ? 1 : -1) * zoomSpeed;
+      }
+    }
+  }
+
+  void setBossZoom(bool active) {
+    _targetZoom = active ? 1.05 : 1.0;
   }
 
   void shakeCamera({required double intensity, required double duration}) {

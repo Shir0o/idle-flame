@@ -89,10 +89,13 @@ class Hud extends StatelessWidget {
           Positioned(left: 16, bottom: 16, child: _NexusHealthBar()),
           Positioned.fill(child: _WelcomeToast()),
           Positioned.fill(child: _BossRewardToast()),
+          Positioned.fill(child: _BossTelegraph()),
           Positioned.fill(child: _LevelUpPicker()),
           Positioned.fill(child: _EvolutionPicker()),
           Positioned.fill(child: _FusionPicker()),
           Positioned.fill(child: _CantPicker()),
+          Positioned.fill(child: _SutraRewardPicker()),
+          Positioned.fill(child: _FloorRewardPicker()),
           Positioned.fill(child: _RunOverPanel()),
           Positioned(
             top: 12,
@@ -104,6 +107,7 @@ class Hud extends StatelessWidget {
             ),
           ),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
+          Positioned(top: 12, right: 16, child: _CounterTipToast()),
           Positioned(top: 80, right: 16, child: _MuteButton()),
           Positioned(right: 16, bottom: 16, child: _DevTools()),
         ],
@@ -1988,6 +1992,70 @@ class _SkillStepButton extends StatelessWidget {
   }
 }
 
+class _BossTelegraph extends StatelessWidget {
+  const _BossTelegraph();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        final showDim = state.bossTelegraphPending || state.isBossActive;
+        if (!showDim) return const SizedBox.shrink();
+
+        return ColoredBox(
+          color: Colors.black.withValues(alpha: 0.6), // Dim to 40% opacity
+          child: state.bossTelegraphPending
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'BOSS · F${state.floor}',
+                        style: const TextStyle(
+                          color: Colors.amber,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        state.bossTelegraphName ?? '',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              color: Colors.amber,
+                              blurRadius: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                          state.bossTelegraphSubtitle ?? '',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
+        );
+      },
+    );
+  }
+}
+
 class _LevelUpPicker extends StatelessWidget {
   const _LevelUpPicker();
 
@@ -2191,6 +2259,246 @@ class _CantPicker extends StatelessWidget {
       },
     );
   }
+}
+
+class _SutraRewardPicker extends StatelessWidget {
+  const _SutraRewardPicker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        if (!state.pendingSutraReward || state.isRunOver) {
+          return const SizedBox.shrink();
+        }
+
+        final choices = state.sutraRewardChoices;
+
+        return ColoredBox(
+          color: Colors.black.withValues(alpha: 0.8),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 96, 16, 96),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'SOVEREIGN RESONANCE',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.cyanAccent,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Choose an archetype to receive +1 Sutra Mark.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ...choices.map(
+                        (archetype) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _ChoiceCardGeneric(
+                            title: archetype.label,
+                            description:
+                                'Permanent progress: ${state.meta.sutraCount(archetype)}/25 marks',
+                            tierLabel: archetype.path.name.toUpperCase(),
+                            color: archetype.path.color,
+                            onTap: () => state.resolveSutraReward(archetype),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CounterTipToast extends StatelessWidget {
+  const _CounterTipToast();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        final label = state.counterTipLabel;
+        final subtitle = state.counterTipSubtitle;
+        if (label == null || subtitle == null) return const SizedBox.shrink();
+
+        return GestureDetector(
+          onTap: state.clearCounterTip,
+          child: Container(
+            width: 280,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white24),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black45,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.cyanAccent, size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      'NEW ENEMY · $label',
+                      style: const TextStyle(
+                        color: Colors.cyanAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(Icons.close, color: Colors.white38, size: 12),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _FloorRewardPicker extends StatelessWidget {
+  const _FloorRewardPicker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        if (!state.pendingFloorReward || state.isRunOver) {
+          return const SizedBox.shrink();
+        }
+
+        final choices = state.floorRewardChoices;
+
+        return ColoredBox(
+          color: Colors.black.withValues(alpha: 0.8),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 96, 16, 96),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'VOID RECOMPENSE',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.amberAccent,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'A pocket of stable space. Choose your boon.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ...choices.map(
+                        (boon) {
+                          final copy = _boonCopy(boon);
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _ChoiceCardGeneric(
+                              title: copy.title,
+                              description: copy.description,
+                              tierLabel: 'BOON',
+                              color: Colors.amberAccent,
+                              onTap: () => state.resolveFloorReward(boon),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+({String title, String description}) _boonCopy(FloorBoon boon) {
+  return switch (boon) {
+    FloorBoon.nexusHpBoost => (
+        title: 'Integrity Mesh',
+        description: '+5% Max Nexus HP for this run.'
+      ),
+    FloorBoon.rerollPlus1 => (
+        title: 'Temporal Anchor',
+        description: '+1 Reroll for this run.'
+      ),
+    FloorBoon.gold25 => (
+        title: 'Cinder Scrip',
+        description: '+25 Gold instantly.'
+      ),
+    FloorBoon.randomSutra => (
+        title: 'Ancestral Memory',
+        description: '+1 Sutra Mark on a random owned archetype.'
+      ),
+    FloorBoon.revealModifier => (
+        title: 'Prescience Core',
+        description: 'Next floor\'s modifier is revealed early.'
+      ),
+    FloorBoon.halveCantCost => (
+        title: 'Void Bargain',
+        description: 'Halve the HP cost of your next Heretic Cant.'
+      ),
+    FloorBoon.skipNextCant => (
+        title: 'Core Purge',
+        description: 'Ignore the next Heretic Cant offer.'
+      ),
+  };
 }
 
 class _ChoiceCardGeneric extends StatelessWidget {

@@ -17,6 +17,7 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
   void update(double dt) {
     super.update(dt);
     if (game.state.hasPendingLevelUp ||
+        game.state.bossTelegraphPending ||
         game.state.isRunOver ||
         game.state.devPauseSpawning) {
       return;
@@ -181,13 +182,48 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
 
   void _spawnBoss() {
     game.state.bossSpawned = true;
-    final bossType = _bossForFloor(game.state.floor);
-    final bossPos = Vector2(game.size.x / 2, game.size.y * 0.15);
-    parent?.add(Enemy(
-      position: bossPos,
-      baseMaxHp: game.state.enemyMaxHp,
-      type: bossType,
-    ));
+    final floor = game.state.floor;
+    final copy = _bossTelegraphCopy(floor);
+
+    game.state.bossTelegraphName = copy.name;
+    game.state.bossTelegraphSubtitle = copy.hint;
+    game.state.bossTelegraphPending = true;
+    game.state.notifyListeners();
+
+    // 1.5s Pause/Telegraph
+    add(
+      TimerComponent(
+        period: 1.5,
+        removeOnFinish: true,
+        onTick: () {
+          game.state.bossTelegraphPending = false;
+          game.state.isBossActive = true;
+          game.setBossZoom(true);
+          game.state.notifyListeners();
+
+          final bossType = _bossForFloor(floor);
+          final bossPos = Vector2(game.size.x / 2, game.size.y * 0.15);
+          parent?.add(Enemy(
+            position: bossPos,
+            baseMaxHp: game.state.enemyMaxHp,
+            type: bossType,
+          ));
+        },
+      ),
+    );
+  }
+
+  ({String name, String hint}) _bossTelegraphCopy(int floor) {
+    return switch (floor) {
+      5 => (name: 'THE WATCHER', hint: 'Daemon-shielded adds. AoE wins.'),
+      10 => (
+          name: 'GLASS SOVEREIGN',
+          hint: 'Evasive and splash-immune. Edge focus wins.'
+        ),
+      15 => (name: 'HIVEFATHER', hint: 'Drone broods. Sustain wins.'),
+      20 => (name: 'CIPHER TWIN', hint: 'Alternating immunities. Mixed paths win.'),
+      _ => (name: 'THE ARCHITECT', hint: "Everything you've learned. No hints."),
+    };
   }
 
   void _spawnSpecific(EnemyType type, {double hpScale = 1.0}) {

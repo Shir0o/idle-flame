@@ -21,16 +21,16 @@ void main() {
     expect(meta.discoveredIds, isEmpty);
 
     meta.recordDiscovery('chain');
-    expect(meta.embers, 50);
+    expect(meta.embers, 5);
     expect(meta.discoveredIds, contains('chain'));
 
     // Re-discovery shouldn't award more
     meta.recordDiscovery('chain');
-    expect(meta.embers, 50);
+    expect(meta.embers, 5);
 
     // New discovery
     meta.recordDiscovery('nova');
-    expect(meta.embers, 100);
+    expect(meta.embers, 10);
   });
 
   test('SkillPath and SkillArchetype mapping is correct', () {
