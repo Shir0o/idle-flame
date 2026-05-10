@@ -1299,9 +1299,22 @@ class GameState extends ChangeNotifier {
   bool _halveNextCantCost = false;
   bool _skipNextCant = false;
 
-  /// Public notify hook so non-state collaborators (e.g. the spawner) can
-  /// trigger a UI refresh after toggling fields they own on this state.
-  void notify() => notifyListeners();
+  /// Show the pre-fight boss telegraph card. The spawner calls this when a
+  /// boss is about to enter; the HUD reads `bossTelegraphPending` and the
+  /// name/subtitle to render the overlay.
+  void showBossTelegraph(String name, String hint) {
+    bossTelegraphName = name;
+    bossTelegraphSubtitle = hint;
+    bossTelegraphPending = true;
+    notifyListeners();
+  }
+
+  /// Resolve the telegraph and mark the boss encounter as live.
+  void startBossEncounter() {
+    bossTelegraphPending = false;
+    isBossActive = true;
+    notifyListeners();
+  }
 
   void selectCant(String id) {
     if (isRunOver || !_pendingCantIds.contains(id)) return;
