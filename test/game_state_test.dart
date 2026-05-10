@@ -48,23 +48,25 @@ void main() {
     );
   });
 
-  test('kills award gold and floor clears roll upgrade choices', () {
+  test('kills award gold and time clears floor to roll upgrade choices', () {
     final state = GameState();
     addTearDown(state.dispose);
 
-    for (var i = 0; i < GameState.killsPerFloor - 1; i++) {
+    for (var i = 0; i < GameState.killsPerFloor; i++) {
       state.registerKill();
     }
 
     expect(state.floor, 1);
-    expect(state.killsOnFloor, GameState.killsPerFloor - 1);
+    expect(state.killsOnFloor, GameState.killsPerFloor);
+    expect(state.gold, GameState.killsPerFloor);
     expect(state.hasPendingLevelUp, isFalse);
 
-    state.registerKill();
+    state.update(10.0); // trickle -> press
+    state.update(12.0); // press -> crucible
+    state.update(10.0); // crucible -> advance floor
 
     expect(state.floor, 2);
     expect(state.killsOnFloor, 0);
-    expect(state.gold, GameState.killsPerFloor);
     expect(state.pendingChoices, hasLength(3));
     expect(state.hasPendingLevelUp, isTrue);
   });
@@ -73,9 +75,9 @@ void main() {
     final state = GameState();
     addTearDown(state.dispose);
 
-    for (var i = 0; i < GameState.killsPerFloor; i++) {
-      state.registerKill();
-    }
+    state.update(10.0);
+    state.update(12.0);
+    state.update(10.0);
 
     final choice = state.pendingChoices.first;
     state.selectUpgrade(choice.definition.id);
@@ -92,9 +94,9 @@ void main() {
     final floorOneHp = state.enemyMaxHp;
     final floorOneGold = state.goldPerKill;
 
-    for (var i = 0; i < GameState.killsPerFloor; i++) {
-      state.registerKill();
-    }
+    state.update(10.0);
+    state.update(12.0);
+    state.update(10.0);
 
     expect(state.enemyMaxHp, greaterThan(floorOneHp));
     expect(state.goldPerKill, greaterThanOrEqualTo(floorOneGold));
@@ -121,6 +123,10 @@ void main() {
     for (var i = 0; i < GameState.killsPerFloor; i++) {
       state.registerKill();
     }
+    state.update(10.0);
+    state.update(12.0);
+    state.update(10.0);
+
     final choice = state.pendingChoices.first;
     state.selectUpgrade(choice.definition.id);
 

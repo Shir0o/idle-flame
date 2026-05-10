@@ -694,7 +694,7 @@ class HeroComponent extends PositionComponent
         _stanceTarget = enemy;
         game.state.edgeStance = 1;
       }
-      _stanceTimer = 1.0;
+      _stanceTimer = game.state.activeModifiers.contains(FloorModifier.stanceStutter) ? 0.5 : 1.0;
     }
 
     if (_canSpawnAttackEffect(lowPriority: !isPrimary)) {

@@ -448,11 +448,18 @@ class _FloorBadgeState extends State<_FloorBadge> {
   @override
   Widget build(BuildContext context) {
     final state = context.read<GameState>();
-    return Selector<GameState, ({int floor, int kills})>(
-      selector: (_, state) => (floor: state.floor, kills: state.killsOnFloor),
+    return Selector<GameState, ({int floor, FloorPhase phase, double time, CrucibleEvent? event, Set<FloorModifier> modifiers})>(
+      selector: (_, state) => (
+        floor: state.floor,
+        phase: state.floorPhase,
+        time: state.floorTime,
+        event: state.crucibleEvent,
+        modifiers: state.activeModifiers,
+      ),
       builder: (_, data, _) => InkWell(
         onTap: () => _handleTap(state),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             _Panel(
@@ -460,13 +467,32 @@ class _FloorBadgeState extends State<_FloorBadge> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Floor ${data.floor}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Floor ${data.floor}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (data.floor % 5 == 0) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF5252), size: 14),
+                        const SizedBox(width: 2),
+                        const Text(
+                          'BOSS',
+                          style: TextStyle(
+                            color: Color(0xFFFF5252),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 6),
                   SizedBox(
@@ -474,7 +500,7 @@ class _FloorBadgeState extends State<_FloorBadge> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
-                        value: data.kills / GameState.killsPerFloor,
+                        value: (data.time / 32.0).clamp(0.0, 1.0),
                         minHeight: 6,
                         backgroundColor: Colors.white.withValues(alpha: 0.15),
                         valueColor: const AlwaysStoppedAnimation(
@@ -484,16 +510,71 @@ class _FloorBadgeState extends State<_FloorBadge> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '${data.kills}/${GameState.killsPerFloor} kills',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 11,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _phaseLabel(data.phase),
+                        style: TextStyle(
+                          color: _phaseColor(data.phase),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${(32.0 - data.time).clamp(0.0, 32.0).toStringAsFixed(1)}s',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
+                  if (data.phase == FloorPhase.crucible && data.event != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Crucible: ${_eventName(data.event!)}',
+                      style: const TextStyle(
+                        color: Color(0xFFFF5252),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
+            if (data.modifiers.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: data.modifiers.map((mod) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: _Panel(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _modIcon(mod),
+                          color: _modColor(mod),
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _modName(mod),
+                          style: TextStyle(
+                            color: _modColor(mod),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ],
             Selector<GameState, double>(
               selector: (_, state) => state.devTimeScale,
               builder: (context, timeScale, _) {
@@ -529,6 +610,89 @@ class _FloorBadgeState extends State<_FloorBadge> {
       ),
     );
   }
+
+  String _phaseLabel(FloorPhase phase) {
+    switch (phase) {
+      case FloorPhase.trickle: return 'Trickle';
+      case FloorPhase.press: return 'Press';
+      case FloorPhase.crucible: return 'Crucible';
+    }
+  }
+
+  Color _phaseColor(FloorPhase phase) {
+    switch (phase) {
+      case FloorPhase.trickle: return const Color(0xFF64FFDA);
+      case FloorPhase.press: return const Color(0xFFFFD54F);
+      case FloorPhase.crucible: return const Color(0xFFFF5252);
+    }
+  }
+
+  String _eventName(CrucibleEvent event) {
+    switch (event) {
+      case CrucibleEvent.pressure: return 'Pressure';
+      case CrucibleEvent.hivebreak: return 'Hivebreak';
+      case CrucibleEvent.sigilStorm: return 'Sigil Storm';
+      case CrucibleEvent.eclipse: return 'Eclipse';
+      case CrucibleEvent.quiet: return 'Quiet';
+      case CrucibleEvent.fractalPack: return 'Fractal Pack';
+      case CrucibleEvent.lastCant: return 'Last Cant';
+      case CrucibleEvent.bossEcho: return 'Boss Echo';
+    }
+  }
+
+  String _modName(FloorModifier mod) {
+    switch (mod) {
+      case FloorModifier.bandwidthBlackout: return 'Bandwidth Blackout';
+      case FloorModifier.cinderDamp: return 'Cinder Damp';
+      case FloorModifier.stanceStutter: return 'Stance Stutter';
+      case FloorModifier.quickening: return 'Quickening';
+      case FloorModifier.solarFlare: return 'Solar Flare';
+      case FloorModifier.veilOfAsh: return 'Veil of Ash';
+      case FloorModifier.hereticTide: return 'Heretic Tide';
+      case FloorModifier.cipherStorm: return 'Cipher Storm';
+      case FloorModifier.echoTide: return 'Echo Tide';
+      case FloorModifier.discountKit: return 'Discount Kit';
+      case FloorModifier.manaBloom: return 'Mana Bloom';
+      case FloorModifier.glyphCache: return 'Glyph Cache';
+    }
+  }
+
+  IconData _modIcon(FloorModifier mod) {
+    switch (mod) {
+      case FloorModifier.bandwidthBlackout: return Icons.wifi_off;
+      case FloorModifier.cinderDamp: return Icons.water_drop;
+      case FloorModifier.stanceStutter: return Icons.broken_image;
+      case FloorModifier.quickening: return Icons.speed;
+      case FloorModifier.solarFlare: return Icons.wb_sunny;
+      case FloorModifier.veilOfAsh: return Icons.visibility_off;
+      case FloorModifier.hereticTide: return Icons.waves;
+      case FloorModifier.cipherStorm: return Icons.security;
+      case FloorModifier.echoTide: return Icons.record_voice_over;
+      case FloorModifier.discountKit: return Icons.local_offer;
+      case FloorModifier.manaBloom: return Icons.local_florist;
+      case FloorModifier.glyphCache: return Icons.diamond;
+    }
+  }
+
+  Color _modColor(FloorModifier mod) {
+    switch (mod) {
+      case FloorModifier.bandwidthBlackout:
+      case FloorModifier.cinderDamp:
+      case FloorModifier.stanceStutter:
+      case FloorModifier.quickening:
+      case FloorModifier.solarFlare:
+      case FloorModifier.veilOfAsh:
+      case FloorModifier.hereticTide:
+      case FloorModifier.cipherStorm:
+        return const Color(0xFFFF8A80); // Red-ish for restrictions/pressures
+      case FloorModifier.echoTide:
+      case FloorModifier.discountKit:
+      case FloorModifier.manaBloom:
+      case FloorModifier.glyphCache:
+        return const Color(0xFF64FFDA); // Cyan for boons
+    }
+  }
+
 }
 
 class _GoldBadge extends StatelessWidget {

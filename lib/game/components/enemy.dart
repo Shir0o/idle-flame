@@ -11,9 +11,28 @@ import 'damage_text.dart';
 import 'path_benefits.dart';
 import 'fire_summons.dart';
 
-enum DamageType { basic, nova, firewall, meteor, sentinel, mothership, rupture }
+enum DamageType { basic, nova, firewall, meteor, sentinel, mothership, rupture, hex, daemon }
 
-enum EnemyType { basic, fast, tank, elite }
+enum EnemyType {
+  basic,
+  fast,
+  tank,
+  elite,
+  // New archetypes
+  aegis,
+  splinter,
+  sigilBearer,
+  wraith,
+  cinderDrinker,
+  sutraBound,
+  // Bosses
+  watcher,
+  glassSovereign,
+  hivefather,
+  cipherTwin,
+  architect,
+  watcherAdd,
+}
 
 class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   Enemy({
@@ -28,6 +47,9 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
          anchor: Anchor.center,
        ) {
     _bodyPath = _buildPathForType(type, size.x, size.y, size.x / 2, size.y / 2);
+    if (type == EnemyType.watcherAdd) {
+      _shielded = true;
+    }
   }
 
   final EnemyType type;
@@ -57,6 +79,11 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     ..color = _typeData[type]!.outlineColor.withValues(alpha: 0.34)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1.5;
+  late final Paint _shieldPaint = Paint()
+    ..color = const Color(0xFF00E5FF).withValues(alpha: 0.4)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3.0
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
 
   double _flashTimer = 0;
   double _hitPopTimer = 0;
@@ -65,15 +92,27 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   double _burnTimer = 0;
   double _burnDps = 0;
   double _freezeTimer = 0;
+  double _bossActionTimer = 0;
   int _slowStacks = 0;
   bool _hasBeenFrozen = false;
   bool _executeMarked = false;
+  bool _shielded = false;
   int phantomFrostHitCount = 0;
   Vector2 _knockbackVelocity = Vector2.zero();
   bool _dying = false;
   bool _lastDamageWasExecute = false;
   bool get isAlive => !_dying;
   int get slowStacks => _slowStacks;
+
+  bool get isBoss =>
+      type == EnemyType.watcher ||
+      type == EnemyType.glassSovereign ||
+      type == EnemyType.hivefather ||
+      type == EnemyType.cipherTwin ||
+      type == EnemyType.architect;
+
+  bool _isHexDamage(DamageType type) =>
+      type == DamageType.hex || type == DamageType.nova;
 
   static const double _stopRadius = 50;
   static const double _breachInterval = 1.0;
@@ -107,6 +146,62 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
       hpMult: 4.5,
       size: Vector2(96, 96),
     ),
+    EnemyType.watcher: _EnemyTypeData(
+      baseColor: const Color(0xFFFFD166),
+      outlineColor: const Color(0xFFFFF4D6),
+      speed: 0,
+      hpMult: 35.0,
+      size: Vector2(128, 128),
+    ),
+    EnemyType.watcherAdd: _EnemyTypeData(
+      baseColor: const Color(0xFFFF2D95),
+      outlineColor: const Color(0xFFFFB3DC),
+      speed: 70,
+      hpMult: 0.8,
+      size: Vector2(56, 56),
+    ),
+    EnemyType.aegis: _EnemyTypeData(
+      baseColor: const Color(0xFF4FC3F7),
+      outlineColor: const Color(0xFFE1F5FE),
+      speed: 45,
+      hpMult: 2.2,
+      size: Vector2(80, 80),
+    ),
+    EnemyType.splinter: _EnemyTypeData(
+      baseColor: const Color(0xFF81C784),
+      outlineColor: const Color(0xFFE8F5E9),
+      speed: 55,
+      hpMult: 1.5,
+      size: Vector2(72, 72),
+    ),
+    EnemyType.sigilBearer: _EnemyTypeData(
+      baseColor: const Color(0xFFBA68C8),
+      outlineColor: const Color(0xFFF3E5F5),
+      speed: 50,
+      hpMult: 1.8,
+      size: Vector2(64, 64),
+    ),
+    EnemyType.wraith: _EnemyTypeData(
+      baseColor: const Color(0xFFBDBDBD),
+      outlineColor: const Color(0xFFF5F5F5),
+      speed: 65,
+      hpMult: 1.2,
+      size: Vector2(64, 64),
+    ),
+    EnemyType.cinderDrinker: _EnemyTypeData(
+      baseColor: const Color(0xFF4DB6AC),
+      outlineColor: const Color(0xFFE0F2F1),
+      speed: 50,
+      hpMult: 2.0,
+      size: Vector2(72, 72),
+    ),
+    EnemyType.sutraBound: _EnemyTypeData(
+      baseColor: const Color(0xFFFFD54F),
+      outlineColor: const Color(0xFFFFF8E1),
+      speed: 40,
+      hpMult: 1.0,
+      size: Vector2(56, 56),
+    ),
   };
 
   static final Paint _darkCutPaint = Paint()
@@ -126,6 +221,9 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   void onMount() {
     super.onMount();
     game.activeEnemies.add(this);
+    if (game.state.enemiesShielded) {
+      _shielded = true;
+    }
   }
 
   @override
@@ -141,11 +239,11 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     final h = size.y;
     final cx = w / 2;
     final cy = h / 2;
-    final bob = math.sin(_walkPhase * 7.2) * 2.4;
+    final bob = type == EnemyType.watcher ? math.sin(_walkPhase * 1.5) * 4.0 : math.sin(_walkPhase * 7.2) * 2.4;
 
     _fillPaint.color = _color;
     _glowPaint.color = _color.withValues(
-      alpha: type == EnemyType.elite ? 0.3 : 0.18,
+      alpha: (type == EnemyType.elite || isBoss) ? 0.3 : 0.18,
     );
     canvas.save();
     canvas.translate(0, bob);
@@ -159,6 +257,11 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     canvas.drawPath(_bodyPath, _fillPaint);
     canvas.drawPath(_bodyPath, _strokePaint);
     _drawDetailsForType(canvas, type, w, h, cx, cy);
+
+    if (_shielded) {
+      canvas.drawCircle(Offset(cx, cy), w * 0.7, _shieldPaint);
+    }
+
     canvas.restore();
   }
 
@@ -171,6 +274,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   ) {
     switch (type) {
       case EnemyType.basic:
+      case EnemyType.watcherAdd:
         return Path()
           ..moveTo(cx, h * 0.08)
           ..lineTo(w * 0.78, h * 0.34)
@@ -216,6 +320,45 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
           ..lineTo(w * 0.14, h * 0.14)
           ..lineTo(w * 0.38, h * 0.16)
           ..close();
+      case EnemyType.watcher:
+        return Path()
+          ..addOval(Rect.fromCenter(center: Offset(cx, cy), width: w * 0.8, height: h * 0.8));
+      case EnemyType.aegis:
+        return Path()
+          ..moveTo(cx, h * 0.05)
+          ..lineTo(w * 0.95, cy)
+          ..lineTo(cx, h * 0.95)
+          ..lineTo(w * 0.05, cy)
+          ..close();
+      case EnemyType.splinter:
+        return Path()
+          ..moveTo(w * 0.1, h * 0.1)
+          ..lineTo(w * 0.9, h * 0.1)
+          ..lineTo(w * 0.5, h * 0.9)
+          ..close();
+      case EnemyType.sigilBearer:
+        return Path()
+          ..addRect(Rect.fromCenter(center: Offset(cx, cy), width: w * 0.7, height: h * 0.7));
+      case EnemyType.wraith:
+        return Path()
+          ..moveTo(cx, h * 0.1)
+          ..quadraticBezierTo(w * 0.9, cy, cx, h * 0.9)
+          ..quadraticBezierTo(w * 0.1, cy, cx, h * 0.1)
+          ..close();
+      case EnemyType.cinderDrinker:
+        return Path()
+          ..moveTo(cx, h * 0.05)
+          ..lineTo(w * 0.8, h * 0.3)
+          ..lineTo(w * 0.8, h * 0.7)
+          ..lineTo(cx, h * 0.95)
+          ..lineTo(w * 0.2, h * 0.7)
+          ..lineTo(w * 0.2, h * 0.3)
+          ..close();
+      case EnemyType.sutraBound:
+        return Path()
+          ..addOval(Rect.fromCenter(center: Offset(cx, cy), width: w * 0.6, height: h * 0.6));
+      default:
+        return Path(); // Placeholder for others
     }
   }
 
@@ -229,6 +372,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   ) {
     switch (type) {
       case EnemyType.basic:
+      case EnemyType.watcherAdd:
         canvas.drawLine(
           Offset(cx, h * 0.18),
           Offset(cx, h * 0.78),
@@ -301,6 +445,61 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         canvas.drawCircle(Offset(cx, cy), w * 0.12, _corePaint);
         canvas.drawCircle(Offset(cx, cy), w * 0.19, _eliteRingPaint);
         break;
+      case EnemyType.watcher:
+        // Central eye
+        canvas.drawCircle(Offset(cx, cy), w * 0.2, _corePaint);
+        canvas.drawCircle(Offset(cx, cy), w * 0.3, _detailPaint);
+        // Antennas
+        canvas.drawLine(Offset(w * 0.2, h * 0.2), Offset(w * 0.05, h * 0.05), _detailPaint);
+        canvas.drawLine(Offset(w * 0.8, h * 0.2), Offset(w * 0.95, h * 0.05), _detailPaint);
+        break;
+      case EnemyType.aegis:
+        canvas.drawCircle(Offset(cx, cy), w * 0.25, _corePaint);
+        canvas.drawCircle(Offset(cx, cy), w * 0.35, _detailPaint);
+        canvas.drawLine(Offset(w * 0.5, h * 0.1), Offset(w * 0.5, h * 0.9), _detailPaint);
+        canvas.drawLine(Offset(w * 0.1, h * 0.5), Offset(w * 0.9, h * 0.5), _detailPaint);
+        break;
+      case EnemyType.splinter:
+        canvas.drawLine(Offset(cx, h * 0.1), Offset(cx, h * 0.9), _detailPaint);
+        canvas.drawLine(Offset(w * 0.3, h * 0.4), Offset(w * 0.7, h * 0.4), _darkCutPaint);
+        break;
+      case EnemyType.sigilBearer:
+        canvas.drawRect(Rect.fromCenter(center: Offset(cx, cy), width: w * 0.3, height: h * 0.3), _corePaint);
+        canvas.drawLine(Offset(w * 0.1, h * 0.1), Offset(w * 0.9, h * 0.9), _detailPaint);
+        canvas.drawLine(Offset(w * 0.9, h * 0.1), Offset(w * 0.1, h * 0.9), _detailPaint);
+        break;
+      case EnemyType.wraith:
+        canvas.drawCircle(Offset(cx, h * 0.3), w * 0.1, _corePaint);
+        final smoke = Path()
+          ..moveTo(cx, h * 0.4)
+          ..lineTo(w * 0.3, h * 0.7)
+          ..lineTo(w * 0.7, h * 0.7)
+          ..close();
+        canvas.drawPath(smoke, _detailPaint);
+        break;
+      case EnemyType.cinderDrinker:
+        canvas.drawCircle(Offset(cx, cy), w * 0.15, _corePaint);
+        for (var i = 0; i < 6; i++) {
+          final angle = i * math.pi / 3;
+          canvas.drawLine(
+            Offset(cx + math.cos(angle) * w * 0.2, cy + math.sin(angle) * h * 0.2),
+            Offset(cx + math.cos(angle) * w * 0.4, cy + math.sin(angle) * h * 0.4),
+            _detailPaint,
+          );
+        }
+        break;
+      case EnemyType.sutraBound:
+        canvas.drawCircle(Offset(cx, cy), w * 0.1, _corePaint);
+        canvas.drawCircle(Offset(cx, cy), w * 0.2, _detailPaint);
+        final cross = Path()
+          ..moveTo(cx, h * 0.2)
+          ..lineTo(cx, h * 0.8)
+          ..moveTo(w * 0.2, cy)
+          ..lineTo(w * 0.8, cy);
+        canvas.drawPath(cross, _detailPaint);
+        break;
+      default:
+        break;
     }
   }
 
@@ -340,6 +539,29 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
       return;
     }
 
+    if (type == EnemyType.watcher) {
+      _walkPhase += dt;
+      _bossActionTimer += dt;
+      if (_bossActionTimer >= 6.0) {
+        _bossActionTimer = 0;
+        _watcherSpawnAdds();
+      }
+      return; // Watcher is stationary
+    }
+
+    if (type == EnemyType.sutraBound) {
+      _bossActionTimer += dt;
+      if (_bossActionTimer >= 1.0) {
+        _bossActionTimer = 0;
+        for (final other in _otherAliveEnemies()) {
+          if ((other.position - position).length2 < 150 * 100) {
+            other.hp = (other.hp + other.maxHp * 0.05).clamp(0, other.maxHp);
+            // Visual feedback for heal? Maybe a green flash.
+          }
+        }
+      }
+    }
+
     final hero = game.hero;
     final toHero = hero.position - position;
     final dist = toHero.length;
@@ -349,6 +571,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
           toHero.normalized() *
           _typeData[type]!.speed *
           game.state.enemySpeedMultiplier *
+          _sprintMultiplier *
           (1.0 - _slowStacks * 0.15) *
           dt;
       _breachTimer = 0;
@@ -372,6 +595,34 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         );
       }
     }
+  }
+
+  void _watcherSpawnAdds() {
+    final rng = math.Random();
+    for (var i = 0; i < 3; i++) {
+      final offset = Vector2(rng.nextDouble() * 100 - 50, rng.nextDouble() * 50 + 20);
+      parent?.add(Enemy(
+        position: position + offset,
+        baseMaxHp: game.state.enemyMaxHp,
+        type: EnemyType.watcherAdd,
+      ));
+    }
+  }
+
+  double _sprintMultiplier = 1.0;
+
+  void applySprint({required double duration, required double multiplier}) {
+    if (_dying) return;
+    _sprintMultiplier = multiplier;
+    add(
+      TimerComponent(
+        period: duration,
+        removeOnFinish: true,
+        onTick: () {
+          _sprintMultiplier = 1.0;
+        },
+      ),
+    );
   }
 
   void applyChill({double duration = 2.0}) {
@@ -402,6 +653,15 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     DamageType type = DamageType.basic,
   }) {
     if (_dying || game.state.isRunOver) return;
+
+    if (_shielded) {
+      _shielded = false;
+      _flashTimer = 0.1;
+      _color = Colors.white;
+      // Play a shield break sound if available, otherwise just feedback
+      if (game.canPlaySkillHitSound()) game.audio.playSkillDamage(SkillSound.arcane);
+      return;
+    }
 
     final frostEvo = game.state.getEvolution(SkillArchetype.frost);
     final ruptureEvo = game.state.getEvolution(SkillArchetype.rupture);
@@ -438,9 +698,33 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     if (ruptureEvo == 2 && _executeMarked) {
       finalAmount *= 1.3;
     }
+    
+    // Echo Tide: Double damage for first 5 enemies
+    if (game.state.echoTideActive) {
+      finalAmount *= 2.0;
+    }
 
     final isExecute = executeBonus > 1;
     if (isExecute) _executeMarked = true;
+
+    // Aegis Reflection: 50% single-target damage reflected to Nexus
+    if (this.type == EnemyType.aegis && (type == DamageType.basic || type == DamageType.sentinel || type == DamageType.mothership)) {
+      game.state.damageNexus(finalAmount * 0.5);
+    }
+
+    // Cinder-Drinker: Heals from Hex damage
+    if (this.type == EnemyType.cinderDrinker && _isHexDamage(type)) {
+      hp = (hp + finalAmount * 1.5).clamp(0, maxHp);
+      _flashTimer = 0.15;
+      _color = Colors.greenAccent;
+      return; // No damage taken
+    }
+
+    // Wraith Phasing: Phases out for 1s after taking damage
+    if (this.type == EnemyType.wraith && _freezeTimer <= 0) {
+      _freezeTimer = 1.0; // Reuse freezeTimer for phasing out (untargetable/frozen)
+      _color = const Color(0x40BDBDBD);
+    }
 
     _lastDamageWasExecute = isExecute;
     final visual = _visualFor(type, isExecute);
@@ -461,7 +745,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
     final lowPriorityFeedback =
         type == DamageType.sentinel || type == DamageType.mothership;
-    if (!DamageText.atCap &&
+    if (!game.state.veilOfAshActive && !DamageText.atCap &&
         game.canSpawnDamageText(lowPriority: lowPriorityFeedback)) {
       parent?.add(
         DamageText(
@@ -520,8 +804,22 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
   void _die() {
     _dying = true;
-    game.state.registerKill();
+    game.state.registerKill(isBoss: isBoss);
     game.audio.playEnemyDeath();
+
+    if (type == EnemyType.splinter) {
+      for (var i = 0; i < 2; i++) {
+        parent?.add(Enemy(
+          position: position + Vector2(i == 0 ? -15 : 15, 0),
+          baseMaxHp: maxHp * 0.3,
+          type: EnemyType.basic,
+        ));
+      }
+    }
+
+    if (type == EnemyType.sigilBearer) {
+      parent?.add(SigilHazard(effectCenter: position.clone()));
+    }
 
     // EDGE Initiate: Afterimage
     if (game.state.edgeTier.index >= PathTier.initiate.index) {
@@ -734,6 +1032,28 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         flashColor: Color(0xFFFF8A80),
         flashDuration: 0.12,
         knockback: 45,
+      ),
+      DamageType.hex => const _DamageVisual(
+        textColor: Color(0xFFFFD700),
+        textScale: 1.1,
+        sparkColor: Color(0xFFFFD700),
+        sparkCount: 8,
+        sparkSpread: 1.5,
+        sparkSpeed: 120,
+        flashColor: Color(0xFFFFF4D6),
+        flashDuration: 0.1,
+        knockback: 10,
+      ),
+      DamageType.daemon => const _DamageVisual(
+        textColor: Color(0xFFE040FB),
+        textScale: 1.1,
+        sparkColor: Color(0xFFE040FB),
+        sparkCount: 8,
+        sparkSpread: 1.5,
+        sparkSpeed: 120,
+        flashColor: Color(0xFFF3E5F5),
+        flashDuration: 0.1,
+        knockback: 10,
       ),
     };
   }

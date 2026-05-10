@@ -12,6 +12,34 @@ import 'skill_catalog.dart';
 import 'triad_catalog.dart';
 import 'inflection_catalog.dart';
 
+enum FloorPhase { trickle, press, crucible }
+
+enum CrucibleEvent {
+  pressure,
+  hivebreak,
+  sigilStorm,
+  eclipse,
+  quiet,
+  fractalPack,
+  lastCant,
+  bossEcho,
+}
+
+enum FloorModifier {
+  bandwidthBlackout,
+  cinderDamp,
+  stanceStutter,
+  quickening,
+  solarFlare,
+  veilOfAsh,
+  hereticTide,
+  cipherStorm,
+  echoTide,
+  discountKit,
+  manaBloom,
+  glyphCache,
+}
+
 class SkillChoice {
   const SkillChoice({
     required this.definition,
@@ -83,8 +111,16 @@ class GameState extends ChangeNotifier {
   int lastVoidReward = 0;
   int resetGeneration = 0;
   bool sessionWelcomeShown = false;
+  bool bossSpawned = false;
   double nexusHp = maxNexusHp;
   MechType selectedMech = MechType.standard;
+
+  FloorPhase floorPhase = FloorPhase.trickle;
+  CrucibleEvent? crucibleEvent;
+  final Set<FloorModifier> activeModifiers = {};
+  double floorTime = 0;
+
+  bool get isBossFloor => floor % 5 == 0;
   bool devMode = false;
   bool devDisableUpgrades = false;
   bool godMode = false;
@@ -246,7 +282,20 @@ class GameState extends ChangeNotifier {
   double get summonDamage =>
       heroDamage * (1.4 + summonLevel * 0.45) * sutraMultiplier(SkillArchetype.summon);
 
-  double get enemySpeedMultiplier => math.max(0.45, 1 - frostLevel * 0.025);
+  double get enemySpeedMultiplier {
+    double mult = math.max(0.45, 1 - frostLevel * 0.025);
+    if (activeModifiers.contains(FloorModifier.quickening)) {
+      mult *= 1.25;
+    }
+    return mult;
+  }
+  
+  double get daemonCostMultiplier => 
+      activeModifiers.contains(FloorModifier.bandwidthBlackout) ? 2.0 : 1.0;
+  
+  bool get enemiesShielded => activeModifiers.contains(FloorModifier.solarFlare);
+  bool get echoTideActive => activeModifiers.contains(FloorModifier.echoTide) && killsOnFloor < 5;
+  bool get veilOfAshActive => activeModifiers.contains(FloorModifier.veilOfAsh);
   double get executeDamageMultiplier => 1 + ruptureLevel * 0.035;
 
   bool get hasFrostRuptureSynergy => frostLevel >= 1 && ruptureLevel >= 1;
@@ -326,8 +375,9 @@ class GameState extends ChangeNotifier {
   int get hexLevel => pathLevels(SkillPath.hex);
 
   bool useBandwidth(double amount) {
-    if (daemonBandwidth >= amount) {
-      daemonBandwidth -= amount;
+    final cost = amount * daemonCostMultiplier;
+    if (daemonBandwidth >= cost) {
+      daemonBandwidth -= cost;
       notifyListeners();
       return true;
     }
@@ -410,6 +460,62 @@ class GameState extends ChangeNotifier {
     if (daemonTier.index >= PathTier.master.index) {
       _satelliteTimer += dt;
     }
+
+    if (!hasPendingLevelUp && !devPauseSpawning) {
+      _updateFloorPhases(dt);
+    }
+  }
+
+  void _updateFloorPhases(double dt) {
+    floorTime += dt;
+
+    if (isBossFloor) {
+      if (floorPhase != FloorPhase.crucible && floorTime >= 22.0) {
+        floorPhase = FloorPhase.crucible;
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (floorPhase == FloorPhase.trickle && floorTime >= 10.0) {
+      floorPhase = FloorPhase.press;
+      notifyListeners();
+    } else if (floorPhase == FloorPhase.press && floorTime >= 22.0) {
+      floorPhase = FloorPhase.crucible;
+      crucibleEvent ??= CrucibleEvent.values[_rng.nextInt(CrucibleEvent.values.length)];
+      notifyListeners();
+    } else if (floorPhase == FloorPhase.crucible && floorTime >= 32.0) {
+      _advanceFloor();
+    }
+  }
+
+  void _advanceFloor() {
+    killsOnFloor = 0;
+    floor += 1;
+    bossSpawned = false;
+    floorTime = 0;
+    floorPhase = FloorPhase.trickle;
+    crucibleEvent = null;
+    _networkCrashUsedThisFloor = false; // Reset for new floor
+
+    activeModifiers.clear();
+    if (!isBossFloor) {
+      final count = _rng.nextInt(3); // 0 to 2 modifiers
+      if (count > 0) {
+        final pool = FloorModifier.values.toList()..shuffle(_rng);
+        activeModifiers.addAll(pool.take(count));
+      }
+    }
+
+    if (activeModifiers.contains(FloorModifier.manaBloom)) {
+      hexCinder = 50.0;
+    }
+
+    if (!devDisableUpgrades) {
+      _rollUpgradeChoices();
+    }
+    notifyListeners();
+    _saveSoon();
   }
 
   SkillPath? get dominantPath {
@@ -510,7 +616,7 @@ class GameState extends ChangeNotifier {
         executeDamageMultiplier;
   }
 
-  void registerKill() {
+  void registerKill({bool isBoss = false}) {
     if (isRunOver) return;
     final now = DateTime.now();
 
@@ -540,21 +646,19 @@ class GameState extends ChangeNotifier {
       daemonBandwidth = (daemonBandwidth + 5.0).clamp(0.0, 100.0);
     }
     if (hexLevel > 0) {
-      hexCinder = (hexCinder + 4.0).clamp(0.0, 100.0);
+      final cinderAmount = activeModifiers.contains(FloorModifier.cinderDamp) ? 2.0 : 4.0;
+      hexCinder = (hexCinder + cinderAmount).clamp(0.0, 100.0);
     }
 
     gold += (goldPerKill * multiplier).round();
     killsOnFloor += 1;
     runKills += 1;
     lifetimeKills += 1;
-    if (killsOnFloor >= killsPerFloor) {
-      killsOnFloor = 0;
-      floor += 1;
-      _networkCrashUsedThisFloor = false; // Reset for new floor
-      if (!devDisableUpgrades) {
-        _rollUpgradeChoices();
-      }
+
+    if (isBossFloor && isBoss) {
+      _advanceFloor();
     }
+
     notifyListeners();
     _saveSoon();
   }
@@ -738,6 +842,21 @@ class GameState extends ChangeNotifier {
     _saveSoon();
   }
 
+  void forceCantOffer() {
+    if (_pendingCantIds.isEmpty && !hasCant('greedglyph')) {
+      final pool = hereticCantCatalog.where((c) => !_activeCantIds.contains(c.id)).toList();
+      pool.shuffle(_rng);
+      _pendingCantIds = pool.take(3).map((c) => c.id).toList();
+      _pendingUpgradeIds = [];
+      _pendingFusionIds = [];
+      if (hasPendingLevelUp) {
+        _startAutoSelectTimer();
+      } else {
+        notifyListeners();
+      }
+    }
+  }
+
   void cycleGameSpeed() {
     if (devTimeScale == 1.0) {
       devTimeScale = 2.0;
@@ -855,8 +974,10 @@ class GameState extends ChangeNotifier {
     if (isRunOver || !_pendingCantIds.contains(id)) return;
     _activeCantIds.add(id);
 
-    if (id == 'heretic_bargain') {
+    if (id == 'heretic_bargain' && !activeModifiers.contains(FloorModifier.discountKit)) {
       nexusHp = math.max(0, nexusHp - nexusMaxHp * 0.2);
+      _forceFusionNext = true;
+    } else if (id == 'heretic_bargain') {
       _forceFusionNext = true;
     }
 
@@ -1045,8 +1166,9 @@ class GameState extends ChangeNotifier {
   }
 
   void _rollUpgradeChoices({String? forceLockedId}) {
-    // Every 5 floors, offer Heretic Cants instead of normal upgrades
-    if (floor % 5 == 0 && _pendingCantIds.isEmpty && !hasCant('greedglyph')) {
+    // Every 5 floors (or if Heretic Tide is active), offer Heretic Cants instead of normal upgrades
+    bool offerCants = (floor % 5 == 0 || activeModifiers.contains(FloorModifier.hereticTide));
+    if (offerCants && _pendingCantIds.isEmpty && !hasCant('greedglyph')) {
       final pool = hereticCantCatalog.where((c) => !_activeCantIds.contains(c.id)).toList();
       pool.shuffle(_rng);
       _pendingCantIds = pool.take(3).map((c) => c.id).toList();
@@ -1152,6 +1274,26 @@ class GameState extends ChangeNotifier {
     ids.addAll(extra);
 
     _pendingUpgradeIds = ids;
+
+    if (activeModifiers.contains(FloorModifier.glyphCache)) {
+      // Find a skill that can be upgraded with an inflection and hasn't been yet
+      final ownedKeys = _skillLevels.keys.where((k) => _skillLevels[k]! >= 1 && _skillLevels[k]! < 5).toList();
+      if (ownedKeys.isNotEmpty) {
+        final skillId = ownedKeys[_rng.nextInt(ownedKeys.length)];
+        final def = _skillById(skillId);
+        if (def != null) {
+          final owned = _selectedInflections[skillId] ?? [];
+          final pool = inflectionCatalog
+              .where((inf) => inf.archetype == def.archetype && !owned.contains(inf.id))
+              .toList();
+          if (pool.isNotEmpty) {
+            final inf = pool[_rng.nextInt(pool.length)];
+            _selectedInflections.putIfAbsent(skillId, () => []).add(inf.id);
+            meta.recordDiscovery('inflection:${inf.id}');
+          }
+        }
+      }
+    }
 
     // Refresh recently offered tracking
     _recentlyOfferedIds.clear();

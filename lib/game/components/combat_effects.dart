@@ -1400,6 +1400,56 @@ class LaserBeamEffect extends PositionComponent
   }
 }
 
+class SigilHazard extends PositionComponent with HasGameReference<ZenithZeroGame> {
+  SigilHazard({required this.effectCenter}) : super(priority: 40);
+
+  final Vector2 effectCenter;
+  double _age = 0;
+  static const double _duration = 6.0;
+
+  final Paint _paint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.0
+    ..color = const Color(0xFFBA68C8);
+  final Paint _glow = Paint()
+    ..style = PaintingStyle.fill
+    ..color = const Color(0xFFBA68C8).withValues(alpha: 0.2)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (game.state.hasPendingLevelUp || game.state.isRunOver) return;
+    _age += dt;
+    if (_age >= _duration) removeFromParent();
+
+    if ((game.hero.position - effectCenter).length2 < 60 * 60) {
+      game.state.damageNexus(game.state.enemyBreachDamage * dt * 0.5);
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    final t = (_age / _duration).clamp(0.0, 1.0);
+    final alpha = (1 - t) * 0.8;
+    final pulse = 0.8 + 0.2 * math.sin(_age * 8);
+    
+    _paint.color = const Color(0xFFBA68C8).withValues(alpha: alpha);
+    _glow.color = const Color(0xFFBA68C8).withValues(alpha: alpha * 0.2);
+
+    final center = Offset(effectCenter.x, effectCenter.y);
+    final radius = 32.0 * pulse;
+
+    canvas.drawCircle(center, radius * 1.5, _glow);
+    canvas.drawRect(Rect.fromCenter(center: center, width: radius * 2, height: radius * 2), _paint);
+    
+    // Draw internal cross
+    canvas.drawLine(center.translate(-radius, -radius), center.translate(radius, radius), _paint);
+    canvas.drawLine(center.translate(radius, -radius), center.translate(-radius, radius), _paint);
+  }
+}
+
 void _drawSnowflake(Canvas canvas, Offset center, double radius, Paint paint) {
   for (var i = 0; i < 6; i++) {
     final angle = i / 6 * math.pi * 2;
