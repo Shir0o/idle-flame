@@ -2681,27 +2681,54 @@ class _InflectionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isRare = inflection.rarity == InflectionRarity.rare;
+    final borderColor = isRare ? Colors.amber : color.withValues(alpha: 0.2);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(6),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: isRare ? Colors.amber.withValues(alpha: 0.1) : color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: borderColor,
+            width: isRare ? 1.5 : 1.0,
+          ),
+          boxShadow: isRare
+              ? [
+                  BoxShadow(
+                    color: Colors.amber.withValues(alpha: 0.2),
+                    blurRadius: 4,
+                    spreadRadius: 1,
+                  )
+                ]
+              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              inflection.name.toUpperCase(),
-              style: TextStyle(
-                color: color,
-                fontSize: 9,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    inflection.name.toUpperCase(),
+                    style: TextStyle(
+                      color: isRare ? Colors.amber : color,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                if (isRare)
+                  const Icon(
+                    Icons.auto_awesome,
+                    color: Colors.amber,
+                    size: 10,
+                  ),
+              ],
             ),
             const SizedBox(height: 2),
             Text(
