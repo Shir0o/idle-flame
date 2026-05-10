@@ -283,7 +283,7 @@ class _ArsenalPanel extends StatelessWidget {
                                 icon: Icons.bolt_rounded,
                                 color: SkillPath.edge.color,
                                 label: 'Stance',
-                                description: '${state.edgeStance}/5 pips',
+                                description: '${state.edgeStance}/5 pips · Focus one target to build Stance. Spend at 3 for Crit, 5 for Cleave.',
                                 onTap: () {},
                               ),
                             if (state.daemonLevel > 0)
@@ -291,7 +291,7 @@ class _ArsenalPanel extends StatelessWidget {
                                 icon: Icons.lan_rounded,
                                 color: SkillPath.daemon.color,
                                 label: 'Bandwidth',
-                                description: '${state.daemonBandwidth.toStringAsFixed(0)}/100 units',
+                                description: '${state.daemonBandwidth.toStringAsFixed(0)}/100 units · Daemon skills consume Bandwidth. If empty, firing rate is halved.',
                                 onTap: () {},
                               ),
                             if (state.hexLevel > 0)
@@ -299,7 +299,7 @@ class _ArsenalPanel extends StatelessWidget {
                                 icon: Icons.local_fire_department_rounded,
                                 color: SkillPath.hex.color,
                                 label: 'Cinder',
-                                description: '${state.hexCinder.toStringAsFixed(0)}/100 charge',
+                                description: '${state.hexCinder.toStringAsFixed(0)}/100 charge · Kills build Cinder. At 100, your next Hex skill is doubled.',
                                 onTap: () {},
                               ),
                           ],
@@ -1362,20 +1362,23 @@ class _ActiveSkillRow extends StatelessWidget {
                       children: inflectionIds.map((infId) {
                         final inf = inflectionCatalog.firstWhereOrNull((i) => i.id == infId);
                         if (inf == null) return const SizedBox.shrink();
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: color.withValues(alpha: 0.2)),
-                          ),
-                          child: Text(
-                            inf.name.toUpperCase(),
-                            style: TextStyle(
-                              color: color,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.4,
+                        return Tooltip(
+                          message: inf.description,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: color.withValues(alpha: 0.2)),
+                            ),
+                            child: Text(
+                              inf.name.toUpperCase(),
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.4,
+                              ),
                             ),
                           ),
                         );
@@ -1739,6 +1742,41 @@ class _AddSkillRow extends StatelessWidget {
                   onTap: () => state.devGrantRandomInflection(def.id),
                 ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Consumer<GameState>(
+            builder: (context, state, _) {
+              final inflectionIds = state.getInflectionsFor(def.id);
+              if (inflectionIds.isEmpty) return const SizedBox.shrink();
+              return Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: inflectionIds.map((infId) {
+                  final inf = inflectionCatalog.firstWhereOrNull((i) => i.id == infId);
+                  if (inf == null) return const SizedBox.shrink();
+                  return Tooltip(
+                    message: inf.description,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: color.withValues(alpha: 0.2)),
+                      ),
+                      child: Text(
+                        inf.name.toUpperCase(),
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
           ),
         ],
       ),

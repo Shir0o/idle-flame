@@ -613,9 +613,12 @@ class GameState extends ChangeNotifier {
   void devGrantRandomInflection(String skillId) {
     final def = _skillById(skillId);
     if (def == null) return;
+    
+    final owned = _selectedInflections[skillId] ?? [];
     final pool = inflectionCatalog
-        .where((inf) => inf.archetype == def.archetype)
+        .where((inf) => inf.archetype == def.archetype && !owned.contains(inf.id))
         .toList();
+        
     if (pool.isEmpty) return;
     final inf = pool[_rng.nextInt(pool.length)];
     _selectedInflections.putIfAbsent(skillId, () => []).add(inf.id);
