@@ -33,8 +33,16 @@ class _SigilMatrixPainter extends CustomPainter {
 
     // Path clusters centers
     final edgeCenter = center + const Offset(0, -1) * radius * 0.8;
-    final daemonCenter = center + Offset(math.cos(7 * math.pi / 6), math.sin(7 * math.pi / 6)) * radius * 0.8;
-    final hexCenter = center + Offset(math.cos(11 * math.pi / 6), math.sin(11 * math.pi / 6)) * radius * 0.8;
+    final daemonCenter =
+        center +
+        Offset(math.cos(7 * math.pi / 6), math.sin(7 * math.pi / 6)) *
+            radius *
+            0.8;
+    final hexCenter =
+        center +
+        Offset(math.cos(11 * math.pi / 6), math.sin(11 * math.pi / 6)) *
+            radius *
+            0.8;
 
     // Draw path rings
     _drawPathRing(canvas, edgeCenter, SkillPath.edge, radius * 0.45);
@@ -43,7 +51,7 @@ class _SigilMatrixPainter extends CustomPainter {
 
     // Map archetypes to positions
     final nodePositions = <SkillArchetype, Offset>{};
-    
+
     // EDGE (5 nodes)
     _layoutCluster(edgeCenter, radius * 0.25, [
       SkillArchetype.chain,
@@ -75,7 +83,14 @@ class _SigilMatrixPainter extends CustomPainter {
     // Draw Nexus Core
     final corePaint = Paint()..color = state.nexusCoreColor;
     canvas.drawCircle(center, 12, corePaint);
-    canvas.drawCircle(center, 14, Paint()..color = Colors.white.withValues(alpha: 0.3)..style = PaintingStyle.stroke..strokeWidth = 2);
+    canvas.drawCircle(
+      center,
+      14,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.3)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
 
     // Draw Nodes
     for (final archetype in SkillArchetype.values) {
@@ -85,14 +100,25 @@ class _SigilMatrixPainter extends CustomPainter {
     }
   }
 
-  void _layoutCluster(Offset center, double radius, List<SkillArchetype> items, Map<SkillArchetype, Offset> map) {
+  void _layoutCluster(
+    Offset center,
+    double radius,
+    List<SkillArchetype> items,
+    Map<SkillArchetype, Offset> map,
+  ) {
     for (int i = 0; i < items.length; i++) {
       final angle = (i * 2 * math.pi / items.length) - math.pi / 2;
-      map[items[i]] = center + Offset(math.cos(angle), math.sin(angle)) * radius;
+      map[items[i]] =
+          center + Offset(math.cos(angle), math.sin(angle)) * radius;
     }
   }
 
-  void _drawPathRing(Canvas canvas, Offset center, SkillPath path, double radius) {
+  void _drawPathRing(
+    Canvas canvas,
+    Offset center,
+    SkillPath path,
+    double radius,
+  ) {
     final tier = state.getTier(path);
     if (tier == PathTier.none) return;
 
@@ -101,33 +127,46 @@ class _SigilMatrixPainter extends CustomPainter {
       ..color = color.withValues(alpha: 0.1 + tier.index * 0.1)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2 + tier.index.toDouble();
-    
+
     canvas.drawCircle(center, radius, paint);
-    
+
     // Outer glow
-    canvas.drawCircle(center, radius + 2, Paint()
-      ..color = color.withValues(alpha: 0.05)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+    canvas.drawCircle(
+      center,
+      radius + 2,
+      Paint()
+        ..color = color.withValues(alpha: 0.05)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
   }
 
-  void _drawNode(Canvas canvas, Offset pos, SkillArchetype archetype, int level) {
+  void _drawNode(
+    Canvas canvas,
+    Offset pos,
+    SkillArchetype archetype,
+    int level,
+  ) {
     final color = archetype.color;
     final isOwned = level > 0;
-    
+
     final paint = Paint()
       ..color = isOwned ? color : Colors.white.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
-    
+
     canvas.drawCircle(pos, 6, paint);
 
     if (isOwned) {
       // Glow
-      canvas.drawCircle(pos, 8, Paint()
-        ..color = color.withValues(alpha: 0.3)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
-      
+      canvas.drawCircle(
+        pos,
+        8,
+        Paint()
+          ..color = color.withValues(alpha: 0.3)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+      );
+
       // Evolution mark
       if (state.getEvolution(archetype) > 0) {
         canvas.drawCircle(pos, 3, Paint()..color = Colors.white);

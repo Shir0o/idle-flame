@@ -130,11 +130,14 @@ class _ArsenalPanel extends StatelessWidget {
       builder: (menuContext) {
         return Consumer2<GameState, MetaState>(
           builder: (context, state, meta, _) {
-            final possessedSkills = state.skillLevels.entries.map((entry) {
-              final def = findSkillById(entry.key);
-              if (def == null) return null;
-              return (def: def, level: entry.value);
-            }).nonNulls.toList();
+            final possessedSkills = state.skillLevels.entries
+                .map((entry) {
+                  final def = findSkillById(entry.key);
+                  if (def == null) return null;
+                  return (def: def, level: entry.value);
+                })
+                .nonNulls
+                .toList();
 
             final byArchetype = <SkillArchetype, List<_PossessedSkill>>{};
             for (final item in possessedSkills) {
@@ -269,26 +272,34 @@ class _ArsenalPanel extends StatelessWidget {
                           if (state.activeTriadIds.isNotEmpty) ...[
                             const _MenuHeader('ACTIVE TRIADS'),
                             for (final triadId in state.activeTriadIds)
-                              Builder(builder: (context) {
-                                final triad = triadCatalog.firstWhereOrNull((t) => t.id == triadId);
-                                if (triad == null) return const SizedBox.shrink();
-                                return _MenuItem(
-                                  icon: Icons.hub,
-                                  color: const Color(0xFF64FFDA),
-                                  label: triad.name,
-                                  description: triad.description,
-                                  onTap: () {},
-                                );
-                              }),
+                              Builder(
+                                builder: (context) {
+                                  final triad = triadCatalog.firstWhereOrNull(
+                                    (t) => t.id == triadId,
+                                  );
+                                  if (triad == null)
+                                    return const SizedBox.shrink();
+                                  return _MenuItem(
+                                    icon: Icons.hub,
+                                    color: const Color(0xFF64FFDA),
+                                    label: triad.name,
+                                    description: triad.description,
+                                    onTap: () {},
+                                  );
+                                },
+                              ),
                           ],
-                          if (state.edgeLevel > 0 || state.daemonLevel > 0 || state.hexLevel > 0) ...[
+                          if (state.edgeLevel > 0 ||
+                              state.daemonLevel > 0 ||
+                              state.hexLevel > 0) ...[
                             const _MenuHeader('CURRENT RESOURCES'),
                             if (state.edgeLevel > 0)
                               _MenuItem(
                                 icon: Icons.bolt_rounded,
                                 color: SkillPath.edge.color,
                                 label: 'Stance',
-                                description: '${state.edgeStance}/5 pips · Focus one target to build Stance. Spend at 3 for Crit, 5 for Cleave.',
+                                description:
+                                    '${state.edgeStance}/5 pips · Focus one target to build Stance. Spend at 3 for Crit, 5 for Cleave.',
                                 onTap: () {},
                               ),
                             if (state.daemonLevel > 0)
@@ -296,7 +307,8 @@ class _ArsenalPanel extends StatelessWidget {
                                 icon: Icons.lan_rounded,
                                 color: SkillPath.daemon.color,
                                 label: 'Bandwidth',
-                                description: '${state.daemonBandwidth.toStringAsFixed(0)}/100 units · Daemon skills consume Bandwidth. If empty, firing rate is halved.',
+                                description:
+                                    '${state.daemonBandwidth.toStringAsFixed(0)}/100 units · Daemon skills consume Bandwidth. If empty, firing rate is halved.',
                                 onTap: () {},
                               ),
                             if (state.hexLevel > 0)
@@ -304,7 +316,8 @@ class _ArsenalPanel extends StatelessWidget {
                                 icon: Icons.local_fire_department_rounded,
                                 color: SkillPath.hex.color,
                                 label: 'Cinder',
-                                description: '${state.hexCinder.toStringAsFixed(0)}/100 charge · Kills build Cinder. At 100, your next Hex skill is doubled.',
+                                description:
+                                    '${state.hexCinder.toStringAsFixed(0)}/100 charge · Kills build Cinder. At 100, your next Hex skill is doubled.',
                                 onTap: () {},
                               ),
                           ],
@@ -453,7 +466,16 @@ class _FloorBadgeState extends State<_FloorBadge> {
   @override
   Widget build(BuildContext context) {
     final state = context.read<GameState>();
-    return Selector<GameState, ({int floor, FloorPhase phase, double time, CrucibleEvent? event, Set<FloorModifier> modifiers})>(
+    return Selector<
+      GameState,
+      ({
+        int floor,
+        FloorPhase phase,
+        double time,
+        CrucibleEvent? event,
+        Set<FloorModifier> modifiers,
+      })
+    >(
       selector: (_, state) => (
         floor: state.floor,
         phase: state.floorPhase,
@@ -485,7 +507,11 @@ class _FloorBadgeState extends State<_FloorBadge> {
                       ),
                       if (data.floor % 5 == 0) ...[
                         const SizedBox(width: 6),
-                        const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF5252), size: 14),
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Color(0xFFFF5252),
+                          size: 14,
+                        ),
                         const SizedBox(width: 2),
                         const Text(
                           'BOSS',
@@ -535,7 +561,8 @@ class _FloorBadgeState extends State<_FloorBadge> {
                       ),
                     ],
                   ),
-                  if (data.phase == FloorPhase.crucible && data.event != null) ...[
+                  if (data.phase == FloorPhase.crucible &&
+                      data.event != null) ...[
                     const SizedBox(height: 4),
                     Text(
                       'Crucible: ${_eventName(data.event!)}',
@@ -554,30 +581,34 @@ class _FloorBadgeState extends State<_FloorBadge> {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: data.modifiers.map((mod) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: _Panel(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _modIcon(mod),
-                          color: _modColor(mod),
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _modName(mod),
-                          style: TextStyle(
-                            color: _modColor(mod),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                children: data.modifiers
+                    .map(
+                      (mod) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: _Panel(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _modIcon(mod),
+                                color: _modColor(mod),
+                                size: 14,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _modName(mod),
+                                style: TextStyle(
+                                  color: _modColor(mod),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                )).toList(),
+                      ),
+                    )
+                    .toList(),
               ),
             ],
             Selector<GameState, double>(
@@ -618,64 +649,102 @@ class _FloorBadgeState extends State<_FloorBadge> {
 
   String _phaseLabel(FloorPhase phase) {
     switch (phase) {
-      case FloorPhase.trickle: return 'Trickle';
-      case FloorPhase.press: return 'Press';
-      case FloorPhase.crucible: return 'Crucible';
+      case FloorPhase.trickle:
+        return 'Trickle';
+      case FloorPhase.press:
+        return 'Press';
+      case FloorPhase.crucible:
+        return 'Crucible';
     }
   }
 
   Color _phaseColor(FloorPhase phase) {
     switch (phase) {
-      case FloorPhase.trickle: return const Color(0xFF64FFDA);
-      case FloorPhase.press: return const Color(0xFFFFD54F);
-      case FloorPhase.crucible: return const Color(0xFFFF5252);
+      case FloorPhase.trickle:
+        return const Color(0xFF64FFDA);
+      case FloorPhase.press:
+        return const Color(0xFFFFD54F);
+      case FloorPhase.crucible:
+        return const Color(0xFFFF5252);
     }
   }
 
   String _eventName(CrucibleEvent event) {
     switch (event) {
-      case CrucibleEvent.pressure: return 'Pressure';
-      case CrucibleEvent.hivebreak: return 'Hivebreak';
-      case CrucibleEvent.sigilStorm: return 'Sigil Storm';
-      case CrucibleEvent.eclipse: return 'Eclipse';
-      case CrucibleEvent.quiet: return 'Quiet';
-      case CrucibleEvent.fractalPack: return 'Fractal Pack';
-      case CrucibleEvent.lastCant: return 'Last Cant';
-      case CrucibleEvent.bossEcho: return 'Boss Echo';
+      case CrucibleEvent.pressure:
+        return 'Pressure';
+      case CrucibleEvent.hivebreak:
+        return 'Hivebreak';
+      case CrucibleEvent.sigilStorm:
+        return 'Sigil Storm';
+      case CrucibleEvent.eclipse:
+        return 'Eclipse';
+      case CrucibleEvent.quiet:
+        return 'Quiet';
+      case CrucibleEvent.fractalPack:
+        return 'Fractal Pack';
+      case CrucibleEvent.lastCant:
+        return 'Last Cant';
+      case CrucibleEvent.bossEcho:
+        return 'Boss Echo';
     }
   }
 
   String _modName(FloorModifier mod) {
     switch (mod) {
-      case FloorModifier.bandwidthBlackout: return 'Bandwidth Blackout';
-      case FloorModifier.cinderDamp: return 'Cinder Damp';
-      case FloorModifier.stanceStutter: return 'Stance Stutter';
-      case FloorModifier.quickening: return 'Quickening';
-      case FloorModifier.solarFlare: return 'Solar Flare';
-      case FloorModifier.veilOfAsh: return 'Veil of Ash';
-      case FloorModifier.hereticTide: return 'Heretic Tide';
-      case FloorModifier.cipherStorm: return 'Cipher Storm';
-      case FloorModifier.echoTide: return 'Echo Tide';
-      case FloorModifier.discountKit: return 'Discount Kit';
-      case FloorModifier.manaBloom: return 'Mana Bloom';
-      case FloorModifier.glyphCache: return 'Glyph Cache';
+      case FloorModifier.bandwidthBlackout:
+        return 'Bandwidth Blackout';
+      case FloorModifier.cinderDamp:
+        return 'Cinder Damp';
+      case FloorModifier.stanceStutter:
+        return 'Stance Stutter';
+      case FloorModifier.quickening:
+        return 'Quickening';
+      case FloorModifier.solarFlare:
+        return 'Solar Flare';
+      case FloorModifier.veilOfAsh:
+        return 'Veil of Ash';
+      case FloorModifier.hereticTide:
+        return 'Heretic Tide';
+      case FloorModifier.cipherStorm:
+        return 'Cipher Storm';
+      case FloorModifier.echoTide:
+        return 'Echo Tide';
+      case FloorModifier.discountKit:
+        return 'Discount Kit';
+      case FloorModifier.manaBloom:
+        return 'Mana Bloom';
+      case FloorModifier.glyphCache:
+        return 'Glyph Cache';
     }
   }
 
   IconData _modIcon(FloorModifier mod) {
     switch (mod) {
-      case FloorModifier.bandwidthBlackout: return Icons.wifi_off;
-      case FloorModifier.cinderDamp: return Icons.water_drop;
-      case FloorModifier.stanceStutter: return Icons.broken_image;
-      case FloorModifier.quickening: return Icons.speed;
-      case FloorModifier.solarFlare: return Icons.wb_sunny;
-      case FloorModifier.veilOfAsh: return Icons.visibility_off;
-      case FloorModifier.hereticTide: return Icons.waves;
-      case FloorModifier.cipherStorm: return Icons.security;
-      case FloorModifier.echoTide: return Icons.record_voice_over;
-      case FloorModifier.discountKit: return Icons.local_offer;
-      case FloorModifier.manaBloom: return Icons.local_florist;
-      case FloorModifier.glyphCache: return Icons.diamond;
+      case FloorModifier.bandwidthBlackout:
+        return Icons.wifi_off;
+      case FloorModifier.cinderDamp:
+        return Icons.water_drop;
+      case FloorModifier.stanceStutter:
+        return Icons.broken_image;
+      case FloorModifier.quickening:
+        return Icons.speed;
+      case FloorModifier.solarFlare:
+        return Icons.wb_sunny;
+      case FloorModifier.veilOfAsh:
+        return Icons.visibility_off;
+      case FloorModifier.hereticTide:
+        return Icons.waves;
+      case FloorModifier.cipherStorm:
+        return Icons.security;
+      case FloorModifier.echoTide:
+        return Icons.record_voice_over;
+      case FloorModifier.discountKit:
+        return Icons.local_offer;
+      case FloorModifier.manaBloom:
+        return Icons.local_florist;
+      case FloorModifier.glyphCache:
+        return Icons.diamond;
     }
   }
 
@@ -697,7 +766,6 @@ class _FloorBadgeState extends State<_FloorBadge> {
         return const Color(0xFF64FFDA); // Cyan for boons
     }
   }
-
 }
 
 class _GoldBadge extends StatelessWidget {
@@ -1503,11 +1571,7 @@ class _ActiveSkillRow extends StatelessWidget {
                     _LevelPips(level: level, color: color),
                     if (maxed) ...[
                       const SizedBox(width: 6),
-                      Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 12,
-                        color: color,
-                      ),
+                      Icon(Icons.auto_awesome_rounded, size: 12, color: color),
                     ],
                   ],
                 ),
@@ -1529,16 +1593,23 @@ class _ActiveSkillRow extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: inflectionIds.map((infId) {
-                        final inf = inflectionCatalog.firstWhereOrNull((i) => i.id == infId);
+                        final inf = inflectionCatalog.firstWhereOrNull(
+                          (i) => i.id == infId,
+                        );
                         if (inf == null) return const SizedBox.shrink();
                         return Tooltip(
                           message: inf.description,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: color.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: color.withValues(alpha: 0.2)),
+                              border: Border.all(
+                                color: color.withValues(alpha: 0.2),
+                              ),
                             ),
                             child: Text(
                               inf.name.toUpperCase(),
@@ -1631,9 +1702,7 @@ class _LevelPips extends StatelessWidget {
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: i <= level
-                  ? color
-                  : Colors.white.withValues(alpha: 0.12),
+              color: i <= level ? color : Colors.white.withValues(alpha: 0.12),
               border: Border.all(
                 color: i <= level
                     ? color
@@ -1676,9 +1745,7 @@ class _ArchetypeSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = archetype.color;
-    final ownedCount = skills
-        .where((s) => state.skillLevel(s.id) > 0)
-        .length;
+    final ownedCount = skills.where((s) => state.skillLevel(s.id) > 0).length;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.02),
@@ -1820,8 +1887,7 @@ class _ArchetypeSection extends StatelessWidget {
                   ],
                 ),
               ),
-            for (final def in skills)
-              _AddSkillRow(def: def, state: state),
+            for (final def in skills) _AddSkillRow(def: def, state: state),
             const SizedBox(height: 6),
           ],
         ],
@@ -1921,12 +1987,17 @@ class _AddSkillRow extends StatelessWidget {
                 spacing: 4,
                 runSpacing: 4,
                 children: inflectionIds.map((infId) {
-                  final inf = inflectionCatalog.firstWhereOrNull((i) => i.id == infId);
+                  final inf = inflectionCatalog.firstWhereOrNull(
+                    (i) => i.id == infId,
+                  );
                   if (inf == null) return const SizedBox.shrink();
                   return Tooltip(
                     message: inf.description,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
@@ -2026,10 +2097,7 @@ class _BossTelegraph extends StatelessWidget {
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                           shadows: [
-                            Shadow(
-                              color: Colors.amber,
-                              blurRadius: 20,
-                            ),
+                            Shadow(color: Colors.amber, blurRadius: 20),
                           ],
                         ),
                       ),
@@ -2119,8 +2187,10 @@ class _LevelUpPicker extends StatelessWidget {
                                 state.lockedUpgradeId == choice.definition.id,
                             canLock: state.meta.lockEnabled,
                             canBanish: state.banishesRemaining > 0,
-                            onTap: (infId) =>
-                                state.selectUpgrade(choice.definition.id, inflectionId: infId),
+                            onTap: (infId) => state.selectUpgrade(
+                              choice.definition.id,
+                              inflectionId: infId,
+                            ),
                             onToggleLock: () =>
                                 state.toggleLock(choice.definition.id),
                             onBanish: () =>
@@ -2172,10 +2242,7 @@ class _FusionPicker extends StatelessWidget {
                       const SizedBox(height: 6),
                       const Text(
                         'A rare cross-path resonance has stabilized.',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                       const SizedBox(height: 24),
                       ...choices.map(
@@ -2231,10 +2298,7 @@ class _CantPicker extends StatelessWidget {
                       const SizedBox(height: 6),
                       const Text(
                         'Choose a forbidden line from the system core.',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                       const SizedBox(height: 24),
                       ...choices.map(
@@ -2299,10 +2363,7 @@ class _SutraRewardPicker extends StatelessWidget {
                       const Text(
                         'Choose an archetype to receive +1 Sutra Mark.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                       const SizedBox(height: 24),
                       ...choices.map(
@@ -2364,7 +2425,11 @@ class _CounterTipToast extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.info_outline, color: Colors.cyanAccent, size: 14),
+                    const Icon(
+                      Icons.info_outline,
+                      color: Colors.cyanAccent,
+                      size: 14,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'NEW ENEMY · $label',
@@ -2435,27 +2500,22 @@ class _FloorRewardPicker extends StatelessWidget {
                       const Text(
                         'A pocket of stable space. Choose your boon.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                       const SizedBox(height: 24),
-                      ...choices.map(
-                        (boon) {
-                          final copy = _boonCopy(boon);
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _ChoiceCardGeneric(
-                              title: copy.title,
-                              description: copy.description,
-                              tierLabel: 'BOON',
-                              color: Colors.amberAccent,
-                              onTap: () => state.resolveFloorReward(boon),
-                            ),
-                          );
-                        },
-                      ),
+                      ...choices.map((boon) {
+                        final copy = _boonCopy(boon);
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _ChoiceCardGeneric(
+                            title: copy.title,
+                            description: copy.description,
+                            tierLabel: 'BOON',
+                            color: Colors.amberAccent,
+                            onTap: () => state.resolveFloorReward(boon),
+                          ),
+                        );
+                      }),
                     ],
                   ),
                 ),
@@ -2471,29 +2531,29 @@ class _FloorRewardPicker extends StatelessWidget {
 ({String title, String description}) _boonCopy(FloorBoon boon) {
   return switch (boon) {
     FloorBoon.nexusHpBoost => (
-        title: 'Integrity Mesh',
-        description: '+5% Max Nexus HP for this run.'
-      ),
+      title: 'Integrity Mesh',
+      description: '+5% Max Nexus HP for this run.',
+    ),
     FloorBoon.rerollPlus1 => (
-        title: 'Temporal Anchor',
-        description: '+1 Reroll for this run.'
-      ),
+      title: 'Temporal Anchor',
+      description: '+1 Reroll for this run.',
+    ),
     FloorBoon.gold25 => (
-        title: 'Cinder Scrip',
-        description: '+25 Gold instantly.'
-      ),
+      title: 'Cinder Scrip',
+      description: '+25 Gold instantly.',
+    ),
     FloorBoon.randomSutra => (
-        title: 'Ancestral Memory',
-        description: '+1 Sutra Mark on a random owned archetype.'
-      ),
+      title: 'Ancestral Memory',
+      description: '+1 Sutra Mark on a random owned archetype.',
+    ),
     FloorBoon.halveCantCost => (
-        title: 'Void Bargain',
-        description: 'Halve the HP cost of your next Heretic Cant.'
-      ),
+      title: 'Void Bargain',
+      description: 'Halve the HP cost of your next Heretic Cant.',
+    ),
     FloorBoon.skipNextCant => (
-        title: 'Core Purge',
-        description: 'Ignore the next Heretic Cant offer.'
-      ),
+      title: 'Core Purge',
+      description: 'Ignore the next Heretic Cant offer.',
+    ),
   };
 }
 
@@ -2539,8 +2599,10 @@ class _ChoiceCardGeneric extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
@@ -2849,7 +2911,7 @@ class _PathResources extends StatelessWidget {
                       BoxShadow(
                         color: SkillPath.edge.color.withValues(alpha: 0.5),
                         blurRadius: 4,
-                      )
+                      ),
                     ]
                   : null,
             ),
@@ -2877,17 +2939,14 @@ class _PathResources extends StatelessWidget {
             width: state.daemonBandwidth,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF00E5FF),
-                  SkillPath.daemon.color,
-                ],
+                colors: [const Color(0xFF00E5FF), SkillPath.daemon.color],
               ),
               borderRadius: BorderRadius.circular(1),
               boxShadow: [
                 BoxShadow(
                   color: SkillPath.daemon.color.withValues(alpha: 0.4),
                   blurRadius: 4,
-                )
+                ),
               ],
             ),
           ),
@@ -2917,7 +2976,7 @@ class _PathResources extends StatelessWidget {
               BoxShadow(
                 color: SkillPath.hex.color.withValues(alpha: 0.4),
                 blurRadius: 4,
-              )
+              ),
             ],
           ),
         ),
@@ -3065,12 +3124,16 @@ class _ChoiceCard extends StatelessWidget {
                               const Spacer(),
                               if (canLock)
                                 _CardActionIcon(
-                                  icon: isLocked ? Icons.lock : Icons.lock_outline,
+                                  icon: isLocked
+                                      ? Icons.lock
+                                      : Icons.lock_outline,
                                   color: isLocked
                                       ? const Color(0xFF64FFDA)
                                       : Colors.white30,
                                   onTap: onToggleLock,
-                                  tooltip: isLocked ? 'Unlock' : 'Lock for next pick',
+                                  tooltip: isLocked
+                                      ? 'Unlock'
+                                      : 'Lock for next pick',
                                 ),
                               if (canBanish) ...[
                                 const SizedBox(width: 8),
@@ -3116,16 +3179,18 @@ class _ChoiceCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 child: Row(
                   children: [
-                    ...choice.inflectionOptions.map((inf) => Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: _InflectionButton(
-                              inflection: inf,
-                              color: color,
-                              onTap: () => onTap(inf.id),
-                            ),
+                    ...choice.inflectionOptions.map(
+                      (inf) => Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: _InflectionButton(
+                            inflection: inf,
+                            color: color,
+                            onTap: () => onTap(inf.id),
                           ),
-                        )),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -3159,19 +3224,18 @@ class _InflectionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: isRare ? Colors.amber.withValues(alpha: 0.1) : color.withValues(alpha: 0.1),
+          color: isRare
+              ? Colors.amber.withValues(alpha: 0.1)
+              : color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: borderColor,
-            width: isRare ? 1.5 : 1.0,
-          ),
+          border: Border.all(color: borderColor, width: isRare ? 1.5 : 1.0),
           boxShadow: isRare
               ? [
                   BoxShadow(
                     color: Colors.amber.withValues(alpha: 0.2),
                     blurRadius: 4,
                     spreadRadius: 1,
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -3192,11 +3256,7 @@ class _InflectionButton extends StatelessWidget {
                   ),
                 ),
                 if (isRare)
-                  const Icon(
-                    Icons.auto_awesome,
-                    color: Colors.amber,
-                    size: 10,
-                  ),
+                  const Icon(Icons.auto_awesome, color: Colors.amber, size: 10),
               ],
             ),
             const SizedBox(height: 2),
@@ -3254,7 +3314,8 @@ class _EvolutionPicker extends StatelessWidget {
     return Consumer<GameState>(
       builder: (_, state, _) {
         final archetype = state.pendingEvolutionArchetype;
-        if (archetype == null || state.isRunOver) return const SizedBox.shrink();
+        if (archetype == null || state.isRunOver)
+          return const SizedBox.shrink();
 
         final evos = evolutionCatalog[archetype]!;
 
@@ -3281,7 +3342,10 @@ class _EvolutionPicker extends StatelessWidget {
                     Text(
                       'The ${archetype.label.toUpperCase()} has reached peak resonance.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 32),
                     _EvolutionCard(
@@ -3550,8 +3614,10 @@ class _BossRewardToastState extends State<_BossRewardToast>
   @override
   Widget build(BuildContext context) {
     return Selector<GameState, ({String? label, String? subtitle})>(
-      selector: (_, state) =>
-          (label: state.lastBossRewardLabel, subtitle: state.lastBossRewardSubtitle),
+      selector: (_, state) => (
+        label: state.lastBossRewardLabel,
+        subtitle: state.lastBossRewardSubtitle,
+      ),
       builder: (context, data, _) {
         if (data.label == null) return const SizedBox.shrink();
         // Schedule the animation kickoff *after* this build pass completes

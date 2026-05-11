@@ -79,9 +79,7 @@ class SkillChoice {
 }
 
 class FusionChoice {
-  const FusionChoice({
-    required this.definition,
-  });
+  const FusionChoice({required this.definition});
 
   final FusionDefinition definition;
 
@@ -91,9 +89,7 @@ class FusionChoice {
 }
 
 class CantChoice {
-  const CantChoice({
-    required this.definition,
-  });
+  const CantChoice({required this.definition});
 
   final CantDefinition definition;
 
@@ -103,13 +99,15 @@ class CantChoice {
 }
 
 class GameState extends ChangeNotifier {
-  GameState({MetaState? meta}) : meta = meta ?? MetaState() {
+  GameState({MetaState? meta, int? seed})
+      : meta = meta ?? MetaState(),
+        _rng = math.Random(seed) {
     nexusHp = nexusMaxHp;
   }
 
   static const String devAccessKey = 'TWANGPRO';
 
-  final math.Random _rng = math.Random();
+  final math.Random _rng;
   final MetaState meta;
 
   int gold = 0;
@@ -194,46 +192,46 @@ class GameState extends ChangeNotifier {
   ({String label, String subtitle})? _counterTipCopy(EnemyType type) {
     return switch (type) {
       EnemyType.aegis => (
-          label: 'AEGIS',
-          subtitle: 'Reflects single-target damage. Bypass with AoE / chain.'
-        ),
+        label: 'AEGIS',
+        subtitle: 'Reflects single-target damage. Bypass with AoE / chain.',
+      ),
       EnemyType.wraith => (
-          label: 'WRAITH',
-          subtitle: 'Phases out for 1s after each hit. Use DOTs or frost.'
-        ),
+        label: 'WRAITH',
+        subtitle: 'Phases out for 1s after each hit. Use DOTs or frost.',
+      ),
       EnemyType.cinderDrinker => (
-          label: 'CINDER-DRINKER',
-          subtitle: 'Heals from Hex damage. Finish with Edge or Daemon.'
-        ),
+        label: 'CINDER-DRINKER',
+        subtitle: 'Heals from Hex damage. Finish with Edge or Daemon.',
+      ),
       EnemyType.splinter => (
-          label: 'SPLINTER',
-          subtitle: 'Divides on death. Execute or wide AoE.'
-        ),
+        label: 'SPLINTER',
+        subtitle: 'Divides on death. Execute or wide AoE.',
+      ),
       EnemyType.sutraBound => (
-          label: 'SUTRA-BOUND',
-          subtitle: 'Heals nearby enemies. Kill priority.'
-        ),
+        label: 'SUTRA-BOUND',
+        subtitle: 'Heals nearby enemies. Kill priority.',
+      ),
       EnemyType.sigilBearer => (
-          label: 'SIGIL-BEARER',
-          subtitle: 'Drops a hazard glyph on death. Kill at the edges.'
-        ),
+        label: 'SIGIL-BEARER',
+        subtitle: 'Drops a hazard glyph on death. Kill at the edges.',
+      ),
       // Base types optional but recommended per §3
       EnemyType.basic => (
-          label: 'BASIC',
-          subtitle: 'Standard fodder. No special behaviors.'
-        ),
+        label: 'BASIC',
+        subtitle: 'Standard fodder. No special behaviors.',
+      ),
       EnemyType.fast => (
-          label: 'FAST',
-          subtitle: 'High speed, low health. Priority for rapid fire.'
-        ),
+        label: 'FAST',
+        subtitle: 'High speed, low health. Priority for rapid fire.',
+      ),
       EnemyType.tank => (
-          label: 'TANK',
-          subtitle: 'Slow with high health. Tests your DPS.'
-        ),
+        label: 'TANK',
+        subtitle: 'Slow with high health. Tests your DPS.',
+      ),
       EnemyType.elite => (
-          label: 'ELITE',
-          subtitle: 'Stronger variant. Awards high gold.'
-        ),
+        label: 'ELITE',
+        subtitle: 'Stronger variant. Awards high gold.',
+      ),
       _ => null,
     };
   }
@@ -326,7 +324,8 @@ class GameState extends ChangeNotifier {
       (1 + _archetypeLevel(SkillArchetype.focus) * 0.08) *
       sutraMultiplier(SkillArchetype.focus);
   double get heroAttacksPerSec {
-    double base = baseAttacksPerSec *
+    double base =
+        baseAttacksPerSec *
         (1 + _archetypeLevel(SkillArchetype.barrage) * 0.06) *
         sutraMultiplier(SkillArchetype.barrage);
     if (chromeIaido) {
@@ -334,6 +333,7 @@ class GameState extends ChangeNotifier {
     }
     return base;
   }
+
   double get heroAttackRange => double.infinity;
   int get chainLevel => _archetypeLevel(SkillArchetype.chain);
   int get emberTargets {
@@ -343,6 +343,7 @@ class GameState extends ChangeNotifier {
     }
     return targets.clamp(1, 25);
   }
+
   int get barrageLevel => _archetypeLevel(SkillArchetype.barrage);
   int get focusLevel => _archetypeLevel(SkillArchetype.focus);
   int get bountyLevel => _archetypeLevel(SkillArchetype.bounty);
@@ -356,7 +357,9 @@ class GameState extends ChangeNotifier {
       sentinelLevel.clamp(0, 8) +
       (getEvolution(SkillArchetype.sentinel) == 1 ? 2 : 0);
   double get sentinelDamage =>
-      heroDamage * (0.35 + sentinelLevel * 0.08) * sutraMultiplier(SkillArchetype.sentinel);
+      heroDamage *
+      (0.35 + sentinelLevel * 0.08) *
+      sutraMultiplier(SkillArchetype.sentinel);
   double get sentinelAttackCooldown => 0.8 * math.pow(0.92, sentinelLevel);
   double get sentinelOrbitSpeed => 2.4 * (1 + sentinelLevel * 0.1);
 
@@ -364,7 +367,9 @@ class GameState extends ChangeNotifier {
   int get mothershipDroneCount =>
       (3 + (mothershipLevel / 4).floor()).clamp(3, 10);
   double get mothershipDroneDamage =>
-      heroDamage * (0.25 + mothershipLevel * 0.1) * sutraMultiplier(SkillArchetype.mothership);
+      heroDamage *
+      (0.25 + mothershipLevel * 0.1) *
+      sutraMultiplier(SkillArchetype.mothership);
   double get mothershipSpawnInterval {
     double interval = 4.0 / (1 + (mothershipLevel - 1) * 0.15);
     if (meta.hasSutraPerk(SkillArchetype.mothership, 10)) {
@@ -372,31 +377,43 @@ class GameState extends ChangeNotifier {
     }
     return interval;
   }
+
   bool get mothershipDroneExplode => mothershipLevel >= 4;
 
   int get flameNovaLevel => _archetypeLevel(SkillArchetype.nova);
   double get flameNovaRadius => double.infinity * daemonRangeMultiplier;
   double get flameNovaDamage =>
-      heroDamage * (1.2 + flameNovaLevel * 0.3) * sutraMultiplier(SkillArchetype.nova);
+      heroDamage *
+      (1.2 + flameNovaLevel * 0.3) *
+      sutraMultiplier(SkillArchetype.nova);
   int get firewallLevel => _archetypeLevel(SkillArchetype.firewall);
   double get firewallWidth => double.infinity * daemonRangeMultiplier;
   double get firewallDamage =>
-      heroDamage * (1.1 + firewallLevel * 0.25) * sutraMultiplier(SkillArchetype.firewall);
-  double get firewallBurnDps => firewallDamage * (0.3 + (firewallLevel / 10) * 0.2);
+      heroDamage *
+      (1.1 + firewallLevel * 0.25) *
+      sutraMultiplier(SkillArchetype.firewall);
+  double get firewallBurnDps =>
+      firewallDamage * (0.3 + (firewallLevel / 10) * 0.2);
   int get meteorMarkLevel => _archetypeLevel(SkillArchetype.meteor);
   double get meteorMarkRadius => double.infinity * daemonRangeMultiplier;
   double get meteorMarkDamage =>
-      heroDamage * (2.2 + meteorMarkLevel * 0.35) * sutraMultiplier(SkillArchetype.meteor);
+      heroDamage *
+      (2.2 + meteorMarkLevel * 0.35) *
+      sutraMultiplier(SkillArchetype.meteor);
 
   int get snakeLevel => _archetypeLevel(SkillArchetype.snake);
   double get snakeDamage =>
-      heroDamage * (1.0 + snakeLevel * 0.4) * sutraMultiplier(SkillArchetype.snake);
+      heroDamage *
+      (1.0 + snakeLevel * 0.4) *
+      sutraMultiplier(SkillArchetype.snake);
   double get snakeSpeed => 190.0 * (1 + snakeLevel * 0.15);
   double get snakeTrailDuration => 0.8 + snakeLevel * 0.3;
 
   int get summonLevel => _archetypeLevel(SkillArchetype.summon);
   double get summonDamage =>
-      heroDamage * (1.4 + summonLevel * 0.45) * sutraMultiplier(SkillArchetype.summon);
+      heroDamage *
+      (1.4 + summonLevel * 0.45) *
+      sutraMultiplier(SkillArchetype.summon);
 
   double get enemySpeedMultiplier {
     double mult = math.max(0.45, 1 - frostLevel * 0.025);
@@ -405,21 +422,27 @@ class GameState extends ChangeNotifier {
     }
     return mult;
   }
-  
-  double get daemonCostMultiplier => 
+
+  double get daemonCostMultiplier =>
       activeModifiers.contains(FloorModifier.bandwidthBlackout) ? 2.0 : 1.0;
-  
-  bool get enemiesShielded => activeModifiers.contains(FloorModifier.solarFlare);
-  bool get echoTideActive => activeModifiers.contains(FloorModifier.echoTide) && killsOnFloor < 5;
+
+  bool get enemiesShielded =>
+      activeModifiers.contains(FloorModifier.solarFlare);
+  bool get echoTideActive =>
+      activeModifiers.contains(FloorModifier.echoTide) && killsOnFloor < 5;
   bool get veilOfAshActive => activeModifiers.contains(FloorModifier.veilOfAsh);
   double get executeDamageMultiplier => 1 + ruptureLevel * 0.035;
 
   bool get hasFrostRuptureSynergy => frostLevel >= 1 && ruptureLevel >= 1;
   bool get hasChainNovaSynergy => chainLevel >= 1 && flameNovaLevel >= 1;
-  bool get hasMeteorFirewallSynergy => meteorMarkLevel >= 1 && firewallLevel >= 1;
+  bool get hasMeteorFirewallSynergy =>
+      meteorMarkLevel >= 1 && firewallLevel >= 1;
   bool get hasSentinelBarrageSynergy => sentinelLevel >= 1 && barrageLevel >= 1;
-  bool get hasBountyExecuteSynergy => bountyLevel >= 1 && (ruptureLevel >= 1 || mothershipLevel >= 1 || snakeLevel >= 1);
-  bool get hasMothershipSummonSynergy => mothershipLevel >= 1 && summonLevel >= 1;
+  bool get hasBountyExecuteSynergy =>
+      bountyLevel >= 1 &&
+      (ruptureLevel >= 1 || mothershipLevel >= 1 || snakeLevel >= 1);
+  bool get hasMothershipSummonSynergy =>
+      mothershipLevel >= 1 && summonLevel >= 1;
 
   bool hasFusion(String id) => _ownedFusionIds.contains(id);
   bool hasCant(String id) => _activeCantIds.contains(id);
@@ -510,7 +533,6 @@ class GameState extends ChangeNotifier {
   }
 
   PathTier getTier(SkillPath path) {
-
     final levels = pathLevels(path);
     if (levels >= PathTier.apex.requiredLevels) return PathTier.apex;
     if (levels >= PathTier.master.requiredLevels) return PathTier.master;
@@ -529,9 +551,8 @@ class GameState extends ChangeNotifier {
 
   // Iaido Draw (EDGE Apex)
   double _iaidoTimer = 0;
-  bool get canIaidoDraw =>
-      edgeTier == PathTier.apex && _iaidoTimer >= 30.0;
-  
+  bool get canIaidoDraw => edgeTier == PathTier.apex && _iaidoTimer >= 30.0;
+
   void triggerIaidoDraw() {
     _iaidoTimer = 0;
     notifyListeners();
@@ -624,7 +645,8 @@ class GameState extends ChangeNotifier {
       notifyListeners();
     } else if (floorPhase == FloorPhase.press && floorTime >= 22.0) {
       floorPhase = FloorPhase.crucible;
-      crucibleEvent ??= CrucibleEvent.values[_rng.nextInt(CrucibleEvent.values.length)];
+      crucibleEvent ??=
+          CrucibleEvent.values[_rng.nextInt(CrucibleEvent.values.length)];
       _crucibleCleanRun = true;
       notifyListeners();
     } else if (floorPhase == FloorPhase.crucible && floorTime >= 32.0) {
@@ -703,14 +725,12 @@ class GameState extends ChangeNotifier {
   List<SkillChoice> get pendingChoices =>
       _pendingUpgradeIds.map(_choiceFor).nonNulls.toList(growable: false);
   List<FusionChoice> get pendingFusionChoices => _pendingFusionIds
-      .map((id) =>
-          fusionCatalog.firstWhereOrNull((f) => f.id == id))
+      .map((id) => fusionCatalog.firstWhereOrNull((f) => f.id == id))
       .nonNulls
       .map((f) => FusionChoice(definition: f))
       .toList(growable: false);
   List<CantChoice> get pendingCantChoices => _pendingCantIds
-      .map((id) =>
-          hereticCantCatalog.firstWhereOrNull((c) => c.id == id))
+      .map((id) => hereticCantCatalog.firstWhereOrNull((c) => c.id == id))
       .nonNulls
       .map((c) => CantChoice(definition: c))
       .toList(growable: false);
@@ -721,6 +741,7 @@ class GameState extends ChangeNotifier {
     if (bloodprice) dmg *= 1.5;
     return dmg;
   }
+
   int get goldPerKill {
     final base = _baseGoldPerKill * math.pow(_goldGrowth, floor - 1);
     final bountyEvo = getEvolution(SkillArchetype.bounty);
@@ -728,7 +749,7 @@ class GameState extends ChangeNotifier {
         (1 + bountyLevel * 0.08) * (bountyEvo == 1 ? 1.5 : 1.0);
     final streakMultiplier = 1 + _streakStacks * 0.1;
     final boostMultiplier = _goldBoostTimer > 0 ? 2.0 : 1.0;
-    
+
     double cantMultiplier = 1.0;
     if (bloodprice) cantMultiplier *= 1.5;
     if (greedglyph) cantMultiplier *= 2.0;
@@ -737,7 +758,13 @@ class GameState extends ChangeNotifier {
     // boosts this floor's gold drop by 50%. Flat — doesn't stack with itself.
     final modifierMultiplier = hasHardFloorModifier ? 1.5 : 1.0;
 
-    return (base * bountyMultiplier * streakMultiplier * boostMultiplier * cantMultiplier * modifierMultiplier).round();
+    return (base *
+            bountyMultiplier *
+            streakMultiplier *
+            boostMultiplier *
+            cantMultiplier *
+            modifierMultiplier)
+        .round();
   }
 
   // Restriction + pressure modifiers — anything that makes the floor harder.
@@ -784,7 +811,7 @@ class GameState extends ChangeNotifier {
     final mothershipDps = mothershipLevel == 0
         ? 0
         : (mothershipDroneDamage * mothershipDroneCount) /
-            mothershipSpawnInterval;
+              mothershipSpawnInterval;
     return (directDps + novaDps + firewallDps + meteorDps + mothershipDps) *
         executeDamageMultiplier;
   }
@@ -819,7 +846,9 @@ class GameState extends ChangeNotifier {
       daemonBandwidth = (daemonBandwidth + 5.0).clamp(0.0, 100.0);
     }
     if (hexLevel > 0) {
-      final cinderAmount = activeModifiers.contains(FloorModifier.cinderDamp) ? 2.0 : 4.0;
+      final cinderAmount = activeModifiers.contains(FloorModifier.cinderDamp)
+          ? 2.0
+          : 4.0;
       hexCinder = (hexCinder + cinderAmount).clamp(0.0, 100.0);
     }
 
@@ -866,19 +895,24 @@ class GameState extends ChangeNotifier {
           if (!meta.discoveredIds.contains(inf.id)) undiscovered.add(inf.id);
         }
         for (final triad in triadCatalog) {
-          if (!meta.discoveredIds.contains(triad.id)) undiscovered.add(triad.id);
+          if (!meta.discoveredIds.contains(triad.id))
+            undiscovered.add(triad.id);
         }
 
         if (undiscovered.isNotEmpty) {
           final targetId = undiscovered[_rng.nextInt(undiscovered.length)];
           meta.recordDiscovery(targetId);
-          
+
           String name = 'Unknown';
-          final infMatch = inflectionCatalog.firstWhereOrNull((i) => i.id == targetId);
+          final infMatch = inflectionCatalog.firstWhereOrNull(
+            (i) => i.id == targetId,
+          );
           if (infMatch != null) {
             name = infMatch.name;
           } else {
-            final triadMatch = triadCatalog.firstWhereOrNull((t) => t.id == targetId);
+            final triadMatch = triadCatalog.firstWhereOrNull(
+              (t) => t.id == targetId,
+            );
             if (triadMatch != null) name = triadMatch.name;
           }
 
@@ -978,8 +1012,11 @@ class GameState extends ChangeNotifier {
   }
 
   SkillArchetype _randomOwnedArchetype() {
-    final owned = SkillArchetype.values.where((a) => _archetypeLevel(a) > 0).toList();
-    if (owned.isEmpty) return SkillArchetype.values[_rng.nextInt(SkillArchetype.values.length)];
+    final owned = SkillArchetype.values
+        .where((a) => _archetypeLevel(a) > 0)
+        .toList();
+    if (owned.isEmpty)
+      return SkillArchetype.values[_rng.nextInt(SkillArchetype.values.length)];
     return owned[_rng.nextInt(owned.length)];
   }
 
@@ -1044,12 +1081,14 @@ class GameState extends ChangeNotifier {
   void devGrantRandomInflection(String skillId) {
     final def = _skillById(skillId);
     if (def == null) return;
-    
+
     final owned = _selectedInflections[skillId] ?? [];
     final pool = inflectionCatalog
-        .where((inf) => inf.archetype == def.archetype && !owned.contains(inf.id))
+        .where(
+          (inf) => inf.archetype == def.archetype && !owned.contains(inf.id),
+        )
         .toList();
-        
+
     if (pool.isEmpty) return;
     final inf = pool[_rng.nextInt(pool.length)];
     _selectedInflections.putIfAbsent(skillId, () => []).add(inf.id);
@@ -1171,7 +1210,9 @@ class GameState extends ChangeNotifier {
 
   void forceCantOffer() {
     if (_pendingCantIds.isEmpty && !hasCant('greedglyph')) {
-      final pool = hereticCantCatalog.where((c) => !_activeCantIds.contains(c.id)).toList();
+      final pool = hereticCantCatalog
+          .where((c) => !_activeCantIds.contains(c.id))
+          .toList();
       pool.shuffle(_rng);
       _pendingCantIds = pool.take(3).map((c) => c.id).toList();
       _pendingUpgradeIds = [];
@@ -1320,7 +1361,8 @@ class GameState extends ChangeNotifier {
     if (isRunOver || !_pendingCantIds.contains(id)) return;
     _activeCantIds.add(id);
 
-    if (id == 'heretic_bargain' && !activeModifiers.contains(FloorModifier.discountKit)) {
+    if (id == 'heretic_bargain' &&
+        !activeModifiers.contains(FloorModifier.discountKit)) {
       final hpCostFraction = _halveNextCantCost ? 0.1 : 0.2;
       nexusHp = math.max(0, nexusHp - nexusMaxHp * hpCostFraction);
       _forceFusionNext = true;
@@ -1518,13 +1560,16 @@ class GameState extends ChangeNotifier {
 
   void _rollUpgradeChoices({String? forceLockedId}) {
     // Every 5 floors (or if Heretic Tide is active), offer Heretic Cants instead of normal upgrades
-    bool offerCants = (floor % 5 == 0 || activeModifiers.contains(FloorModifier.hereticTide));
+    bool offerCants =
+        (floor % 5 == 0 || activeModifiers.contains(FloorModifier.hereticTide));
     if (offerCants && _skipNextCant) {
       _skipNextCant = false;
       offerCants = false;
     }
     if (offerCants && _pendingCantIds.isEmpty && !hasCant('greedglyph')) {
-      final pool = hereticCantCatalog.where((c) => !_activeCantIds.contains(c.id)).toList();
+      final pool = hereticCantCatalog
+          .where((c) => !_activeCantIds.contains(c.id))
+          .toList();
       pool.shuffle(_rng);
       _pendingCantIds = pool.take(3).map((c) => c.id).toList();
       _pendingUpgradeIds = [];
@@ -1546,14 +1591,21 @@ class GameState extends ChangeNotifier {
       }
     }
 
-    final eligibleFusions = fusionCatalog.where((f) =>
-        !_ownedFusionIds.contains(f.id) &&
-        f.paths.every((p) => evolvedPaths.contains(p))).toList();
+    final eligibleFusions = fusionCatalog
+        .where(
+          (f) =>
+              !_ownedFusionIds.contains(f.id) &&
+              f.paths.every((p) => evolvedPaths.contains(p)),
+        )
+        .toList();
 
     // 15% base chance for a Fusion offer if eligible, or forced by Bargain
-    if (eligibleFusions.isNotEmpty && (_rng.nextDouble() < 0.15 || _forceFusionNext)) {
+    if (eligibleFusions.isNotEmpty &&
+        (_rng.nextDouble() < 0.15 || _forceFusionNext)) {
       _forceFusionNext = false;
-      _pendingFusionIds = [eligibleFusions[_rng.nextInt(eligibleFusions.length)].id];
+      _pendingFusionIds = [
+        eligibleFusions[_rng.nextInt(eligibleFusions.length)].id,
+      ];
       _pendingUpgradeIds = [];
       if (hasPendingLevelUp) {
         _startAutoSelectTimer();
@@ -1579,9 +1631,12 @@ class GameState extends ChangeNotifier {
     }
 
     // Capstone unlock: tier Master (12) in that path
-    if (edgeTier.index >= PathTier.master.index) unlockedArchetypes.add(SkillArchetype.rupture);
-    if (daemonTier.index >= PathTier.master.index) unlockedArchetypes.add(SkillArchetype.bounty);
-    if (hexTier.index >= PathTier.master.index) unlockedArchetypes.add(SkillArchetype.summon);
+    if (edgeTier.index >= PathTier.master.index)
+      unlockedArchetypes.add(SkillArchetype.rupture);
+    if (daemonTier.index >= PathTier.master.index)
+      unlockedArchetypes.add(SkillArchetype.bounty);
+    if (hexTier.index >= PathTier.master.index)
+      unlockedArchetypes.add(SkillArchetype.summon);
 
     // Devotion: Restricted to dominant path if it exists
     if (devotion) {
@@ -1600,10 +1655,12 @@ class GameState extends ChangeNotifier {
     }
 
     final available = skillCatalog
-        .where((d) =>
-            unlockedArchetypes.contains(d.archetype) &&
-            !_isMaxed(d.id) &&
-            !_bannedIds.contains(d.id))
+        .where(
+          (d) =>
+              unlockedArchetypes.contains(d.archetype) &&
+              !_isMaxed(d.id) &&
+              !_bannedIds.contains(d.id),
+        )
         .toList();
 
     final ids = <String>[];
@@ -1632,14 +1689,19 @@ class GameState extends ChangeNotifier {
 
     if (activeModifiers.contains(FloorModifier.glyphCache)) {
       // Find a skill that can be upgraded with an inflection and hasn't been yet
-      final ownedKeys = _skillLevels.keys.where((k) => _skillLevels[k]! >= 1 && _skillLevels[k]! < 5).toList();
+      final ownedKeys = _skillLevels.keys
+          .where((k) => _skillLevels[k]! >= 1 && _skillLevels[k]! < 5)
+          .toList();
       if (ownedKeys.isNotEmpty) {
         final skillId = ownedKeys[_rng.nextInt(ownedKeys.length)];
         final def = _skillById(skillId);
         if (def != null) {
           final owned = _selectedInflections[skillId] ?? [];
           final pool = inflectionCatalog
-              .where((inf) => inf.archetype == def.archetype && !owned.contains(inf.id))
+              .where(
+                (inf) =>
+                    inf.archetype == def.archetype && !owned.contains(inf.id),
+              )
               .toList();
           if (pool.isNotEmpty) {
             final inf = pool[_rng.nextInt(pool.length)];
@@ -1710,7 +1772,7 @@ class GameState extends ChangeNotifier {
   double _offerWeight(String id) {
     final level = skillLevel(id);
     final definition = findSkillById(id);
-    
+
     // Peaks around level 2 (commitment reward), then decays.
     // 1.0 floor ensures everything stays in the pool.
     double weight = 1.0 + 5.0 * level * math.exp(-level / 1.5);
@@ -1744,9 +1806,12 @@ class GameState extends ChangeNotifier {
       SkillArchetype.bounty => [
         SkillArchetype.rupture,
         SkillArchetype.mothership,
-        SkillArchetype.snake
+        SkillArchetype.snake,
       ],
-      SkillArchetype.mothership => [SkillArchetype.bounty, SkillArchetype.summon],
+      SkillArchetype.mothership => [
+        SkillArchetype.bounty,
+        SkillArchetype.summon,
+      ],
       SkillArchetype.summon => [SkillArchetype.mothership],
       SkillArchetype.snake => [SkillArchetype.bounty],
       _ => <SkillArchetype>[],
@@ -1857,7 +1922,10 @@ class GameState extends ChangeNotifier {
     for (final entry in oldSlugs.entries) {
       if (_skillLevels.containsKey(entry.key)) {
         final level = _skillLevels.remove(entry.key)!;
-        _skillLevels[entry.value] = math.max(_skillLevels[entry.value] ?? 0, level);
+        _skillLevels[entry.value] = math.max(
+          _skillLevels[entry.value] ?? 0,
+          level,
+        );
       }
     }
   }

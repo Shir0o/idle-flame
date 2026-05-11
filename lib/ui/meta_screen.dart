@@ -430,15 +430,17 @@ class _BestiaryList extends StatelessWidget {
         _CodexGrid(
           items: EnemyType.values
               .where((t) => t != EnemyType.watcherAdd)
-              .map((t) => _CodexItem(
-                    id: 'enemy:${t.name}',
-                    name: _enemyDisplayName(t),
-                    icon: _isBoss(t) ? Icons.shield_moon : Icons.coronavirus,
-                    color: _isBoss(t)
-                        ? const Color(0xFFFFD166)
-                        : const Color(0xFFFF8A80),
-                    discovered: meta.discoveredIds.contains('enemy:${t.name}'),
-                  ))
+              .map(
+                (t) => _CodexItem(
+                  id: 'enemy:${t.name}',
+                  name: _enemyDisplayName(t),
+                  icon: _isBoss(t) ? Icons.shield_moon : Icons.coronavirus,
+                  color: _isBoss(t)
+                      ? const Color(0xFFFFD166)
+                      : const Color(0xFFFF8A80),
+                  discovered: meta.discoveredIds.contains('enemy:${t.name}'),
+                ),
+              )
               .toList(),
         ),
       ],
@@ -458,13 +460,15 @@ class _CrucibleList extends StatelessWidget {
         const _CodexHeader(title: 'CRUCIBLE EVENTS'),
         _CodexGrid(
           items: CrucibleEvent.values
-              .map((c) => _CodexItem(
-                    id: 'crucible:${c.name}',
-                    name: _crucibleDisplayName(c),
-                    icon: Icons.local_fire_department,
-                    color: const Color(0xFFFF5252),
-                    discovered: meta.discoveredIds.contains('crucible:${c.name}'),
-                  ))
+              .map(
+                (c) => _CodexItem(
+                  id: 'crucible:${c.name}',
+                  name: _crucibleDisplayName(c),
+                  icon: Icons.local_fire_department,
+                  color: const Color(0xFFFF5252),
+                  discovered: meta.discoveredIds.contains('crucible:${c.name}'),
+                ),
+              )
               .toList(),
         ),
       ],
@@ -494,61 +498,83 @@ class _CodexList extends StatelessWidget {
         // Skills
         const _CodexHeader(title: 'ARCHETYPES'),
         _CodexGrid(
-          items: skillCatalog.map((s) => _CodexItem(
-            id: s.id,
-            name: s.title,
-            icon: s.archetype.icon,
-            color: s.archetype.color,
-            discovered: meta.discoveredIds.contains(s.id),
-          )).toList(),
+          items: skillCatalog
+              .map(
+                (s) => _CodexItem(
+                  id: s.id,
+                  name: s.title,
+                  icon: s.archetype.icon,
+                  color: s.archetype.color,
+                  discovered: meta.discoveredIds.contains(s.id),
+                ),
+              )
+              .toList(),
         ),
         const SizedBox(height: 16),
         // Fusions
         const _CodexHeader(title: 'FUSIONS'),
         _CodexGrid(
-          items: fusionCatalog.map((f) => _CodexItem(
-            id: f.id,
-            name: f.name,
-            icon: Icons.auto_awesome,
-            color: Colors.amber,
-            discovered: meta.discoveredIds.contains(f.id),
-          )).toList(),
+          items: fusionCatalog
+              .map(
+                (f) => _CodexItem(
+                  id: f.id,
+                  name: f.name,
+                  icon: Icons.auto_awesome,
+                  color: Colors.amber,
+                  discovered: meta.discoveredIds.contains(f.id),
+                ),
+              )
+              .toList(),
         ),
         const SizedBox(height: 16),
         // Triads
         const _CodexHeader(title: 'TRIADS'),
         _CodexGrid(
-          items: triadCatalog.map((t) => _CodexItem(
-            id: 'triad:${t.id}',
-            name: t.name,
-            icon: Icons.hub,
-            color: const Color(0xFF64FFDA),
-            discovered: meta.discoveredIds.contains('triad:${t.id}'),
-          )).toList(),
+          items: triadCatalog
+              .map(
+                (t) => _CodexItem(
+                  id: 'triad:${t.id}',
+                  name: t.name,
+                  icon: Icons.hub,
+                  color: const Color(0xFF64FFDA),
+                  discovered: meta.discoveredIds.contains('triad:${t.id}'),
+                ),
+              )
+              .toList(),
         ),
         const SizedBox(height: 16),
         // Inflections
         const _CodexHeader(title: 'INFLECTIONS'),
         _CodexGrid(
-          items: inflectionCatalog.map((i) => _CodexItem(
-            id: 'inflection:${i.id}',
-            name: i.name,
-            icon: Icons.tune,
-            color: i.rarity == InflectionRarity.rare ? Colors.amber : Colors.white60,
-            discovered: meta.discoveredIds.contains('inflection:${i.id}'),
-          )).toList(),
+          items: inflectionCatalog
+              .map(
+                (i) => _CodexItem(
+                  id: 'inflection:${i.id}',
+                  name: i.name,
+                  icon: Icons.tune,
+                  color: i.rarity == InflectionRarity.rare
+                      ? Colors.amber
+                      : Colors.white60,
+                  discovered: meta.discoveredIds.contains('inflection:${i.id}'),
+                ),
+              )
+              .toList(),
         ),
         const SizedBox(height: 16),
         // Evolutions
         const _CodexHeader(title: 'EVOLUTIONS'),
         _CodexGrid(
-          items: _allEvolutions().map((e) => _CodexItem(
-            id: e.id,
-            name: e.name,
-            icon: Icons.keyboard_double_arrow_up,
-            color: Colors.white,
-            discovered: meta.discoveredIds.contains(e.id),
-          )).toList(),
+          items: _allEvolutions()
+              .map(
+                (e) => _CodexItem(
+                  id: e.id,
+                  name: e.name,
+                  icon: Icons.keyboard_double_arrow_up,
+                  color: Colors.white,
+                  discovered: meta.discoveredIds.contains(e.id),
+                ),
+              )
+              .toList(),
         ),
       ],
     );
@@ -632,11 +658,7 @@ class _CodexGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: items,
-    );
+    return Wrap(spacing: 8, runSpacing: 8, children: items);
   }
 }
 
@@ -663,14 +685,14 @@ class _CodexItem extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: discovered 
-            ? color.withValues(alpha: 0.15)
-            : Colors.white.withValues(alpha: 0.05),
+          color: discovered
+              ? color.withValues(alpha: 0.15)
+              : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: discovered 
-              ? color.withValues(alpha: 0.5)
-              : Colors.white.withValues(alpha: 0.1),
+            color: discovered
+                ? color.withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.1),
           ),
         ),
         child: Icon(

@@ -19,7 +19,11 @@ void main() {
     await game.onLoad();
 
     // First encounter with Aegis
-    final aegis = Enemy(position: Vector2.zero(), baseMaxHp: 10, type: EnemyType.aegis);
+    final aegis = Enemy(
+      position: Vector2.zero(),
+      baseMaxHp: 10,
+      type: EnemyType.aegis,
+    );
     game.world.add(aegis);
     aegis.onMount(); // Trigger discovery
 
@@ -30,7 +34,11 @@ void main() {
     state.clearCounterTip();
     expect(state.counterTipLabel, isNull);
 
-    final aegis2 = Enemy(position: Vector2.zero(), baseMaxHp: 10, type: EnemyType.aegis);
+    final aegis2 = Enemy(
+      position: Vector2.zero(),
+      baseMaxHp: 10,
+      type: EnemyType.aegis,
+    );
     game.world.add(aegis2);
     aegis2.onMount();
 

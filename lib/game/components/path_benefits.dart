@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import '../zenith_zero_game.dart';
 import 'enemy.dart';
 
-class EnemyAfterimage extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class EnemyAfterimage extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   EnemyAfterimage({
     required Vector2 position,
     required Vector2 size,
@@ -26,7 +27,7 @@ class EnemyAfterimage extends PositionComponent with HasGameReference<ZenithZero
       ..color = _color.withValues(alpha: opacity * 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
-    
+
     canvas.drawPath(_path, paint);
   }
 
@@ -38,7 +39,8 @@ class EnemyAfterimage extends PositionComponent with HasGameReference<ZenithZero
   }
 }
 
-class SpectralKatana extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class SpectralKatana extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   SpectralKatana() : super(size: Vector2(40, 4), anchor: Anchor.centerLeft);
 
   double _angle = 0;
@@ -54,12 +56,13 @@ class SpectralKatana extends PositionComponent with HasGameReference<ZenithZeroG
     }
     _angle += _rotationSpeed * dt;
     final heroPos = game.hero.position;
-    position = heroPos + Vector2(math.cos(_angle), math.sin(_angle)) * _orbitRadius;
+    position =
+        heroPos + Vector2(math.cos(_angle), math.sin(_angle)) * _orbitRadius;
     angle = _angle + math.pi / 2;
 
     // Contact damage
     final hitRadiusSq = 30 * 30;
-    for (final enemy in game.targetableEnemies) {
+    for (final enemy in game.targetableEnemies.toList()) {
       if ((enemy.position - position).length2 <= hitRadiusSq) {
         enemy.takeDamage(
           game.state.heroDamage * 0.5 * dt * 10, // DPS-like damage
@@ -75,13 +78,13 @@ class SpectralKatana extends PositionComponent with HasGameReference<ZenithZeroG
     final paint = Paint()
       ..color = const Color(0xFFE0F7FA).withValues(alpha: 0.6)
       ..style = PaintingStyle.fill;
-    
+
     final path = Path()
       ..moveTo(0, 0)
       ..lineTo(40, 2)
       ..lineTo(0, 4)
       ..close();
-    
+
     canvas.drawPath(path, paint);
 
     // Glow
@@ -92,7 +95,8 @@ class SpectralKatana extends PositionComponent with HasGameReference<ZenithZeroG
   }
 }
 
-class CompanionDrone extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class CompanionDrone extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   CompanionDrone() : super(size: Vector2.all(12), anchor: Anchor.center);
 
   double _timer = 0;
@@ -106,21 +110,24 @@ class CompanionDrone extends PositionComponent with HasGameReference<ZenithZeroG
     }
     _timer += dt;
     final heroPos = game.hero.position;
-    final target = heroPos + Vector2(math.cos(_timer) * 40, -50 + math.sin(_timer * 1.5) * 10);
+    final target =
+        heroPos +
+        Vector2(math.cos(_timer) * 40, -50 + math.sin(_timer * 1.5) * 10);
     position.lerp(target, 0.1);
   }
 
   @override
   void render(Canvas canvas) {
     final paint = Paint()..color = const Color(0xFFE040FB);
-    canvas.drawCircle(Offset(size.x/2, size.y/2), size.x/2, paint);
-    
+    canvas.drawCircle(Offset(size.x / 2, size.y / 2), size.x / 2, paint);
+
     final eyePaint = Paint()..color = Colors.white;
     canvas.drawCircle(Offset(size.x * 0.7, size.y * 0.4), 2, eyePaint);
   }
 }
 
-class WardCircle extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class WardCircle extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   WardCircle() : super(anchor: Anchor.center);
 
   double _phase = 0;
@@ -137,10 +144,13 @@ class WardCircle extends PositionComponent with HasGameReference<ZenithZeroGame>
     position = game.hero.position;
 
     final radiusSq = _radius * _radius;
-    for (final enemy in game.targetableEnemies) {
+    for (final enemy in game.targetableEnemies.toList()) {
       if ((enemy.position - position).length2 <= radiusSq) {
         // Slow and Burn
-        enemy.position -= (enemy.position - position).normalized() * 10 * dt; // Subtle pushback/slow
+        enemy.position -=
+            (enemy.position - position).normalized() *
+            10 *
+            dt; // Subtle pushback/slow
         enemy.takeDamage(
           game.state.heroDamage * 0.2 * dt * 5,
           source: position,
@@ -157,7 +167,7 @@ class WardCircle extends PositionComponent with HasGameReference<ZenithZeroGame>
       ..color = const Color(0xFFFFD700).withValues(alpha: 0.1 * pulse)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
-    
+
     canvas.drawCircle(Offset.zero, _radius, paint);
 
     final glowPaint = Paint()
@@ -168,8 +178,10 @@ class WardCircle extends PositionComponent with HasGameReference<ZenithZeroGame>
   }
 }
 
-class GoldSigil extends PositionComponent with HasGameReference<ZenithZeroGame> {
-  GoldSigil({required Vector2 position}) : super(position: position, size: Vector2.all(32), anchor: Anchor.center);
+class GoldSigil extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
+  GoldSigil({required Vector2 position})
+    : super(position: position, size: Vector2.all(32), anchor: Anchor.center);
 
   double _timer = 5.0;
 
@@ -196,12 +208,12 @@ class GoldSigil extends PositionComponent with HasGameReference<ZenithZeroGame> 
       ..color = const Color(0xFFFFD700).withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
-    
-    canvas.drawCircle(Offset(size.x/2, size.y/2), size.x/2, paint);
-    
+
+    canvas.drawCircle(Offset(size.x / 2, size.y / 2), size.x / 2, paint);
+
     final innerPaint = Paint()
       ..color = const Color(0xFFFFD700).withValues(alpha: 0.2)
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(size.x/2, size.y/2), size.x/3, innerPaint);
+    canvas.drawCircle(Offset(size.x / 2, size.y / 2), size.x / 3, innerPaint);
   }
 }

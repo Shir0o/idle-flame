@@ -16,10 +16,10 @@ class FireSummon extends PositionComponent
     required this.level,
     required this.damage,
   }) : super(
-          position: startPos,
-          priority: 61,
-          size: Vector2.all(type == SummonType.avatar ? 40 : 20),
-        );
+         position: startPos,
+         priority: 61,
+         size: Vector2.all(type == SummonType.avatar ? 40 : 20),
+       );
 
   final SummonType type;
   final int level;
@@ -136,7 +136,7 @@ class FireSummon extends PositionComponent
       _ => 1.5,
     };
 
-    for (final enemy in game.targetableEnemies) {
+    for (final enemy in game.targetableEnemies.toList()) {
       if ((enemy.position - position).length2 < hitRadiusSq) {
         enemy.takeDamage(
           damage * dt * dmgMult,

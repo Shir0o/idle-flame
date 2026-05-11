@@ -32,7 +32,7 @@ void main() {
   });
 
   test('base balance metrics are internally consistent', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.floor, 1);
@@ -49,7 +49,7 @@ void main() {
   });
 
   test('kills award gold and time clears floor to roll upgrade choices', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     for (var i = 0; i < GameState.killsPerFloor; i++) {
@@ -72,7 +72,7 @@ void main() {
   });
 
   test('selecting an upgrade records one level and resumes the run', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     state.update(10.0);
@@ -88,7 +88,7 @@ void main() {
   });
 
   test('enemy and reward scaling increase with floor', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     final floorOneHp = state.enemyMaxHp;
@@ -107,7 +107,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'lastSeenAt': lastSeen.millisecondsSinceEpoch,
     });
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     await state.load();
@@ -117,7 +117,7 @@ void main() {
   });
 
   test('reset clears progress, pending choices, and upgrades', () async {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     for (var i = 0; i < GameState.killsPerFloor; i++) {
@@ -141,7 +141,7 @@ void main() {
   });
 
   test('hero uses standard combat stats', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.selectedMech, MechType.standard);
@@ -158,7 +158,7 @@ void main() {
   });
 
   test('standard hero persists across load', () async {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     state.selectMech(MechType.standard);
@@ -173,7 +173,7 @@ void main() {
   });
 
   test('unlockDevMode only works with the correct key', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.devMode, isFalse);
@@ -201,7 +201,7 @@ void main() {
   });
 
   test('godMode prevents nexus damage', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.godMode, isFalse);
@@ -215,7 +215,7 @@ void main() {
   });
 
   test('requestDevKillAll increments request counter', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.devKillAllRequest, 0);
@@ -226,7 +226,7 @@ void main() {
   });
 
   test('devPauseSpawning and devHealNexus work correctly', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.devPauseSpawning, isFalse);
@@ -240,7 +240,7 @@ void main() {
   });
 
   test('cycleGameSpeed and togglePerfOverlay work correctly', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.devTimeScale, 1.0);
@@ -259,7 +259,7 @@ void main() {
   });
 
   test('cycleEnemyStrength works correctly', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.devEnemyStrength, 1.0);
@@ -274,7 +274,7 @@ void main() {
   });
 
   test('devForceLevelUp triggers upgrade choices', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.hasPendingLevelUp, isFalse);
@@ -284,7 +284,7 @@ void main() {
   });
 
   test('devGrantSkill cycles levels to 0 after maxLevel', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
     const skillId = 'focus';
 
@@ -304,7 +304,7 @@ void main() {
   });
 
   test('skill levels and evolutions survive save/load round-trip', () async {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     // Set some state
@@ -318,7 +318,7 @@ void main() {
 
     // Save explicitly (flushing the debounce)
     await state.save();
-    
+
     final state2 = GameState();
     addTearDown(state2.dispose);
     await state2.load();
@@ -337,7 +337,7 @@ void main() {
       'soulcoin_brand:1',
     ]);
 
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
     await state.load();
 
@@ -352,7 +352,7 @@ void main() {
   });
 
   test('devMaxAllSkills maxes out every skill', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     for (final def in skillCatalog) {
@@ -367,7 +367,7 @@ void main() {
   });
 
   test('muted flag defaults to true and persists', () async {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.muted, isTrue);
@@ -384,7 +384,7 @@ void main() {
   });
 
   test('developer grant methods work correctly', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     final meta = state.meta;
     addTearDown(state.dispose);
 
@@ -406,7 +406,7 @@ void main() {
   });
 
   test('lifetime kills persist across runs and resetProgress', () async {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     expect(state.runKills, 0);
@@ -434,7 +434,7 @@ void main() {
   });
 
   test('totalRuns increments correctly and persists', () async {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
 
     // Initial load defaults to 1 (first run)
@@ -484,7 +484,7 @@ void main() {
   });
 
   test('selectNearestEnemies returns bounded nearest targets', () {
-    final state = GameState();
+    final state = GameState(seed: 42);
     addTearDown(state.dispose);
     final game = ZenithZeroGame(state: state);
     final far = Enemy(position: Vector2(80, 0), baseMaxHp: 10);

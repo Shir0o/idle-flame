@@ -185,7 +185,7 @@ class SentinelBlade extends PositionComponent
     Enemy? best;
     if (useNearest) {
       double minDist2 = double.infinity;
-      for (final e in enemies) {
+      for (final e in enemies.toList()) {
         final d2 = (e.position - refPos).length2;
         if (d2 < minDist2) {
           minDist2 = d2;
@@ -194,7 +194,7 @@ class SentinelBlade extends PositionComponent
       }
     } else {
       double maxDist2 = -1;
-      for (final e in enemies) {
+      for (final e in enemies.toList()) {
         final d2 = (e.position - refPos).length2;
         if (d2 < _attackRange * _attackRange && d2 > maxDist2) {
           maxDist2 = d2;
@@ -306,7 +306,7 @@ class SentinelBlade extends PositionComponent
     // Aggressive waypoint logic: find the closest enemy that is NOT the target.
     Enemy? waypoint;
     double minWayDist2 = double.infinity;
-    for (final e in game.targetableEnemies) {
+    for (final e in game.targetableEnemies.toList()) {
       if (e == t) continue;
       final d2 = (e.position - _dashStart).length2;
       if (d2 < minWayDist2) {
@@ -349,7 +349,8 @@ class SentinelBlade extends PositionComponent
     _phase = _StrikePhase.dashing;
     _phaseTimer = 0;
     // Recalculate duration based on the actual control point distance.
-    final approxArcLen = (_dashControl1 - _dashStart).length +
+    final approxArcLen =
+        (_dashControl1 - _dashStart).length +
         (_dashControl2 - _dashControl1).length +
         (_dashEnd - _dashControl2).length;
 
@@ -357,10 +358,7 @@ class SentinelBlade extends PositionComponent
     double actualSpeed = _dashSpeedRef;
     if (dashEvo == 2) actualSpeed *= 2.0;
 
-    _phaseDuration = math.max(
-      0.08,
-      math.min(0.65, approxArcLen / actualSpeed),
-    );
+    _phaseDuration = math.max(0.08, math.min(0.65, approxArcLen / actualSpeed));
     _dashProgress = 0;
     _hitThisDash.clear();
   }
@@ -403,7 +401,7 @@ class SentinelBlade extends PositionComponent
     // happens to lie along the slice path.
     const hitRadius = 16.0;
     const hitRadius2 = hitRadius * hitRadius;
-    for (final e in game.targetableEnemies) {
+    for (final e in game.targetableEnemies.toList()) {
       if (_hitThisDash.contains(e)) continue;
       if ((e.position - position).length2 < hitRadius2) {
         _applySliceDamage(motion, e);
@@ -436,7 +434,7 @@ class SentinelBlade extends PositionComponent
     Enemy? best;
     double bestScore = -double.infinity;
 
-    for (final e in enemies) {
+    for (final e in enemies.toList()) {
       final toEnemy = e.position - refPos;
       final dist2 = toEnemy.length2;
       if (dist2 > 300 * 300) continue; // Range limit for chain logic
@@ -461,15 +459,12 @@ class SentinelBlade extends PositionComponent
 
   void _applySliceDamage(Vector2 motion, Enemy t) {
     double damage = game.state.sentinelDamage;
-    if (game.state.meta.hasSutraPerk(SkillArchetype.sentinel, 10) && _hitThisDash.isEmpty) {
+    if (game.state.meta.hasSutraPerk(SkillArchetype.sentinel, 10) &&
+        _hitThisDash.isEmpty) {
       damage *= 1.5; // 50% extra damage to the first enemy hit
     }
 
-    t.takeDamage(
-      damage,
-      source: position,
-      type: DamageType.sentinel,
-    );
+    t.takeDamage(damage, source: position, type: DamageType.sentinel);
 
     if (!HitSparkEffect.atCap && game.canSpawnMinorEffect(lowPriority: true)) {
       parent?.add(
@@ -560,7 +555,7 @@ class SentinelBlade extends PositionComponent
   List<Enemy> _nearestShardTargets(Enemy primary) {
     final selected = <Enemy>[];
     final distances = <double>[];
-    for (final enemy in game.targetableEnemies) {
+    for (final enemy in game.targetableEnemies.toList()) {
       if (enemy == primary) continue;
       final distance = (enemy.position - position).length2;
       var insertAt = 0;

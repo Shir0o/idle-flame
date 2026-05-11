@@ -11,7 +11,17 @@ import 'damage_text.dart';
 import 'path_benefits.dart';
 import 'fire_summons.dart';
 
-enum DamageType { basic, nova, firewall, meteor, sentinel, mothership, rupture, hex, daemon }
+enum DamageType {
+  basic,
+  nova,
+  firewall,
+  meteor,
+  sentinel,
+  mothership,
+  rupture,
+  hex,
+  daemon,
+}
 
 enum EnemyType {
   basic,
@@ -244,7 +254,9 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     final h = size.y;
     final cx = w / 2;
     final cy = h / 2;
-    final bob = type == EnemyType.watcher ? math.sin(_walkPhase * 1.5) * 4.0 : math.sin(_walkPhase * 7.2) * 2.4;
+    final bob = type == EnemyType.watcher
+        ? math.sin(_walkPhase * 1.5) * 4.0
+        : math.sin(_walkPhase * 7.2) * 2.4;
 
     _fillPaint.color = _color;
     _glowPaint.color = _color.withValues(
@@ -326,8 +338,13 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
           ..lineTo(w * 0.38, h * 0.16)
           ..close();
       case EnemyType.watcher:
-        return Path()
-          ..addOval(Rect.fromCenter(center: Offset(cx, cy), width: w * 0.8, height: h * 0.8));
+        return Path()..addOval(
+          Rect.fromCenter(
+            center: Offset(cx, cy),
+            width: w * 0.8,
+            height: h * 0.8,
+          ),
+        );
       case EnemyType.aegis:
         return Path()
           ..moveTo(cx, h * 0.05)
@@ -342,8 +359,13 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
           ..lineTo(w * 0.5, h * 0.9)
           ..close();
       case EnemyType.sigilBearer:
-        return Path()
-          ..addRect(Rect.fromCenter(center: Offset(cx, cy), width: w * 0.7, height: h * 0.7));
+        return Path()..addRect(
+          Rect.fromCenter(
+            center: Offset(cx, cy),
+            width: w * 0.7,
+            height: h * 0.7,
+          ),
+        );
       case EnemyType.wraith:
         return Path()
           ..moveTo(cx, h * 0.1)
@@ -360,8 +382,13 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
           ..lineTo(w * 0.2, h * 0.3)
           ..close();
       case EnemyType.sutraBound:
-        return Path()
-          ..addOval(Rect.fromCenter(center: Offset(cx, cy), width: w * 0.6, height: h * 0.6));
+        return Path()..addOval(
+          Rect.fromCenter(
+            center: Offset(cx, cy),
+            width: w * 0.6,
+            height: h * 0.6,
+          ),
+        );
       default:
         return Path(); // Placeholder for others
     }
@@ -455,23 +482,58 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         canvas.drawCircle(Offset(cx, cy), w * 0.2, _corePaint);
         canvas.drawCircle(Offset(cx, cy), w * 0.3, _detailPaint);
         // Antennas
-        canvas.drawLine(Offset(w * 0.2, h * 0.2), Offset(w * 0.05, h * 0.05), _detailPaint);
-        canvas.drawLine(Offset(w * 0.8, h * 0.2), Offset(w * 0.95, h * 0.05), _detailPaint);
+        canvas.drawLine(
+          Offset(w * 0.2, h * 0.2),
+          Offset(w * 0.05, h * 0.05),
+          _detailPaint,
+        );
+        canvas.drawLine(
+          Offset(w * 0.8, h * 0.2),
+          Offset(w * 0.95, h * 0.05),
+          _detailPaint,
+        );
         break;
       case EnemyType.aegis:
         canvas.drawCircle(Offset(cx, cy), w * 0.25, _corePaint);
         canvas.drawCircle(Offset(cx, cy), w * 0.35, _detailPaint);
-        canvas.drawLine(Offset(w * 0.5, h * 0.1), Offset(w * 0.5, h * 0.9), _detailPaint);
-        canvas.drawLine(Offset(w * 0.1, h * 0.5), Offset(w * 0.9, h * 0.5), _detailPaint);
+        canvas.drawLine(
+          Offset(w * 0.5, h * 0.1),
+          Offset(w * 0.5, h * 0.9),
+          _detailPaint,
+        );
+        canvas.drawLine(
+          Offset(w * 0.1, h * 0.5),
+          Offset(w * 0.9, h * 0.5),
+          _detailPaint,
+        );
         break;
       case EnemyType.splinter:
         canvas.drawLine(Offset(cx, h * 0.1), Offset(cx, h * 0.9), _detailPaint);
-        canvas.drawLine(Offset(w * 0.3, h * 0.4), Offset(w * 0.7, h * 0.4), _darkCutPaint);
+        canvas.drawLine(
+          Offset(w * 0.3, h * 0.4),
+          Offset(w * 0.7, h * 0.4),
+          _darkCutPaint,
+        );
         break;
       case EnemyType.sigilBearer:
-        canvas.drawRect(Rect.fromCenter(center: Offset(cx, cy), width: w * 0.3, height: h * 0.3), _corePaint);
-        canvas.drawLine(Offset(w * 0.1, h * 0.1), Offset(w * 0.9, h * 0.9), _detailPaint);
-        canvas.drawLine(Offset(w * 0.9, h * 0.1), Offset(w * 0.1, h * 0.9), _detailPaint);
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: Offset(cx, cy),
+            width: w * 0.3,
+            height: h * 0.3,
+          ),
+          _corePaint,
+        );
+        canvas.drawLine(
+          Offset(w * 0.1, h * 0.1),
+          Offset(w * 0.9, h * 0.9),
+          _detailPaint,
+        );
+        canvas.drawLine(
+          Offset(w * 0.9, h * 0.1),
+          Offset(w * 0.1, h * 0.9),
+          _detailPaint,
+        );
         break;
       case EnemyType.wraith:
         canvas.drawCircle(Offset(cx, h * 0.3), w * 0.1, _corePaint);
@@ -487,8 +549,14 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         for (var i = 0; i < 6; i++) {
           final angle = i * math.pi / 3;
           canvas.drawLine(
-            Offset(cx + math.cos(angle) * w * 0.2, cy + math.sin(angle) * h * 0.2),
-            Offset(cx + math.cos(angle) * w * 0.4, cy + math.sin(angle) * h * 0.4),
+            Offset(
+              cx + math.cos(angle) * w * 0.2,
+              cy + math.sin(angle) * h * 0.2,
+            ),
+            Offset(
+              cx + math.cos(angle) * w * 0.4,
+              cy + math.sin(angle) * h * 0.4,
+            ),
             _detailPaint,
           );
         }
@@ -605,12 +673,17 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   void _watcherSpawnAdds() {
     final rng = math.Random();
     for (var i = 0; i < 3; i++) {
-      final offset = Vector2(rng.nextDouble() * 100 - 50, rng.nextDouble() * 50 + 20);
-      parent?.add(Enemy(
-        position: position + offset,
-        baseMaxHp: game.state.enemyMaxHp,
-        type: EnemyType.watcherAdd,
-      ));
+      final offset = Vector2(
+        rng.nextDouble() * 100 - 50,
+        rng.nextDouble() * 50 + 20,
+      );
+      parent?.add(
+        Enemy(
+          position: position + offset,
+          baseMaxHp: game.state.enemyMaxHp,
+          type: EnemyType.watcherAdd,
+        ),
+      );
     }
   }
 
@@ -632,7 +705,9 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
   void applyChill({double duration = 2.0}) {
     if (_dying) return;
-    final maxStacks = game.state.meta.hasSutraPerk(SkillArchetype.frost, 5) ? 2 : 1;
+    final maxStacks = game.state.meta.hasSutraPerk(SkillArchetype.frost, 5)
+        ? 2
+        : 1;
     if (_slowStacks < maxStacks) {
       _slowStacks++;
     }
@@ -673,7 +748,8 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
       _flashTimer = 0.1;
       _color = Colors.white;
       // Play a shield break sound if available, otherwise just feedback
-      if (game.canPlaySkillHitSound()) game.audio.playSkillDamage(SkillSound.arcane);
+      if (game.canPlaySkillHitSound())
+        game.audio.playSkillDamage(SkillSound.arcane);
       return;
     }
 
@@ -690,8 +766,9 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     final thresholdBonus = ruptureEvo == 1 ? 0.15 : 0.0;
     final threshold = baseThreshold + thresholdBonus;
 
-    final executeBonus =
-        hp / maxHp <= threshold ? game.state.executeDamageMultiplier : 1.0;
+    final executeBonus = hp / maxHp <= threshold
+        ? game.state.executeDamageMultiplier
+        : 1.0;
 
     double finalAmount = amount * executeBonus;
 
@@ -699,7 +776,8 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     if (game.state.hasTriad('iron_cathedral')) {
       final walls = parent?.children.whereType<FirewallEffect>() ?? [];
       final inWall = walls.any((w) {
-        final insideWidth = (position.x - w.effectCenter.x).abs() <= w.effectWidth / 2;
+        final insideWidth =
+            (position.x - w.effectCenter.x).abs() <= w.effectWidth / 2;
         final nearWall = (position.y - w.effectCenter.y).abs() <= 40;
         return insideWidth && nearWall;
       });
@@ -712,7 +790,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     if (ruptureEvo == 2 && _executeMarked) {
       finalAmount *= 1.3;
     }
-    
+
     // Echo Tide: Double damage for first 5 enemies
     if (game.state.echoTideActive) {
       finalAmount *= 2.0;
@@ -722,7 +800,10 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     if (isExecute) _executeMarked = true;
 
     // Aegis Reflection: 50% single-target damage reflected to Nexus
-    if (this.type == EnemyType.aegis && (type == DamageType.basic || type == DamageType.sentinel || type == DamageType.mothership)) {
+    if (this.type == EnemyType.aegis &&
+        (type == DamageType.basic ||
+            type == DamageType.sentinel ||
+            type == DamageType.mothership)) {
       game.state.damageNexus(finalAmount * 0.5);
     }
 
@@ -736,7 +817,8 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
     // Wraith Phasing: Phases out for 1s after taking damage
     if (this.type == EnemyType.wraith && _freezeTimer <= 0) {
-      _freezeTimer = 1.0; // Reuse freezeTimer for phasing out (untargetable/frozen)
+      _freezeTimer =
+          1.0; // Reuse freezeTimer for phasing out (untargetable/frozen)
       _color = const Color(0x40BDBDBD);
     }
 
@@ -751,15 +833,13 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     hp -= finalAmount;
 
     if (type == DamageType.firewall && game.state.firewallLevel >= 3) {
-      applyBurn(
-        duration: 3.0,
-        dps: game.state.firewallBurnDps,
-      );
+      applyBurn(duration: 3.0, dps: game.state.firewallBurnDps);
     }
 
     final lowPriorityFeedback =
         type == DamageType.sentinel || type == DamageType.mothership;
-    if (!game.state.veilOfAshActive && !DamageText.atCap &&
+    if (!game.state.veilOfAshActive &&
+        !DamageText.atCap &&
         game.canSpawnDamageText(lowPriority: lowPriorityFeedback)) {
       parent?.add(
         DamageText(
@@ -827,11 +907,13 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
     if (type == EnemyType.splinter) {
       for (var i = 0; i < 2; i++) {
-        parent?.add(Enemy(
-          position: position + Vector2(i == 0 ? -15 : 15, 0),
-          baseMaxHp: maxHp * 0.3,
-          type: EnemyType.basic,
-        ));
+        parent?.add(
+          Enemy(
+            position: position + Vector2(i == 0 ? -15 : 15, 0),
+            baseMaxHp: maxHp * 0.3,
+            type: EnemyType.basic,
+          ),
+        );
       }
     }
 

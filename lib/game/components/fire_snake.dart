@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 import '../zenith_zero_game.dart';
 import 'enemy.dart';
 
-class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class FireSnake extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   FireSnake({
     required Vector2 startPos,
     required this.level,
@@ -32,7 +33,7 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
   final List<Vector2> _trail = [];
   final List<double> _trailAges = [];
   static const double _pointSpacing = 8.0;
-  
+
   Enemy? _target;
   double _totalTime = 0;
   double _lifeTime = 0;
@@ -81,7 +82,8 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
     angle = math.atan2(moveDir.y, moveDir.x);
 
     // Trail management
-    if (_lifeTime < _maxLife && (_trail.isEmpty || (_trail.first - position).length > _pointSpacing)) {
+    if (_lifeTime < _maxLife &&
+        (_trail.isEmpty || (_trail.first - position).length > _pointSpacing)) {
       _trail.insert(0, position.clone());
       _trailAges.insert(0, 0);
     }
@@ -105,7 +107,7 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
     final hitRadius2 = hitRadius * hitRadius;
     final finalDamage = isIgnited ? damage * 2.0 : damage;
 
-    for (final enemy in game.targetableEnemies) {
+    for (final enemy in game.targetableEnemies.toList()) {
       bool hit = false;
       // Check head
       if ((enemy.position - position).length2 < hitRadius2) {
@@ -151,7 +153,7 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
       final p = _trail[i];
       final age = _trailAges[i];
       final lifeFactor = 1.0 - (age / trailDuration).clamp(0.0, 1.0);
-      
+
       final Vector2 tangent;
       if (i == 0) {
         tangent = (p - _trail[i + 1]);
@@ -169,7 +171,7 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
           (12.0 + math.sin(i * 0.5 - _totalTime * 5) * 4.0) *
           lifeFactor *
           (isWorldEater ? 2.5 : 1.0);
-      
+
       final color = Color.lerp(
         const Color(0xFFFFAB40), // Orange
         const Color(0xFFFF3D00), // Deep Red-Orange
@@ -194,13 +196,13 @@ class FireSnake extends PositionComponent with HasGameReference<ZenithZeroGame> 
       final glowPaint = Paint()
         ..color = const Color(0xFFFFD166).withValues(alpha: 0.2 * globalAlpha)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
-      
+
       final glowPath = Path();
       glowPath.moveTo(vertices.first.dx, vertices.first.dy);
-      for(var i = 2; i < vertices.length; i += 2) {
+      for (var i = 2; i < vertices.length; i += 2) {
         glowPath.lineTo(vertices[i].dx, vertices[i].dy);
       }
-      for(var i = vertices.length - 1; i >= 1; i -= 2) {
+      for (var i = vertices.length - 1; i >= 1; i -= 2) {
         glowPath.lineTo(vertices[i].dx, vertices[i].dy);
       }
       glowPath.close();

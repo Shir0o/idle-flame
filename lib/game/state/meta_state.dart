@@ -41,7 +41,8 @@ class MetaState extends ChangeNotifier {
   }
 
   int sutraCount(SkillArchetype archetype) => _sutras[archetype] ?? 0;
-  bool hasSutraPerk(SkillArchetype archetype, int mark) => sutraCount(archetype) >= mark;
+  bool hasSutraPerk(SkillArchetype archetype, int mark) =>
+      sutraCount(archetype) >= mark;
   bool isAwakened(SkillPath path) => _awakenings[path] ?? false;
 
   bool recordDiscovery(String id, {int reward = 5}) {
@@ -261,7 +262,9 @@ class MetaState extends ChangeNotifier {
       final name = item.substring(0, i);
       final count = int.tryParse(item.substring(i + 1));
       if (count == null) continue;
-      final archetype = SkillArchetype.values.firstWhereOrNull((a) => a.name == name);
+      final archetype = SkillArchetype.values.firstWhereOrNull(
+        (a) => a.name == name,
+      );
       if (archetype != null) map[archetype] = count;
     }
     return map;

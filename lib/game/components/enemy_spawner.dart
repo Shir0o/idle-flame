@@ -24,12 +24,13 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
     }
 
     final phase = game.state.floorPhase;
-    
+
     if (game.state.isBossFloor) {
       if (phase == FloorPhase.crucible && !game.state.bossSpawned) {
-         _spawnBoss();
+        _spawnBoss();
       }
-      if (game.state.bossSpawned) return; // Only spawn adds if the boss itself handles it
+      if (game.state.bossSpawned)
+        return; // Only spawn adds if the boss itself handles it
     }
 
     double interval = _spawnInterval;
@@ -93,7 +94,8 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
             period: 10.0,
             removeOnFinish: true,
             onTick: () {
-              if (!game.state.isRunOver && game.state.nexusHp >= _quietStartingHp) {
+              if (!game.state.isRunOver &&
+                  game.state.nexusHp >= _quietStartingHp) {
                 game.state.gold += 25; // Bonus gold
                 // TODO: Spawn a coin burst at nexus?
               }
@@ -105,7 +107,9 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
         game.state.forceCantOffer();
         break;
       case CrucibleEvent.bossEcho:
-        final nextBoss = _bossForFloor(((game.state.floor / 5).floor() + 1) * 5);
+        final nextBoss = _bossForFloor(
+          ((game.state.floor / 5).floor() + 1) * 5,
+        );
         _spawnSpecific(nextBoss, hpScale: 0.2); // Mini version
         break;
       default:
@@ -116,7 +120,7 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
   double _quietStartingHp = 0;
 
   void _triggerEclipse() {
-    for (final enemy in game.aliveEnemies) {
+    for (final enemy in game.aliveEnemies.toList()) {
       enemy.applyChill(duration: 2.0); // Freeze
       // After 2s, make them sprint by adding a custom component to them
       enemy.add(
@@ -124,7 +128,8 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
           period: 2.0,
           removeOnFinish: true,
           onTick: () {
-            if (enemy.isAlive) enemy.applySprint(duration: 5.0, multiplier: 2.0);
+            if (enemy.isAlive)
+              enemy.applySprint(duration: 5.0, multiplier: 2.0);
           },
         ),
       );
@@ -142,11 +147,12 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
 
     final floor = game.state.floor;
     final phase = game.state.floorPhase;
-    
+
     final roll = _rng.nextDouble();
     EnemyType type;
 
-    if (phase == FloorPhase.crucible && game.state.crucibleEvent == CrucibleEvent.hivebreak) {
+    if (phase == FloorPhase.crucible &&
+        game.state.crucibleEvent == CrucibleEvent.hivebreak) {
       type = EnemyType.fast;
     } else {
       // Normal mix
@@ -173,11 +179,9 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
       }
     }
 
-    parent?.add(Enemy(
-      position: pos,
-      baseMaxHp: game.state.enemyMaxHp,
-      type: type,
-    ));
+    parent?.add(
+      Enemy(position: pos, baseMaxHp: game.state.enemyMaxHp, type: type),
+    );
   }
 
   void _spawnBoss() {
@@ -198,11 +202,13 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
 
           final bossType = _bossForFloor(floor);
           final bossPos = Vector2(game.size.x / 2, game.size.y * 0.15);
-          parent?.add(Enemy(
-            position: bossPos,
-            baseMaxHp: game.state.enemyMaxHp,
-            type: bossType,
-          ));
+          parent?.add(
+            Enemy(
+              position: bossPos,
+              baseMaxHp: game.state.enemyMaxHp,
+              type: bossType,
+            ),
+          );
         },
       ),
     );
@@ -212,23 +218,31 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
     return switch (floor) {
       5 => (name: 'THE WATCHER', hint: 'Daemon-shielded adds. AoE wins.'),
       10 => (
-          name: 'GLASS SOVEREIGN',
-          hint: 'Evasive and splash-immune. Edge focus wins.'
-        ),
+        name: 'GLASS SOVEREIGN',
+        hint: 'Evasive and splash-immune. Edge focus wins.',
+      ),
       15 => (name: 'HIVEFATHER', hint: 'Drone broods. Sustain wins.'),
-      20 => (name: 'CIPHER TWIN', hint: 'Alternating immunities. Mixed paths win.'),
-      _ => (name: 'THE ARCHITECT', hint: "Everything you've learned. No hints."),
+      20 => (
+        name: 'CIPHER TWIN',
+        hint: 'Alternating immunities. Mixed paths win.',
+      ),
+      _ => (
+        name: 'THE ARCHITECT',
+        hint: "Everything you've learned. No hints.",
+      ),
     };
   }
 
   void _spawnSpecific(EnemyType type, {double hpScale = 1.0}) {
     final size = game.size;
     final pos = Vector2(_rng.nextDouble() * size.x, -_offscreenPad);
-    parent?.add(Enemy(
-      position: pos,
-      baseMaxHp: game.state.enemyMaxHp * hpScale,
-      type: type,
-    ));
+    parent?.add(
+      Enemy(
+        position: pos,
+        baseMaxHp: game.state.enemyMaxHp * hpScale,
+        type: type,
+      ),
+    );
   }
 
   EnemyType _bossForFloor(int floor) {

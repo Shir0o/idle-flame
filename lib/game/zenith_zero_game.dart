@@ -30,12 +30,13 @@ VisualLoadTier visualLoadTierForCounts({
 }
 
 class ZenithZeroGame extends FlameGame {
-  ZenithZeroGame({required this.state}) {
-    audio.muted = state.muted;
+  ZenithZeroGame({required this.state, GameAudio? audio})
+    : audio = audio ?? GameAudio() {
+    this.audio.muted = state.muted;
   }
 
   final GameState state;
-  final GameAudio audio = GameAudio();
+  final GameAudio audio;
   late final HeroComponent hero;
   late final EnemySpawner spawner;
   final Set<Enemy> activeEnemies = {};
@@ -158,7 +159,8 @@ class ZenithZeroGame extends FlameGame {
       if ((camera.viewfinder.zoom - _targetZoom).abs() < zoomSpeed) {
         camera.viewfinder.zoom = _targetZoom;
       } else {
-        camera.viewfinder.zoom += (camera.viewfinder.zoom < _targetZoom ? 1 : -1) * zoomSpeed;
+        camera.viewfinder.zoom +=
+            (camera.viewfinder.zoom < _targetZoom ? 1 : -1) * zoomSpeed;
       }
     }
   }
@@ -186,7 +188,7 @@ class ZenithZeroGame extends FlameGame {
     final distances = <double>[];
     final rangeSquared = range * range;
 
-    for (final enemy in targetableEnemies) {
+    for (final enemy in targetableEnemies.toList()) {
       final distance = (enemy.position - origin).length2;
       if (distance > rangeSquared) continue;
 
@@ -210,7 +212,7 @@ class ZenithZeroGame extends FlameGame {
   bool hasEnemyWithin(Vector2 origin, double range) {
     if (targetableEnemies.isEmpty) return false;
     final rangeSquared = range * range;
-    for (final enemy in targetableEnemies) {
+    for (final enemy in targetableEnemies.toList()) {
       if ((enemy.position - origin).length2 <= rangeSquared) return true;
     }
     return false;
@@ -307,7 +309,7 @@ class ZenithZeroGame extends FlameGame {
     var rightmostX = -double.infinity;
     final heroPos = hero.position;
 
-    for (final enemy in activeEnemies) {
+    for (final enemy in activeEnemies.toList()) {
       if (!enemy.isAlive) continue;
       aliveEnemies.add(enemy);
 

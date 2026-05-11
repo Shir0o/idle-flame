@@ -14,7 +14,7 @@ void main() {
     addTearDown(state.dispose);
 
     // F5: No reward room
-    state.devJumpFloor(4); 
+    state.devJumpFloor(4);
     state.registerKill(isBoss: true);
     expect(state.pendingFloorReward, isFalse);
     expect(state.floor, 6);

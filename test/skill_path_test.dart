@@ -16,7 +16,7 @@ void main() {
   test('MetaState discovery awards embers and persists', () async {
     final meta = MetaState();
     await meta.load();
-    
+
     expect(meta.embers, 0);
     expect(meta.discoveredIds, isEmpty);
 
@@ -80,7 +80,7 @@ void main() {
 
     // EDGE tiers
     expect(state.edgeTier, PathTier.none);
-    
+
     state.devSetSkillLevel('chain', 3);
     expect(state.edgeTier, PathTier.initiate);
 
@@ -111,7 +111,7 @@ void main() {
     state.devSetSkillLevel('chain', 5);
     state.pendingEvolutionArchetype = SkillArchetype.chain;
     state.selectEvolution(1);
-    
+
     state.devForceLevelUp();
     expect(state.pendingFusionChoices, isEmpty);
 
@@ -126,24 +126,30 @@ void main() {
       state.devForceLevelUp();
       if (state.pendingFusionChoices.isNotEmpty) {
         found = true;
-        expect(state.pendingFusionChoices.first.definition.paths,
-            containsAll([SkillPath.edge, SkillPath.daemon]));
+        expect(
+          state.pendingFusionChoices.first.definition.paths,
+          containsAll([SkillPath.edge, SkillPath.daemon]),
+        );
         break;
       }
     }
-    expect(found, isTrue, reason: 'Fusion should be offered eventually when eligible');
+    expect(
+      found,
+      isTrue,
+      reason: 'Fusion should be offered eventually when eligible',
+    );
   });
 
   test('MetaState handles Sutras and Awakening correctly', () {
     final meta = MetaState();
-    
+
     // EDGE path archetypes: chain, barrage, sentinel, focus, rupture
     final edgeArchetypes = [
       SkillArchetype.chain,
       SkillArchetype.barrage,
       SkillArchetype.sentinel,
       SkillArchetype.focus,
-      SkillArchetype.rupture
+      SkillArchetype.rupture,
     ];
 
     expect(meta.isAwakened(SkillPath.edge), isFalse);
@@ -159,7 +165,7 @@ void main() {
     // Awakening
     meta.awakenPath(SkillPath.edge);
     expect(meta.isAwakened(SkillPath.edge), isTrue);
-    
+
     // Sutras should reset for that path
     for (final a in edgeArchetypes) {
       expect(meta.sutraCount(a), 0);
@@ -185,7 +191,7 @@ void main() {
 
   test('Cant effects apply correctly', () {
     final state = GameState();
-    
+
     // Force a Cant into pending to allow selection
     state.devJumpFloor(4); // floor 5
     state.devForceLevelUp();
@@ -195,7 +201,7 @@ void main() {
     final baseDmg = state.enemyBreachDamage;
     state.selectCant(cantId);
     expect(state.hasCant(cantId), isTrue);
-    
+
     if (cantId == 'bloodprice') {
       expect(state.enemyBreachDamage, baseDmg * 1.5);
     }

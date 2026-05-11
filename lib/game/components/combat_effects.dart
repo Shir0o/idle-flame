@@ -985,7 +985,9 @@ class FirewallEffect extends PositionComponent
     }
 
     // Floating Ancient Runes
-    final runeSpacing = level >= 20 ? 14.0 : (level >= 10 ? 21.0 : (level >= 5 ? 28.0 : 42.0));
+    final runeSpacing = level >= 20
+        ? 14.0
+        : (level >= 10 ? 21.0 : (level >= 5 ? 28.0 : 42.0));
     for (var x = rect.left + 20; x < rect.right; x += runeSpacing) {
       final drift = math.sin(_age * 5 + x) * 4;
       final rx = x;
@@ -1023,14 +1025,8 @@ class FirewallEffect extends PositionComponent
         ..color = Colors.white.withValues(alpha: alpha * 0.25)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4;
-      canvas.drawRect(
-        rect.inflate(40),
-        gatePaint,
-      );
-      canvas.drawRect(
-        rect.inflate(45),
-        gatePaint..strokeWidth = 1,
-      );
+      canvas.drawRect(rect.inflate(40), gatePaint);
+      canvas.drawRect(rect.inflate(45), gatePaint..strokeWidth = 1);
     }
   }
 }
@@ -1400,7 +1396,8 @@ class LaserBeamEffect extends PositionComponent
   }
 }
 
-class SigilHazard extends PositionComponent with HasGameReference<ZenithZeroGame> {
+class SigilHazard extends PositionComponent
+    with HasGameReference<ZenithZeroGame> {
   SigilHazard({required this.effectCenter}) : super(priority: 40);
 
   final Vector2 effectCenter;
@@ -1434,7 +1431,7 @@ class SigilHazard extends PositionComponent with HasGameReference<ZenithZeroGame
     final t = (_age / _duration).clamp(0.0, 1.0);
     final alpha = (1 - t) * 0.8;
     final pulse = 0.8 + 0.2 * math.sin(_age * 8);
-    
+
     _paint.color = const Color(0xFFBA68C8).withValues(alpha: alpha);
     _glow.color = const Color(0xFFBA68C8).withValues(alpha: alpha * 0.2);
 
@@ -1442,11 +1439,22 @@ class SigilHazard extends PositionComponent with HasGameReference<ZenithZeroGame
     final radius = 32.0 * pulse;
 
     canvas.drawCircle(center, radius * 1.5, _glow);
-    canvas.drawRect(Rect.fromCenter(center: center, width: radius * 2, height: radius * 2), _paint);
-    
+    canvas.drawRect(
+      Rect.fromCenter(center: center, width: radius * 2, height: radius * 2),
+      _paint,
+    );
+
     // Draw internal cross
-    canvas.drawLine(center.translate(-radius, -radius), center.translate(radius, radius), _paint);
-    canvas.drawLine(center.translate(radius, -radius), center.translate(-radius, radius), _paint);
+    canvas.drawLine(
+      center.translate(-radius, -radius),
+      center.translate(radius, radius),
+      _paint,
+    );
+    canvas.drawLine(
+      center.translate(radius, -radius),
+      center.translate(-radius, radius),
+      _paint,
+    );
   }
 }
 

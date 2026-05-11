@@ -118,8 +118,9 @@ class HeroComponent extends PositionComponent
     final radius = w * 0.15;
     final coreColor = game.state.nexusCoreColor;
 
-    final fill =
-        attacking ? Color.lerp(visual.body, coreColor, 0.45)! : visual.body;
+    final fill = attacking
+        ? Color.lerp(visual.body, coreColor, 0.45)!
+        : visual.body;
     final outline = attacking ? Colors.white : coreColor;
 
     final fillPaint = Paint()..color = fill;
@@ -291,7 +292,9 @@ class HeroComponent extends PositionComponent
 
     _firewallTimer += dt;
     final hasWallBandwidth = game.state.daemonBandwidth >= 20;
-    final wallCooldown = hasWallBandwidth ? GameState.firewallCooldown : GameState.firewallCooldown * 2.0;
+    final wallCooldown = hasWallBandwidth
+        ? GameState.firewallCooldown
+        : GameState.firewallCooldown * 2.0;
     if (game.state.firewallLevel > 0 && _firewallTimer >= wallCooldown) {
       _firewallTimer = 0;
       if (hasWallBandwidth) game.state.useBandwidth(20);
@@ -300,7 +303,9 @@ class HeroComponent extends PositionComponent
 
     _meteorTimer += dt;
     final hasMeteorBandwidth = game.state.daemonBandwidth >= 30;
-    final meteorCooldown = hasMeteorBandwidth ? GameState.meteorMarkCooldown : GameState.meteorMarkCooldown * 2.0;
+    final meteorCooldown = hasMeteorBandwidth
+        ? GameState.meteorMarkCooldown
+        : GameState.meteorMarkCooldown * 2.0;
     if (game.state.meteorMarkLevel > 0 && _meteorTimer >= meteorCooldown) {
       _meteorTimer = 0;
       if (hasMeteorBandwidth) game.state.useBandwidth(30);
@@ -316,7 +321,8 @@ class HeroComponent extends PositionComponent
 
     _summonTimer += dt;
     final summonEvo = game.state.getEvolution(SkillArchetype.summon);
-    final baseSummonCooldown = GameState.summonCooldown / (summonEvo == 1 ? 2.0 : 1.0);
+    final baseSummonCooldown =
+        GameState.summonCooldown / (summonEvo == 1 ? 2.0 : 1.0);
 
     if (game.state.summonLevel > 0 && _summonTimer >= baseSummonCooldown) {
       _summonTimer = 0;
@@ -407,7 +413,7 @@ class HeroComponent extends PositionComponent
   void _executeNetworkCrash() {
     game.shakeCamera(intensity: 10, duration: 0.8);
     game.audio.playSkillCast();
-    
+
     final enemies = _aliveEnemies().toList();
     for (final enemy in enemies) {
       if (game.canSpawnMinorEffect()) {
@@ -611,8 +617,9 @@ class HeroComponent extends PositionComponent
       final enemy = finalTargets[i];
       final delay = i * jumpInterval;
 
-      final prevTargetPos =
-          i == 0 ? position.clone() : finalTargets[i - 1].position.clone();
+      final prevTargetPos = i == 0
+          ? position.clone()
+          : finalTargets[i - 1].position.clone();
 
       // Quicksilver Triad: Focus damage stacks per hop
       double hopDamageMult = damageMult;
@@ -654,7 +661,8 @@ class HeroComponent extends PositionComponent
                 false,
                 false,
               );
-              if (focusEvo == 2) _applySplash(enemy.position, hopDamageMult * 0.3);
+              if (focusEvo == 2)
+                _applySplash(enemy.position, hopDamageMult * 0.3);
 
               // Storm Triad: Chain hops chill
               if (game.state.hasTriad('storm_triad')) {
@@ -694,7 +702,10 @@ class HeroComponent extends PositionComponent
         _stanceTarget = enemy;
         game.state.edgeStance = 1;
       }
-      _stanceTimer = game.state.activeModifiers.contains(FloorModifier.stanceStutter) ? 0.5 : 1.0;
+      _stanceTimer =
+          game.state.activeModifiers.contains(FloorModifier.stanceStutter)
+          ? 0.5
+          : 1.0;
     }
 
     if (_canSpawnAttackEffect(lowPriority: !isPrimary)) {
@@ -731,9 +742,9 @@ class HeroComponent extends PositionComponent
     // Inflection: Volatile (Final jump crits)
     if (game.state.hasInflection('chain_volatile') && !isPrimary) {
       // Check if this is the last target in the chain
-      // In _tryAttack, we iterate over finalTargets. 
+      // In _tryAttack, we iterate over finalTargets.
       // We'd need to pass a flag. For now, let's just make non-primary hits have a crit chance.
-      critMul = 3.0; 
+      critMul = 3.0;
     }
 
     // EDGE Adept: Phantom Slash
@@ -780,7 +791,7 @@ class HeroComponent extends PositionComponent
           ),
         );
       }
-      for (final other in _aliveEnemies()) {
+      for (final other in _aliveEnemies().toList()) {
         if (other != enemy &&
             (other.position - enemy.position).length2 <= 60 * 60) {
           other.takeDamage(
@@ -858,7 +869,9 @@ class HeroComponent extends PositionComponent
 
     final effectRadius = radius.isFinite ? radius : game.size.length;
     final finalRadius =
-        effectRadius * (novaLevel >= 5 ? 1.5 : 1.0) * (novaEvo == 2 ? 1.2 : 1.0);
+        effectRadius *
+        (novaLevel >= 5 ? 1.5 : 1.0) *
+        (novaEvo == 2 ? 1.2 : 1.0);
 
     // Storm Triad: Check for chilled clusters
     bool isIceStorm = false;
@@ -879,7 +892,8 @@ class HeroComponent extends PositionComponent
       );
 
       // Sutra 25 Perk: Afterglow
-      if (game.state.meta.hasSutraPerk(SkillArchetype.nova, 25) && !isAftershock) {
+      if (game.state.meta.hasSutraPerk(SkillArchetype.nova, 25) &&
+          !isAftershock) {
         parent?.add(
           TimerComponent(
             period: 1.0,
@@ -907,7 +921,7 @@ class HeroComponent extends PositionComponent
                   level: novaLevel,
                 ),
               );
-              for (final enemy in _aliveEnemies()) {
+              for (final enemy in _aliveEnemies().toList()) {
                 if ((enemy.position - position).length2 <=
                     (finalRadius * 0.6) * (finalRadius * 0.6)) {
                   enemy.takeDamage(
@@ -927,7 +941,9 @@ class HeroComponent extends PositionComponent
       if (novaLevel < 5 ||
           (enemy.position - position).length2 <= finalRadius * finalRadius) {
         enemy.takeDamage(
-          game.state.flameNovaDamage * finalDamageScale * (isIceStorm ? 1.5 : 1.0),
+          game.state.flameNovaDamage *
+              finalDamageScale *
+              (isIceStorm ? 1.5 : 1.0),
           source: position.clone(),
           type: DamageType.nova,
         );
@@ -976,11 +992,7 @@ class HeroComponent extends PositionComponent
     void addWall(Vector2 center, double w, int lvl, {double dmgMult = 1.0}) {
       if (game.canSpawnMajorEffect()) {
         parent?.add(
-          FirewallEffect(
-            effectCenter: center,
-            effectWidth: w,
-            level: lvl,
-          ),
+          FirewallEffect(effectCenter: center, effectWidth: w, level: lvl),
         );
       }
       final hitEnemies = _aliveEnemies().where((enemy) {
@@ -1035,11 +1047,7 @@ class HeroComponent extends PositionComponent
 
     // Level 5 Mastery: Dragon Gate (Secondary wall slightly ahead)
     if (firewallLevel >= 5) {
-      addWall(
-        Vector2(wallX, wallY - 100),
-        effectWidth * 0.8,
-        firewallLevel,
-      );
+      addWall(Vector2(wallX, wallY - 100), effectWidth * 0.8, firewallLevel);
     }
 
     // Magma Lane: Extra wall
@@ -1080,8 +1088,9 @@ class HeroComponent extends PositionComponent
       final baseCount = snakeEvo == 1 ? 4 : (level >= 4 ? 2 : 1);
       final count = doubled ? baseCount * 2 : baseCount;
       for (var i = 0; i < count; i++) {
-        final offset =
-            count > 1 ? Vector2((i - 0.5) * 30, (i - 0.5) * 30) : Vector2.zero();
+        final offset = count > 1
+            ? Vector2((i - 0.5) * 30, (i - 0.5) * 30)
+            : Vector2.zero();
         parent?.add(
           FireSnake(
             startPos: position + offset,
@@ -1116,8 +1125,9 @@ class HeroComponent extends PositionComponent
       final summonCount = (synergy ? 2 : 1) * (doubled ? 2 : 1);
 
       for (var i = 0; i < summonCount; i++) {
-        final offset =
-            synergy ? Vector2((i - 0.5) * 40, (i - 0.5) * 40) : Vector2.zero();
+        final offset = synergy
+            ? Vector2((i - 0.5) * 40, (i - 0.5) * 40)
+            : Vector2.zero();
         final pos = position + offset;
 
         // Wolf at L1
@@ -1306,7 +1316,7 @@ class HeroComponent extends PositionComponent
           ),
         );
       }
-      for (final enemy in _aliveEnemies()) {
+      for (final enemy in _aliveEnemies().toList()) {
         final insideWidth = (enemy.position.x - impactPos.x).abs() <= 100;
         final nearWall = (enemy.position.y - impactPos.y).abs() <= 28;
         if (insideWidth && nearWall) {
@@ -1319,7 +1329,7 @@ class HeroComponent extends PositionComponent
       }
     }
 
-    for (final enemy in _aliveEnemies()) {
+    for (final enemy in _aliveEnemies().toList()) {
       if ((enemy.position - impactPos).length2 <= radiusSq) {
         enemy.takeDamage(
           game.state.meteorMarkDamage * damageScale,
@@ -1357,7 +1367,7 @@ class HeroComponent extends PositionComponent
 
   void _applySplash(Vector2 center, double damageScale) {
     final blastRadiusSq = 64.0 * 64.0;
-    for (final enemy in _aliveEnemies()) {
+    for (final enemy in _aliveEnemies().toList()) {
       if ((enemy.position - center).length2 <= blastRadiusSq) {
         enemy.takeDamage(
           game.state.heroDamage * damageScale,

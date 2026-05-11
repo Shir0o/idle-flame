@@ -40,7 +40,7 @@ void main() {
 
     final choice = state.sutraRewardChoices.first;
     final initialSutra = state.meta.sutraCount(choice);
-    
+
     state.resolveSutraReward(choice);
 
     expect(state.pendingSutraReward, isFalse);
@@ -72,7 +72,7 @@ void main() {
 
     expect(state.lastBossRewardLabel, 'CIPHER TWIN DEFEATED');
     expect(state.lastBossRewardSubtitle, contains('Fusion offer guaranteed'));
-    // We can't easily test _forceFusionNext private field directly without 
+    // We can't easily test _forceFusionNext private field directly without
     // reflecting or checking _rollUpgradeChoices side effects.
     // But we verified it's set in game_state.dart.
   });
@@ -90,7 +90,7 @@ void main() {
     expect(state.meta.f25Unlocks.length, initialUnlockCount + 1);
     expect(state.lastBossRewardLabel, 'ARCHITECT DEFEATED');
     expect(state.lastBossRewardSubtitle, contains('PERMANENT UNLOCK:'));
-    
+
     final firstUnlock = state.meta.f25Unlocks.first;
     expect(MetaState.f25UnlockPool, contains(firstUnlock));
   });
@@ -113,12 +113,12 @@ void main() {
     // F25 Fallback (everything unlocked)
     state.devJumpFloor(9); // floor was 16, now 25
     expect(state.floor, 25);
-    
+
     // Fill unlocks
     for (var i = 0; i < MetaState.f25UnlockPool.length; i++) {
       state.meta.claimNextF25Unlock();
     }
-    
+
     state.registerKill(isBoss: true);
     expect(state.lastBossRewardSubtitle, '+500 embers');
   });
