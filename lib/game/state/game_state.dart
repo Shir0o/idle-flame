@@ -300,6 +300,22 @@ class GameState extends ChangeNotifier {
   DateTime? _lastKillAt;
   bool _embersAwardedThisRun = false;
 
+  // Floors v3 §4 — run summary recap. Per-run high-water marks tracked for
+  // the death-screen recap card. Reset in _resetPerRunMeta.
+  int bestStreakCount = 0;
+  double bestStreakSeconds = 0;
+  int _currentStreakCount = 0;
+  DateTime? _streakStartedAt;
+
+  FloorPhase? longestPhaseType;
+  int longestPhaseFloor = 0;
+  double longestPhaseDuration = 0;
+  double _phaseStartFloorTime = 0;
+
+  double worstDamageAmount = 0;
+  EnemyType? worstDamageSource;
+  int worstDamageFloor = 0;
+
   static const double maxNexusHp = 100;
   static const int killsPerFloor = 10;
   static const double baseDamage = 7;
@@ -640,6 +656,7 @@ class GameState extends ChangeNotifier {
 
     if (isBossFloor) {
       if (floorPhase != FloorPhase.crucible && floorTime >= 22.0) {
+        _finalizeCurrentPhase();
         floorPhase = FloorPhase.crucible;
         notifyListeners();
       }
@@ -647,9 +664,11 @@ class GameState extends ChangeNotifier {
     }
 
     if (floorPhase == FloorPhase.trickle && floorTime >= 10.0) {
+      _finalizeCurrentPhase();
       floorPhase = FloorPhase.press;
       notifyListeners();
     } else if (floorPhase == FloorPhase.press && floorTime >= 22.0) {
+      _finalizeCurrentPhase();
       floorPhase = FloorPhase.crucible;
       crucibleEvent ??=
           CrucibleEvent.values[_rng.nextInt(CrucibleEvent.values.length)];
@@ -664,10 +683,12 @@ class GameState extends ChangeNotifier {
   }
 
   void _advanceFloor() {
+    _finalizeCurrentPhase();
     killsOnFloor = 0;
     floor += 1;
     bossSpawned = false;
     floorTime = 0;
+    _phaseStartFloorTime = 0;
     floorPhase = FloorPhase.trickle;
     crucibleEvent = null;
     _networkCrashUsedThisFloor = false; // Reset for new floor
@@ -848,6 +869,18 @@ class GameState extends ChangeNotifier {
         _bountyStreakStacks = 0;
       }
       multiplier += _bountyStreakStacks * 0.05;
+    }
+    if (_lastKillAt != null &&
+        now.difference(_lastKillAt!).inMilliseconds <= 1000) {
+      _currentStreakCount++;
+    } else {
+      _currentStreakCount = 1;
+      _streakStartedAt = now;
+    }
+    if (_currentStreakCount >= bestStreakCount) {
+      bestStreakCount = _currentStreakCount;
+      bestStreakSeconds =
+          now.difference(_streakStartedAt!).inMilliseconds / 1000.0;
     }
     _lastKillAt = now;
 
@@ -1442,18 +1475,34 @@ class GameState extends ChangeNotifier {
 
   int skillLevel(String id) => _skillLevels[id] ?? 0;
 
-  void damageNexus(double amount) {
+  void damageNexus(double amount, {EnemyType? source}) {
     if (isRunOver || amount <= 0 || godMode) return;
     nexusHp = math.max(0, math.min(nexusMaxHp, nexusHp) - amount);
+    if (amount > worstDamageAmount) {
+      worstDamageAmount = amount;
+      worstDamageSource = source;
+      worstDamageFloor = floor;
+    }
     if (floorPhase == FloorPhase.crucible) {
       _crucibleCleanRun = false;
     }
     if (isRunOver) {
+      _finalizeCurrentPhase();
       _clearPending();
       _awardEmbersForRun();
     }
     notifyListeners();
     _saveSoon();
+  }
+
+  void _finalizeCurrentPhase() {
+    final duration = floorTime - _phaseStartFloorTime;
+    if (duration >= longestPhaseDuration) {
+      longestPhaseDuration = duration;
+      longestPhaseType = floorPhase;
+      longestPhaseFloor = floor;
+    }
+    _phaseStartFloorTime = floorTime;
   }
 
   void _awardEmbersForRun() {
@@ -1509,6 +1558,14 @@ class GameState extends ChangeNotifier {
     await prefs.remove(_kOldFirewallLevel);
     await prefs.remove(_kOldMeteorMarkLevel);
     await prefs.remove(_kOldDamageLevel);
+    await prefs.remove(_kRecapBestStreakCount);
+    await prefs.remove(_kRecapBestStreakSeconds);
+    await prefs.remove(_kRecapLongestPhaseType);
+    await prefs.remove(_kRecapLongestPhaseFloor);
+    await prefs.remove(_kRecapLongestPhaseDuration);
+    await prefs.remove(_kRecapWorstDamageAmount);
+    await prefs.remove(_kRecapWorstDamageSource);
+    await prefs.remove(_kRecapWorstDamageFloor);
     await _writeLastSeen(prefs);
 
     if (meta.prePick) _rollUpgradeChoices();
@@ -1525,6 +1582,17 @@ class GameState extends ChangeNotifier {
     _streakStacks = 0;
     _lastKillAt = null;
     _embersAwardedThisRun = false;
+    bestStreakCount = 0;
+    bestStreakSeconds = 0;
+    _currentStreakCount = 0;
+    _streakStartedAt = null;
+    longestPhaseType = null;
+    longestPhaseFloor = 0;
+    longestPhaseDuration = 0;
+    _phaseStartFloorTime = 0;
+    worstDamageAmount = 0;
+    worstDamageSource = null;
+    worstDamageFloor = 0;
     _iaidoTimer = 0;
     _satelliteTimer = 0;
     _networkCrashUsedThisFloor = false;
@@ -1548,6 +1616,22 @@ class GameState extends ChangeNotifier {
     devEnemyStrength = prefs.getDouble(_kDevEnemyStrength) ?? 1.0;
     nexusHp = (prefs.getDouble(_kNexusHp) ?? nexusMaxHp).clamp(0, nexusMaxHp);
     _resetPerRunMeta();
+    // Restore run-summary recap fields after the per-run reset so they
+    // survive an app restart on the Nexus Breached screen.
+    bestStreakCount = prefs.getInt(_kRecapBestStreakCount) ?? 0;
+    bestStreakSeconds = prefs.getDouble(_kRecapBestStreakSeconds) ?? 0;
+    final phaseIdx = prefs.getInt(_kRecapLongestPhaseType) ?? -1;
+    longestPhaseType = (phaseIdx >= 0 && phaseIdx < FloorPhase.values.length)
+        ? FloorPhase.values[phaseIdx]
+        : null;
+    longestPhaseFloor = prefs.getInt(_kRecapLongestPhaseFloor) ?? 0;
+    longestPhaseDuration = prefs.getDouble(_kRecapLongestPhaseDuration) ?? 0;
+    worstDamageAmount = prefs.getDouble(_kRecapWorstDamageAmount) ?? 0;
+    final srcIdx = prefs.getInt(_kRecapWorstDamageSource) ?? -1;
+    worstDamageSource = (srcIdx >= 0 && srcIdx < EnemyType.values.length)
+        ? EnemyType.values[srcIdx]
+        : null;
+    worstDamageFloor = prefs.getInt(_kRecapWorstDamageFloor) ?? 0;
     _skillLevels
       ..clear()
       ..addAll(_decodeSkillLevels(prefs.getStringList(_kSkillLevels)));
@@ -1606,6 +1690,20 @@ class GameState extends ChangeNotifier {
     await prefs.setStringList(_kSkillLevels, _encodeSkillLevels());
     await prefs.setStringList(_kEvolutions, _encodeEvolutions());
     await prefs.setStringList(_kPendingUpgrades, _pendingUpgradeIds);
+    await prefs.setInt(_kRecapBestStreakCount, bestStreakCount);
+    await prefs.setDouble(_kRecapBestStreakSeconds, bestStreakSeconds);
+    await prefs.setInt(
+      _kRecapLongestPhaseType,
+      longestPhaseType?.index ?? -1,
+    );
+    await prefs.setInt(_kRecapLongestPhaseFloor, longestPhaseFloor);
+    await prefs.setDouble(_kRecapLongestPhaseDuration, longestPhaseDuration);
+    await prefs.setDouble(_kRecapWorstDamageAmount, worstDamageAmount);
+    await prefs.setInt(
+      _kRecapWorstDamageSource,
+      worstDamageSource?.index ?? -1,
+    );
+    await prefs.setInt(_kRecapWorstDamageFloor, worstDamageFloor);
     await _writeLastSeen(prefs);
   }
 
@@ -2040,4 +2138,12 @@ class GameState extends ChangeNotifier {
   static const _kOldMeteorMarkLevel = 'meteorMarkLevel';
   static const _kOldDamageLevel = 'damageLevel';
   static const _kLastSeen = 'lastSeenAt';
+  static const _kRecapBestStreakCount = 'recapBestStreakCount';
+  static const _kRecapBestStreakSeconds = 'recapBestStreakSeconds';
+  static const _kRecapLongestPhaseType = 'recapLongestPhaseType';
+  static const _kRecapLongestPhaseFloor = 'recapLongestPhaseFloor';
+  static const _kRecapLongestPhaseDuration = 'recapLongestPhaseDuration';
+  static const _kRecapWorstDamageAmount = 'recapWorstDamageAmount';
+  static const _kRecapWorstDamageSource = 'recapWorstDamageSource';
+  static const _kRecapWorstDamageFloor = 'recapWorstDamageFloor';
 }
