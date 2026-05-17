@@ -84,6 +84,42 @@ void main() {
     expect(meta.dailyBests[key], (floor: 12, embers: 50));
   });
 
+  test('activeDailyKey is captured at start and used at run end', () async {
+    final meta = MetaState();
+    final state = GameState(meta: meta);
+    addTearDown(state.dispose);
+
+    await state.startDailyRun();
+    expect(state.isDaily, isTrue);
+    expect(state.activeDailyKey, MetaState.currentDailyKey());
+  });
+
+  test('isDaily and activeDailyKey reset on resetProgress', () async {
+    final meta = MetaState();
+    final state = GameState(meta: meta);
+    addTearDown(state.dispose);
+
+    await state.startDailyRun();
+    await state.resetProgress();
+    expect(state.isDaily, isFalse);
+    expect(state.activeDailyKey, isNull);
+  });
+
+  test('isDaily and activeDailyKey survive save/load', () async {
+    final meta = MetaState();
+    final state = GameState(meta: meta);
+    await state.startDailyRun();
+    final key = state.activeDailyKey;
+    state.dispose();
+
+    final meta2 = MetaState();
+    final state2 = GameState(meta: meta2);
+    addTearDown(state2.dispose);
+    await state2.load();
+    expect(state2.isDaily, isTrue);
+    expect(state2.activeDailyKey, key);
+  });
+
   test('daily best persists across MetaState load', () async {
     final meta = MetaState();
     const key = '2026-05-17';
