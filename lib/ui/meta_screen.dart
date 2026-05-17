@@ -55,7 +55,7 @@ class _MetaScreenState extends State<MetaScreen> {
                         else if (_tab == 1)
                           _KeystonesList(meta: meta)
                         else if (_tab == 2)
-                          _BestiaryList(meta: meta)
+                          BestiaryList(meta: meta)
                         else if (_tab == 3)
                           _CrucibleList(meta: meta)
                         else
@@ -545,8 +545,8 @@ class _KeystoneRow extends StatelessWidget {
   }
 }
 
-class _BestiaryList extends StatelessWidget {
-  const _BestiaryList({required this.meta});
+class BestiaryList extends StatelessWidget {
+  const BestiaryList({super.key, required this.meta});
   final MetaState meta;
 
   @override

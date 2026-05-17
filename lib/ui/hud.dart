@@ -96,6 +96,7 @@ class Hud extends StatelessWidget {
           Positioned.fill(child: _CantPicker()),
           Positioned.fill(child: _SutraRewardPicker()),
           Positioned.fill(child: _FloorRewardPicker()),
+          Positioned.fill(child: _CodexSlate()),
           Positioned.fill(child: _RunOverPanel()),
           Positioned(
             top: 12,
@@ -103,7 +104,15 @@ class Hud extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              children: [_FloorBadge(), SizedBox(height: 8), _ArsenalPanel()],
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [_FloorBadge(), SizedBox(width: 8), _CodexSlateButton()],
+                ),
+                SizedBox(height: 8),
+                _ArsenalPanel(),
+              ],
             ),
           ),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
@@ -3779,4 +3788,258 @@ class _BossRewardToastState extends State<_BossRewardToast>
       },
     );
   }
+}
+
+class _CodexSlateButton extends StatelessWidget {
+  const _CodexSlateButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.read<GameState>();
+    return _Panel(
+      child: InkWell(
+        onTap: state.openCodexSlate,
+        borderRadius: BorderRadius.circular(4),
+        child: const Padding(
+          padding: EdgeInsets.all(6),
+          child: Icon(Icons.menu_book, color: Color(0xFF64FFDA), size: 18),
+        ),
+      ),
+    );
+  }
+}
+
+class _CodexSlate extends StatelessWidget {
+  const _CodexSlate();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        if (!state.codexSlateOpen || state.isRunOver) {
+          return const SizedBox.shrink();
+        }
+        final meta = state.meta;
+        final allDiscovered = meta.discoveredIds.toList();
+        final recent = allDiscovered.length <= 5
+            ? allDiscovered.reversed.toList()
+            : allDiscovered
+                .sublist(allDiscovered.length - 5)
+                .reversed
+                .toList();
+
+        return ColoredBox(
+          color: Colors.black.withValues(alpha: 0.85),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    onPressed: state.closeCodexSlate,
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 56, 16, 16),
+                  child: SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'CODEX SLATE',
+                            style: TextStyle(
+                              color: Color(0xFF64FFDA),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Floor ${state.floor} · Run ${state.totalRuns}',
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _CodexSlateSection(
+                            title: 'THIS RUN',
+                            child: _ThisRunBlock(state: state),
+                          ),
+                          const SizedBox(height: 20),
+                          _CodexSlateSection(
+                            title: 'RECENT DISCOVERIES',
+                            child: _RecentDiscoveriesBlock(ids: recent),
+                          ),
+                          const SizedBox(height: 20),
+                          _CodexSlateSection(
+                            title: 'BESTIARY PEEK',
+                            child: BestiaryList(meta: meta),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CodexSlateSection extends StatelessWidget {
+  const _CodexSlateSection({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.amberAccent,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+
+class _ThisRunBlock extends StatelessWidget {
+  const _ThisRunBlock({required this.state});
+  final GameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final modifiers = state.runModifiersSeen.map(_codexModName).toList()..sort();
+    final crucibles = state.runCruciblesSurvived.map(_codexCrucibleName).toList()..sort();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _ThisRunRow(label: 'Modifiers seen', value: modifiers.isEmpty ? '—' : modifiers.join(', ')),
+        const SizedBox(height: 4),
+        _ThisRunRow(label: 'Crucibles survived', value: crucibles.isEmpty ? '—' : crucibles.join(', ')),
+        const SizedBox(height: 4),
+        _ThisRunRow(label: 'Bosses cleared', value: '${state.runBossesCleared}'),
+      ],
+    );
+  }
+}
+
+class _ThisRunRow extends StatelessWidget {
+  const _ThisRunRow({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 140,
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentDiscoveriesBlock extends StatelessWidget {
+  const _RecentDiscoveriesBlock({required this.ids});
+  final List<String> ids;
+
+  @override
+  Widget build(BuildContext context) {
+    if (ids.isEmpty) {
+      return const Text(
+        'No discoveries yet.',
+        style: TextStyle(color: Colors.white54, fontSize: 12),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: ids
+          .map(
+            (id) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  const Text('• ', style: TextStyle(color: Colors.amberAccent)),
+                  Expanded(
+                    child: Text(
+                      id,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                  const Text(
+                    '+5',
+                    style: TextStyle(color: Colors.amberAccent, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+String _codexCrucibleName(CrucibleEvent e) {
+  return switch (e) {
+    CrucibleEvent.pressure => 'Pressure',
+    CrucibleEvent.hivebreak => 'Hivebreak',
+    CrucibleEvent.sigilStorm => 'Sigil Storm',
+    CrucibleEvent.eclipse => 'Eclipse',
+    CrucibleEvent.quiet => 'Quiet',
+    CrucibleEvent.fractalPack => 'Fractal Pack',
+    CrucibleEvent.lastCant => 'Last Cant',
+    CrucibleEvent.bossEcho => 'Boss Echo',
+  };
+}
+
+String _codexModName(FloorModifier mod) {
+  return switch (mod) {
+    FloorModifier.bandwidthBlackout => 'Bandwidth Blackout',
+    FloorModifier.cinderDamp => 'Cinder Damp',
+    FloorModifier.stanceStutter => 'Stance Stutter',
+    FloorModifier.quickening => 'Quickening',
+    FloorModifier.solarFlare => 'Solar Flare',
+    FloorModifier.veilOfAsh => 'Veil of Ash',
+    FloorModifier.hereticTide => 'Heretic Tide',
+    FloorModifier.cipherStorm => 'Cipher Storm',
+    FloorModifier.echoTide => 'Echo Tide',
+    FloorModifier.discountKit => 'Discount Kit',
+    FloorModifier.manaBloom => 'Mana Bloom',
+    FloorModifier.glyphCache => 'Glyph Cache',
+  };
 }

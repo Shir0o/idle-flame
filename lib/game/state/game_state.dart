@@ -194,6 +194,17 @@ class GameState extends ChangeNotifier {
   // consumed by `_advanceFloor` instead of rolling fresh.
   Set<FloorModifier>? previewedNextFloorModifiers;
 
+  // Floors v3 §3 — In-run Codex slate. Tracks per-run beats surfaced in the
+  // pause overlay. All three reset on `_resetPerRunMeta`.
+  final Set<FloorModifier> runModifiersSeen = {};
+  final Set<CrucibleEvent> runCruciblesSurvived = {};
+  int runBossesCleared = 0;
+
+  // Floors v3 §3 — set when the in-run Codex slate is open. Routed through
+  // `hasPendingLevelUp` so the existing spawner / hero / FX pause gates all
+  // honor it without per-call-site changes.
+  bool codexSlateOpen = false;
+
   void triggerCounterTip(EnemyType type) {
     final copy = _counterTipCopy(type);
     if (copy == null) return;
@@ -707,6 +718,10 @@ class GameState extends ChangeNotifier {
 
   void _advanceFloor() {
     _finalizeCurrentPhase();
+    // Floors v3 §3 — record what we just left for the in-run Codex slate.
+    if (crucibleEvent != null) {
+      runCruciblesSurvived.add(crucibleEvent!);
+    }
     killsOnFloor = 0;
     floor += 1;
     bossSpawned = false;
@@ -731,6 +746,8 @@ class GameState extends ChangeNotifier {
     activeEchoes
       ..clear()
       ..addAll(_computeEchoesForFloor(floor));
+
+    runModifiersSeen.addAll(activeModifiers);
 
     if (activeModifiers.contains(FloorModifier.manaBloom)) {
       hexCinder = 50.0;
@@ -781,7 +798,20 @@ class GameState extends ChangeNotifier {
   bool get hasPendingLevelUp =>
       _pendingUpgradeIds.isNotEmpty ||
       _pendingFusionIds.isNotEmpty ||
-      _pendingCantIds.isNotEmpty;
+      _pendingCantIds.isNotEmpty ||
+      codexSlateOpen;
+
+  void openCodexSlate() {
+    if (codexSlateOpen) return;
+    codexSlateOpen = true;
+    notifyListeners();
+  }
+
+  void closeCodexSlate() {
+    if (!codexSlateOpen) return;
+    codexSlateOpen = false;
+    notifyListeners();
+  }
   List<SkillChoice> get pendingChoices =>
       _pendingUpgradeIds.map(_choiceFor).nonNulls.toList(growable: false);
   List<FusionChoice> get pendingFusionChoices => _pendingFusionIds
@@ -931,6 +961,7 @@ class GameState extends ChangeNotifier {
 
     if (isBossFloor && isBoss) {
       isBossActive = false;
+      runBossesCleared += 1;
       _grantBossReward(floor);
 
       // Floors v3 §2 — reward rooms every boss floor from F10 onward
@@ -1668,6 +1699,10 @@ class GameState extends ChangeNotifier {
     previewedNextFloorModifiers = null;
     pendingFloorReward = false;
     floorRewardChoices = [];
+    runModifiersSeen.clear();
+    runCruciblesSurvived.clear();
+    runBossesCleared = 0;
+    codexSlateOpen = false;
   }
 
   Future<void> load() async {
