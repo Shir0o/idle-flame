@@ -112,8 +112,32 @@ class GameState extends ChangeNotifier {
 
   static const String devAccessKey = 'TWANGPRO';
 
-  final math.Random _rng;
+  math.Random _rng;
   final MetaState meta;
+
+  // Floors v3 §5 — set true for the duration of a Daily Descent run. Resets
+  // to false on the next resetProgress unless that reset is itself a daily.
+  bool isDaily = false;
+
+  // Stable, deterministic seed derived from a `YYYY-MM-DD` UTC key. All
+  // players running today's daily get the same modifier / Crucible / boon
+  // rolls because every RNG-using site in this class shares `_rng`.
+  static int dailySeedFor(String key) {
+    int hash = 0;
+    for (final code in key.codeUnits) {
+      hash = (hash * 31 + code) & 0x7fffffff;
+    }
+    return hash;
+  }
+
+  Future<void> startDailyRun() async {
+    final today = MetaState.currentDailyKey();
+    if (meta.dailyBests.containsKey(today)) return;
+    _rng = math.Random(dailySeedFor(today));
+    await resetProgress();
+    isDaily = true;
+    notifyListeners();
+  }
 
   int gold = 0;
   int floor = 1;
@@ -1613,6 +1637,11 @@ class GameState extends ChangeNotifier {
 
     final earned = floor * 5 + runKills;
     if (earned > 0) meta.awardEmbers(earned);
+
+    // Floors v3 §5 — Daily Descent best, scoped to today's UTC date key.
+    if (isDaily) {
+      meta.recordDailyBest(MetaState.currentDailyKey(), floor, earned);
+    }
   }
 
   void clearVoidReward() {
@@ -1703,6 +1732,7 @@ class GameState extends ChangeNotifier {
     runCruciblesSurvived.clear();
     runBossesCleared = 0;
     codexSlateOpen = false;
+    isDaily = false;
   }
 
   Future<void> load() async {

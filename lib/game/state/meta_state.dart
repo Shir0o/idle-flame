@@ -17,8 +17,33 @@ class MetaState extends ChangeNotifier {
   final Map<SkillPath, bool> _awakenings = {};
   final Set<String> _f25Unlocks = {};
 
+  // Floors v3 §5 — Daily Descent. Keyed by `YYYY-MM-DD` UTC. Records the
+  // best peak floor and embers earned for each date the player attempted.
+  final Map<String, ({int floor, int embers})> _dailyBests = {};
+
   Set<String> get discoveredIds => Set.unmodifiable(_discoveredIds);
   Set<String> get f25Unlocks => Set.unmodifiable(_f25Unlocks);
+  Map<String, ({int floor, int embers})> get dailyBests =>
+      Map.unmodifiable(_dailyBests);
+
+  static String currentDailyKey() {
+    final now = DateTime.now().toUtc();
+    final y = now.year.toString().padLeft(4, '0');
+    final m = now.month.toString().padLeft(2, '0');
+    final d = now.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  void recordDailyBest(String key, int floor, int embers) {
+    final existing = _dailyBests[key];
+    if (existing == null ||
+        floor > existing.floor ||
+        (floor == existing.floor && embers > existing.embers)) {
+      _dailyBests[key] = (floor: floor, embers: embers);
+      notifyListeners();
+      _save();
+    }
+  }
 
   static const List<String> f25UnlockPool = [
     'Nexus Skin: Obsidian',
@@ -207,7 +232,25 @@ class MetaState extends ChangeNotifier {
     _f25Unlocks
       ..clear()
       ..addAll(prefs.getStringList(_kF25Unlocks) ?? const []);
+    _dailyBests
+      ..clear()
+      ..addAll(_decodeDailyBests(prefs.getStringList(_kDailyBests)));
     notifyListeners();
+  }
+
+  Map<String, ({int floor, int embers})> _decodeDailyBests(
+    List<String>? encoded,
+  ) {
+    final map = <String, ({int floor, int embers})>{};
+    for (final item in encoded ?? const <String>[]) {
+      final parts = item.split('|');
+      if (parts.length != 3) continue;
+      final floor = int.tryParse(parts[1]);
+      final embers = int.tryParse(parts[2]);
+      if (floor == null || embers == null) continue;
+      map[parts[0]] = (floor: floor, embers: embers);
+    }
+    return map;
   }
 
   Future<void> _save() async {
@@ -232,6 +275,12 @@ class MetaState extends ChangeNotifier {
       _awakenings.entries.where((e) => e.value).map((e) => e.key.name).toList(),
     );
     await prefs.setStringList(_kF25Unlocks, _f25Unlocks.toList());
+    await prefs.setStringList(
+      _kDailyBests,
+      _dailyBests.entries
+          .map((e) => '${e.key}|${e.value.floor}|${e.value.embers}')
+          .toList(),
+    );
   }
 
   Future<void> wipe() async {
@@ -243,6 +292,7 @@ class MetaState extends ChangeNotifier {
     _sutras.clear();
     _awakenings.clear();
     _f25Unlocks.clear();
+    _dailyBests.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kEmbers);
     await prefs.remove(_kUpgrades);
@@ -251,6 +301,7 @@ class MetaState extends ChangeNotifier {
     await prefs.remove(_kSutras);
     await prefs.remove(_kAwakenings);
     await prefs.remove(_kF25Unlocks);
+    await prefs.remove(_kDailyBests);
     notifyListeners();
   }
 
@@ -300,4 +351,5 @@ class MetaState extends ChangeNotifier {
   static const _kSutras = 'meta_sutras';
   static const _kAwakenings = 'meta_awakenings';
   static const _kF25Unlocks = 'meta_f25_unlocks';
+  static const _kDailyBests = 'meta_daily_bests';
 }
