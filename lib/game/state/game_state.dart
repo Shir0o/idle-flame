@@ -35,6 +35,8 @@ enum CrucibleEvent {
   bossEcho,
 }
 
+enum EchoType { watcher, sovereign, hivefather, twin }
+
 enum FloorModifier {
   bandwidthBlackout,
   cinderDamp,
@@ -127,6 +129,10 @@ class GameState extends ChangeNotifier {
   FloorPhase floorPhase = FloorPhase.trickle;
   CrucibleEvent? crucibleEvent;
   final Set<FloorModifier> activeModifiers = {};
+  // Architect Echoes — empty on F25 (trophy clear) and non-boss floors; one
+  // or more entries on F30+ boss floors (the Endless arc). Computed in
+  // _advanceFloor when entering a F≥30 boss floor.
+  final List<EchoType> activeEchoes = [];
   double floorTime = 0;
 
   bool get isBossFloor => floor % 5 == 0;
@@ -678,6 +684,10 @@ class GameState extends ChangeNotifier {
       }
     }
 
+    activeEchoes
+      ..clear()
+      ..addAll(_computeEchoesForFloor(floor));
+
     if (activeModifiers.contains(FloorModifier.manaBloom)) {
       hexCinder = 50.0;
     }
@@ -873,6 +883,24 @@ class GameState extends ChangeNotifier {
     _saveSoon();
   }
 
+  // Architect Echo selection (Floors v3 §1). Empty for any floor that isn't
+  // a F30+ architect floor. F30/35/40/45 each carry one echo; the stack grows
+  // by one every 20 floors and caps at all four.
+  static const List<EchoType> _echoCycle = [
+    EchoType.watcher,
+    EchoType.sovereign,
+    EchoType.hivefather,
+    EchoType.twin,
+  ];
+
+  List<EchoType> _computeEchoesForFloor(int f) {
+    if (f < 30 || f % 5 != 0) return const [];
+    final stack = (f - 30) ~/ 20;
+    final count = (stack + 1).clamp(1, _echoCycle.length);
+    final start = ((f - 30) ~/ 5) % _echoCycle.length;
+    return [for (var i = 0; i < count; i++) _echoCycle[(start + i) % _echoCycle.length]];
+  }
+
   // Tiered boss-floor rewards. Called once per boss kill, before the floor
   // advances. Sets lastBossRewardLabel for the HUD toast and dispatches the
   // actual rewards (embers, sutras, fusion guarantees) into meta state.
@@ -942,14 +970,39 @@ class GameState extends ChangeNotifier {
           lastBossRewardSubtitle = '+500 embers';
         }
       default:
-        // Architect respawns on floors 30+. Scale a smaller ember reward so
-        // late-game grinding still pays out without dwarfing the F25 trophy.
-        final reward = 50 + floorBeingCleared * 5;
+        // Architect Echoes (Floors v3 §1). Endless floors F30+ award a
+        // compounding ember payout, plus a one-time +25 Codex bounty the
+        // first time each echo type is cleared.
+        final reward = 100 + floorBeingCleared * 10;
         meta.awardEmbers(reward);
-        lastBossRewardLabel = 'BOSS DEFEATED';
-        lastBossRewardSubtitle = '+$reward embers';
+        final echoes = activeEchoes.isNotEmpty
+            ? activeEchoes
+            : _computeEchoesForFloor(floorBeingCleared);
+        final firstClears = <String>[];
+        for (final echo in echoes) {
+          if (meta.recordDiscovery('echo:${echo.name}', reward: 25)) {
+            firstClears.add(_echoDisplayName(echo));
+          }
+        }
+        lastBossRewardLabel = 'ARCHITECT ECHO DEFEATED';
+        if (firstClears.isEmpty) {
+          lastBossRewardSubtitle = '+$reward embers';
+        } else {
+          lastBossRewardSubtitle =
+              '+$reward embers · Codex: ${firstClears.join(", ")}';
+        }
     }
   }
+
+  static String _echoDisplayName(EchoType echo) => switch (echo) {
+        EchoType.watcher => 'Echo of the Watcher',
+        EchoType.sovereign => 'Echo of the Sovereign',
+        EchoType.hivefather => 'Echo of the Hivefather',
+        EchoType.twin => 'Echo of the Twin',
+      };
+
+  // Public so the spawner / HUD can format telegraph and Codex copy.
+  static String echoDisplayName(EchoType echo) => _echoDisplayName(echo);
 
   List<SkillArchetype> _rollSutraChoices() {
     // 3 archetypes the player owns, or all if none/few owned
@@ -1512,6 +1565,12 @@ class GameState extends ChangeNotifier {
     if (hasPendingLevelUp) {
       _startAutoSelectTimer();
     }
+
+    // Restore Architect Echoes when resuming on a F30+ boss floor — the
+    // active-echo list isn't persisted (it's a pure function of `floor`).
+    activeEchoes
+      ..clear()
+      ..addAll(_computeEchoesForFloor(floor));
 
     final lastSeen = prefs.getInt(_kLastSeen);
     if (lastSeen != null) {

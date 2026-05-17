@@ -226,12 +226,30 @@ class EnemySpawner extends Component with HasGameReference<ZenithZeroGame> {
         name: 'CIPHER TWIN',
         hint: 'Alternating immunities. Mixed paths win.',
       ),
-      _ => (
+      25 => (
         name: 'THE ARCHITECT',
         hint: "Everything you've learned. No hints.",
       ),
+      _ => (
+        name: 'THE ARCHITECT',
+        hint: _architectEchoHint(),
+      ),
     };
   }
+
+  String _architectEchoHint() {
+    final echoes = game.state.activeEchoes;
+    if (echoes.isEmpty) return "Everything you've learned. No hints.";
+    final hints = echoes.map(_echoTelegraphLine).join(' · ');
+    return hints;
+  }
+
+  String _echoTelegraphLine(EchoType echo) => switch (echo) {
+        EchoType.watcher => 'Echo of the Watcher. Shielded adds return.',
+        EchoType.sovereign => 'Echo of the Sovereign. Splash glances off above 50%.',
+        EchoType.hivefather => 'Echo of the Hivefather. Sustains through the brood.',
+        EchoType.twin => 'Echo of the Twin. Immunity rotates.',
+      };
 
   void _spawnSpecific(EnemyType type, {double hpScale = 1.0}) {
     final size = game.size;

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../audio/game_audio.dart';
 import '../zenith_zero_game.dart';
+import '../state/game_state.dart' show EchoType;
 import '../state/skill_catalog.dart';
 import 'combat_effects.dart';
 import 'damage_text.dart';
@@ -103,6 +104,13 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
   double _burnDps = 0;
   double _freezeTimer = 0;
   double _bossActionTimer = 0;
+  // Architect Echo state (Floors v3 §1). Only meaningful when `type ==
+  // architect` and `game.state.activeEchoes` is non-empty.
+  final Set<int> _watcherEchoThresholdsHit = {};
+  double _hiveEchoHealTimer = 0;
+  double _twinEchoTimer = 0;
+  int _twinEchoCursor = 0;
+  DamageType? _architectImmunity;
   int _slowStacks = 0;
   bool _hasBeenFrozen = false;
   bool _executeMarked = false;
@@ -635,6 +643,10 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
       }
     }
 
+    if (type == EnemyType.architect && game.state.activeEchoes.isNotEmpty) {
+      _updateArchitectEchoes(dt);
+    }
+
     final hero = game.hero;
     final toHero = hero.position - position;
     final dist = toHero.length;
@@ -684,6 +696,80 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
           type: EnemyType.watcherAdd,
         ),
       );
+    }
+  }
+
+  // Splash / AoE damage types — used by the Sovereign Echo's "splash glances
+  // off" check (Floors v3 §1). Single-target attacks (basic, sentinel,
+  // daemon) still land, matching the original F10 Glass Sovereign hint.
+  static const Set<DamageType> _splashDamageTypes = {
+    DamageType.nova,
+    DamageType.firewall,
+    DamageType.meteor,
+    DamageType.mothership,
+    DamageType.rupture,
+    DamageType.hex,
+  };
+
+  // Damage types eligible for the Twin Echo's rotating immunity. Excludes
+  // `basic` so the auto-attack never freezes out entirely (matching the
+  // Cipher Storm rotation in game_state).
+  static const List<DamageType> _twinEchoImmunityRotation = [
+    DamageType.nova,
+    DamageType.firewall,
+    DamageType.meteor,
+    DamageType.sentinel,
+    DamageType.mothership,
+    DamageType.rupture,
+    DamageType.hex,
+    DamageType.daemon,
+  ];
+
+  // Architect Echo tuning constants (Floors v3 §1).
+  static const List<int> _watcherEchoHpThresholdsPct = [75, 50, 25];
+  static const double _hiveEchoHealInterval = 2.0;
+  static const double _hiveEchoHealRadiusSq = 200 * 200;
+  static const double _hiveEchoHealPctPerAlly = 0.01;
+  static const double _twinEchoRotateInterval = 3.0;
+
+  void _updateArchitectEchoes(double dt) {
+    final echoes = game.state.activeEchoes;
+
+    if (echoes.contains(EchoType.watcher)) {
+      final hpFrac = hp / maxHp;
+      for (final threshold in _watcherEchoHpThresholdsPct) {
+        if (hpFrac <= threshold / 100 &&
+            _watcherEchoThresholdsHit.add(threshold)) {
+          _watcherSpawnAdds();
+        }
+      }
+    }
+
+    if (echoes.contains(EchoType.hivefather)) {
+      _hiveEchoHealTimer += dt;
+      if (_hiveEchoHealTimer >= _hiveEchoHealInterval) {
+        _hiveEchoHealTimer = 0;
+        final allies = _otherAliveEnemies()
+            .where((e) => (e.position - position).length2 < _hiveEchoHealRadiusSq)
+            .length;
+        if (allies > 0) {
+          final heal = maxHp * _hiveEchoHealPctPerAlly * allies;
+          hp = (hp + heal).clamp(0, maxHp);
+          _flashTimer = 0.12;
+          _color = Colors.greenAccent;
+        }
+      }
+    }
+
+    if (echoes.contains(EchoType.twin)) {
+      _twinEchoTimer += dt;
+      if (_architectImmunity == null ||
+          _twinEchoTimer >= _twinEchoRotateInterval) {
+        _twinEchoTimer = 0;
+        _architectImmunity = _twinEchoImmunityRotation[
+            _twinEchoCursor % _twinEchoImmunityRotation.length];
+        _twinEchoCursor++;
+      }
     }
   }
 
@@ -741,6 +827,24 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
       _flashTimer = 0.1;
       _color = const Color(0xFFFFFFFF);
       return;
+    }
+
+    // Architect Echoes — block damage on twin (rotating immunity) or
+    // sovereign (splash glances off above 50% HP). See Floors v3 §1.
+    if (this.type == EnemyType.architect) {
+      final echoes = game.state.activeEchoes;
+      if (echoes.contains(EchoType.twin) && _architectImmunity == type) {
+        _flashTimer = 0.1;
+        _color = const Color(0xFFFFFFFF);
+        return;
+      }
+      if (echoes.contains(EchoType.sovereign) &&
+          hp / maxHp > 0.5 &&
+          _splashDamageTypes.contains(type)) {
+        _flashTimer = 0.1;
+        _color = const Color(0xFFB388FF);
+        return;
+      }
     }
 
     if (_shielded) {

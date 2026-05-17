@@ -443,6 +443,21 @@ class _BestiaryList extends StatelessWidget {
               )
               .toList(),
         ),
+        const SizedBox(height: 16),
+        const _CodexHeader(title: 'ARCHITECT ECHOES'),
+        _CodexGrid(
+          items: EchoType.values
+              .map(
+                (e) => _CodexItem(
+                  id: 'echo:${e.name}',
+                  name: GameState.echoDisplayName(e),
+                  icon: Icons.auto_awesome,
+                  color: const Color(0xFFB388FF),
+                  discovered: meta.discoveredIds.contains('echo:${e.name}'),
+                ),
+              )
+              .toList(),
+        ),
       ],
     );
   }
