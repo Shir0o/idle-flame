@@ -975,9 +975,9 @@ class GameState extends ChangeNotifier {
         // first time each echo type is cleared.
         final reward = 100 + floorBeingCleared * 10;
         meta.awardEmbers(reward);
-        final echoes = activeEchoes.isEmpty
-            ? _computeEchoesForFloor(floorBeingCleared)
-            : List<EchoType>.from(activeEchoes);
+        final echoes = activeEchoes.isNotEmpty
+            ? activeEchoes
+            : _computeEchoesForFloor(floorBeingCleared);
         final firstClears = <String>[];
         for (final echo in echoes) {
           if (meta.recordDiscovery('echo:${echo.name}', reward: 25)) {

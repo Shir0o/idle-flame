@@ -725,12 +725,19 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     DamageType.daemon,
   ];
 
+  // Architect Echo tuning constants (Floors v3 §1).
+  static const List<int> _watcherEchoHpThresholdsPct = [75, 50, 25];
+  static const double _hiveEchoHealInterval = 2.0;
+  static const double _hiveEchoHealRadiusSq = 200 * 200;
+  static const double _hiveEchoHealPctPerAlly = 0.01;
+  static const double _twinEchoRotateInterval = 3.0;
+
   void _updateArchitectEchoes(double dt) {
     final echoes = game.state.activeEchoes;
 
     if (echoes.contains(EchoType.watcher)) {
       final hpFrac = hp / maxHp;
-      for (final threshold in const [75, 50, 25]) {
+      for (final threshold in _watcherEchoHpThresholdsPct) {
         if (hpFrac <= threshold / 100 &&
             _watcherEchoThresholdsHit.add(threshold)) {
           _watcherSpawnAdds();
@@ -740,13 +747,13 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
     if (echoes.contains(EchoType.hivefather)) {
       _hiveEchoHealTimer += dt;
-      if (_hiveEchoHealTimer >= 2.0) {
+      if (_hiveEchoHealTimer >= _hiveEchoHealInterval) {
         _hiveEchoHealTimer = 0;
         final allies = _otherAliveEnemies()
-            .where((e) => (e.position - position).length2 < 200 * 200)
+            .where((e) => (e.position - position).length2 < _hiveEchoHealRadiusSq)
             .length;
         if (allies > 0) {
-          final heal = maxHp * 0.01 * allies;
+          final heal = maxHp * _hiveEchoHealPctPerAlly * allies;
           hp = (hp + heal).clamp(0, maxHp);
           _flashTimer = 0.12;
           _color = Colors.greenAccent;
@@ -756,7 +763,8 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
 
     if (echoes.contains(EchoType.twin)) {
       _twinEchoTimer += dt;
-      if (_architectImmunity == null || _twinEchoTimer >= 3.0) {
+      if (_architectImmunity == null ||
+          _twinEchoTimer >= _twinEchoRotateInterval) {
         _twinEchoTimer = 0;
         _architectImmunity = _twinEchoImmunityRotation[
             _twinEchoCursor % _twinEchoImmunityRotation.length];
