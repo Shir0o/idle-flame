@@ -119,6 +119,11 @@ class GameState extends ChangeNotifier {
   // to false on the next resetProgress unless that reset is itself a daily.
   bool isDaily = false;
 
+  // The date key captured at startDailyRun. Used at run-end so a run that
+  // spans UTC midnight still records its result against the date the run
+  // *started* on, not the date the player happened to die on.
+  String? activeDailyKey;
+
   // Stable, deterministic seed derived from a `YYYY-MM-DD` UTC key. All
   // players running today's daily get the same modifier / Crucible / boon
   // rolls because every RNG-using site in this class shares `_rng`.
@@ -136,7 +141,9 @@ class GameState extends ChangeNotifier {
     _rng = math.Random(dailySeedFor(today));
     await resetProgress();
     isDaily = true;
+    activeDailyKey = today;
     notifyListeners();
+    await save();
   }
 
   int gold = 0;
@@ -1638,9 +1645,12 @@ class GameState extends ChangeNotifier {
     final earned = floor * 5 + runKills;
     if (earned > 0) meta.awardEmbers(earned);
 
-    // Floors v3 §5 — Daily Descent best, scoped to today's UTC date key.
-    if (isDaily) {
-      meta.recordDailyBest(MetaState.currentDailyKey(), floor, earned);
+    // Floors v3 §5 — Daily Descent best, scoped to the key captured when the
+    // run started so a run that spans UTC midnight records against the right
+    // date.
+    final key = activeDailyKey;
+    if (isDaily && key != null) {
+      meta.recordDailyBest(key, floor, earned);
     }
   }
 
@@ -1692,6 +1702,8 @@ class GameState extends ChangeNotifier {
     await prefs.remove(_kRecapWorstDamageAmount);
     await prefs.remove(_kRecapWorstDamageSource);
     await prefs.remove(_kRecapWorstDamageFloor);
+    await prefs.remove(_kIsDaily);
+    await prefs.remove(_kActiveDailyKey);
     await _writeLastSeen(prefs);
 
     if (meta.prePick) _rollUpgradeChoices();
@@ -1733,6 +1745,7 @@ class GameState extends ChangeNotifier {
     runBossesCleared = 0;
     codexSlateOpen = false;
     isDaily = false;
+    activeDailyKey = null;
   }
 
   Future<void> load() async {
@@ -1769,6 +1782,10 @@ class GameState extends ChangeNotifier {
         ? EnemyType.values[srcIdx]
         : null;
     worstDamageFloor = prefs.getInt(_kRecapWorstDamageFloor) ?? 0;
+    // Floors v3 §5 — restore daily-run flag and key so an app restart in the
+    // middle of a daily attempt still records against the correct date.
+    isDaily = prefs.getBool(_kIsDaily) ?? false;
+    activeDailyKey = prefs.getString(_kActiveDailyKey);
     _skillLevels
       ..clear()
       ..addAll(_decodeSkillLevels(prefs.getStringList(_kSkillLevels)));
@@ -1841,6 +1858,13 @@ class GameState extends ChangeNotifier {
       worstDamageSource?.index ?? -1,
     );
     await prefs.setInt(_kRecapWorstDamageFloor, worstDamageFloor);
+    await prefs.setBool(_kIsDaily, isDaily);
+    final dailyKey = activeDailyKey;
+    if (dailyKey == null) {
+      await prefs.remove(_kActiveDailyKey);
+    } else {
+      await prefs.setString(_kActiveDailyKey, dailyKey);
+    }
     await _writeLastSeen(prefs);
   }
 
@@ -2283,4 +2307,6 @@ class GameState extends ChangeNotifier {
   static const _kRecapWorstDamageAmount = 'recapWorstDamageAmount';
   static const _kRecapWorstDamageSource = 'recapWorstDamageSource';
   static const _kRecapWorstDamageFloor = 'recapWorstDamageFloor';
+  static const _kIsDaily = 'isDaily';
+  static const _kActiveDailyKey = 'activeDailyKey';
 }
