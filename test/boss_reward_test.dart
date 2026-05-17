@@ -109,6 +109,11 @@ void main() {
     }
     state.registerKill(isBoss: true);
     expect(state.lastBossRewardSubtitle, '+100 embers');
+    // Floors v3 §2 — F15 now also opens a reward room; clear it before
+    // jumping to F25.
+    if (state.pendingFloorReward) {
+      state.resolveFloorReward(FloorBoon.gold25);
+    }
 
     // F25 Fallback (everything unlocked)
     state.devJumpFloor(9); // floor was 16, now 25

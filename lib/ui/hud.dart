@@ -690,7 +690,12 @@ class _FloorBadgeState extends State<_FloorBadge> {
     }
   }
 
-  String _modName(FloorModifier mod) {
+  String _modName(FloorModifier mod) => _floorModName(mod);
+  IconData _modIcon(FloorModifier mod) => _floorModIcon(mod);
+  Color _modColor(FloorModifier mod) => _floorModColor(mod);
+}
+
+String _floorModName(FloorModifier mod) {
     switch (mod) {
       case FloorModifier.bandwidthBlackout:
         return 'Bandwidth Blackout';
@@ -717,9 +722,9 @@ class _FloorBadgeState extends State<_FloorBadge> {
       case FloorModifier.glyphCache:
         return 'Glyph Cache';
     }
-  }
+}
 
-  IconData _modIcon(FloorModifier mod) {
+IconData _floorModIcon(FloorModifier mod) {
     switch (mod) {
       case FloorModifier.bandwidthBlackout:
         return Icons.wifi_off;
@@ -746,9 +751,9 @@ class _FloorBadgeState extends State<_FloorBadge> {
       case FloorModifier.glyphCache:
         return Icons.diamond;
     }
-  }
+}
 
-  Color _modColor(FloorModifier mod) {
+Color _floorModColor(FloorModifier mod) {
     switch (mod) {
       case FloorModifier.bandwidthBlackout:
       case FloorModifier.cinderDamp:
@@ -765,7 +770,6 @@ class _FloorBadgeState extends State<_FloorBadge> {
       case FloorModifier.glyphCache:
         return const Color(0xFF64FFDA); // Cyan for boons
     }
-  }
 }
 
 class _GoldBadge extends StatelessWidget {
@@ -2502,6 +2506,13 @@ class _FloorRewardPicker extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
+                      if (state.previewedNextFloorModifiers != null) ...[
+                        const SizedBox(height: 16),
+                        _PreviewModifierStrip(
+                          modifiers: state.previewedNextFloorModifiers!,
+                          nextFloor: state.floor + 1,
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       ...choices.map((boon) {
                         final copy = _boonCopy(boon);
@@ -2554,7 +2565,91 @@ class _FloorRewardPicker extends StatelessWidget {
       title: 'Core Purge',
       description: 'Ignore the next Heretic Cant offer.',
     ),
+    FloorBoon.inflectionSpark => (
+      title: 'Inflection Spark',
+      description:
+          'Skill picks offer Inflection options even on level 1 until you take one.',
+    ),
+    FloorBoon.pathResonance => (
+      title: 'Path Resonance',
+      description: '+1 stack toward your dominant path\'s tier (this run).',
+    ),
+    FloorBoon.modifierPreviewLens => (
+      title: 'Modifier Preview Lens',
+      description: 'Preview the next floor\'s modifiers before advancing.',
+    ),
   };
+}
+
+class _PreviewModifierStrip extends StatelessWidget {
+  const _PreviewModifierStrip({required this.modifiers, required this.nextFloor});
+
+  final Set<FloorModifier> modifiers;
+  final int nextFloor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'FLOOR $nextFloor PREVIEW',
+            style: const TextStyle(
+              color: Colors.amberAccent,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (modifiers.isEmpty)
+            const Text(
+              'No modifiers.',
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            )
+          else
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: modifiers
+                  .map(
+                    (mod) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_floorModIcon(mod), color: _floorModColor(mod), size: 12),
+                          const SizedBox(width: 4),
+                          Text(
+                            _floorModName(mod),
+                            style: TextStyle(
+                              color: _floorModColor(mod),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ChoiceCardGeneric extends StatelessWidget {
