@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
 
+import '../game/components/enemy.dart';
 import '../game/state/game_state.dart';
 import '../game/state/mech_catalog.dart';
 import '../game/state/meta_catalog.dart';
@@ -96,6 +97,7 @@ class Hud extends StatelessWidget {
           Positioned.fill(child: _CantPicker()),
           Positioned.fill(child: _SutraRewardPicker()),
           Positioned.fill(child: _FloorRewardPicker()),
+          Positioned.fill(child: _CodexSlate()),
           Positioned.fill(child: _RunOverPanel()),
           Positioned(
             top: 12,
@@ -103,7 +105,15 @@ class Hud extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              children: [_FloorBadge(), SizedBox(height: 8), _ArsenalPanel()],
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [_FloorBadge(), SizedBox(width: 8), _CodexSlateButton()],
+                ),
+                SizedBox(height: 8),
+                _ArsenalPanel(),
+              ],
             ),
           ),
           Positioned(top: 12, right: 16, child: _GoldBadge()),
@@ -669,59 +679,10 @@ class _FloorBadgeState extends State<_FloorBadge> {
     }
   }
 
-  String _eventName(CrucibleEvent event) {
-    switch (event) {
-      case CrucibleEvent.pressure:
-        return 'Pressure';
-      case CrucibleEvent.hivebreak:
-        return 'Hivebreak';
-      case CrucibleEvent.sigilStorm:
-        return 'Sigil Storm';
-      case CrucibleEvent.eclipse:
-        return 'Eclipse';
-      case CrucibleEvent.quiet:
-        return 'Quiet';
-      case CrucibleEvent.fractalPack:
-        return 'Fractal Pack';
-      case CrucibleEvent.lastCant:
-        return 'Last Cant';
-      case CrucibleEvent.bossEcho:
-        return 'Boss Echo';
-    }
-  }
-
-  String _modName(FloorModifier mod) => _floorModName(mod);
+  String _eventName(CrucibleEvent event) => crucibleDisplayName(event);
+  String _modName(FloorModifier mod) => floorModifierDisplayName(mod);
   IconData _modIcon(FloorModifier mod) => _floorModIcon(mod);
   Color _modColor(FloorModifier mod) => _floorModColor(mod);
-}
-
-String _floorModName(FloorModifier mod) {
-    switch (mod) {
-      case FloorModifier.bandwidthBlackout:
-        return 'Bandwidth Blackout';
-      case FloorModifier.cinderDamp:
-        return 'Cinder Damp';
-      case FloorModifier.stanceStutter:
-        return 'Stance Stutter';
-      case FloorModifier.quickening:
-        return 'Quickening';
-      case FloorModifier.solarFlare:
-        return 'Solar Flare';
-      case FloorModifier.veilOfAsh:
-        return 'Veil of Ash';
-      case FloorModifier.hereticTide:
-        return 'Heretic Tide';
-      case FloorModifier.cipherStorm:
-        return 'Cipher Storm';
-      case FloorModifier.echoTide:
-        return 'Echo Tide';
-      case FloorModifier.discountKit:
-        return 'Discount Kit';
-      case FloorModifier.manaBloom:
-        return 'Mana Bloom';
-      case FloorModifier.glyphCache:
-        return 'Glyph Cache';
-    }
 }
 
 IconData _floorModIcon(FloorModifier mod) {
@@ -2633,7 +2594,7 @@ class _PreviewModifierStrip extends StatelessWidget {
                           Icon(_floorModIcon(mod), color: _floorModColor(mod), size: 12),
                           const SizedBox(width: 4),
                           Text(
-                            _floorModName(mod),
+                            floorModifierDisplayName(mod),
                             style: TextStyle(
                               color: _floorModColor(mod),
                               fontSize: 11,
@@ -3779,4 +3740,313 @@ class _BossRewardToastState extends State<_BossRewardToast>
       },
     );
   }
+}
+
+class _CodexSlateButton extends StatelessWidget {
+  const _CodexSlateButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final isRunOver = context.select<GameState, bool>((s) => s.isRunOver);
+    if (isRunOver) return const SizedBox.shrink();
+
+    final state = context.read<GameState>();
+    return _Panel(
+      child: InkWell(
+        onTap: state.openCodexSlate,
+        borderRadius: BorderRadius.circular(4),
+        child: const Padding(
+          padding: EdgeInsets.all(6),
+          child: Icon(Icons.menu_book, color: Color(0xFF64FFDA), size: 18),
+        ),
+      ),
+    );
+  }
+}
+
+class _CodexSlate extends StatelessWidget {
+  const _CodexSlate();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GameState>(
+      builder: (_, state, _) {
+        if (!state.codexSlateOpen || state.isRunOver) {
+          return const SizedBox.shrink();
+        }
+        final meta = state.meta;
+        final allDiscovered = meta.discoveredIds.toList();
+        final recent = allDiscovered.length <= 5
+            ? allDiscovered.reversed.toList()
+            : allDiscovered
+                .sublist(allDiscovered.length - 5)
+                .reversed
+                .toList();
+
+        return ColoredBox(
+          color: Colors.black.withValues(alpha: 0.85),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    onPressed: state.closeCodexSlate,
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 56, 16, 16),
+                  child: SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'CODEX SLATE',
+                            style: TextStyle(
+                              color: Color(0xFF64FFDA),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Floor ${state.floor} · Run ${state.totalRuns}',
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _CodexSlateSection(
+                            title: 'THIS RUN',
+                            child: _ThisRunBlock(state: state),
+                          ),
+                          const SizedBox(height: 20),
+                          _CodexSlateSection(
+                            title: 'RECENT DISCOVERIES',
+                            child: _RecentDiscoveriesBlock(ids: recent),
+                          ),
+                          const SizedBox(height: 20),
+                          _CodexSlateSection(
+                            title: 'BESTIARY PEEK',
+                            child: BestiaryList(meta: meta),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CodexSlateSection extends StatelessWidget {
+  const _CodexSlateSection({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.amberAccent,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+
+class _ThisRunBlock extends StatelessWidget {
+  const _ThisRunBlock({required this.state});
+  final GameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final modifiers = state.runModifiersSeen.map(floorModifierDisplayName).toList()..sort();
+    final crucibles = state.runCruciblesSurvived.map(crucibleDisplayName).toList()..sort();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _ThisRunRow(label: 'Modifiers seen', value: modifiers.isEmpty ? '—' : modifiers.join(', ')),
+        const SizedBox(height: 4),
+        _ThisRunRow(label: 'Crucibles survived', value: crucibles.isEmpty ? '—' : crucibles.join(', ')),
+        const SizedBox(height: 4),
+        _ThisRunRow(label: 'Bosses cleared', value: '${state.runBossesCleared}'),
+      ],
+    );
+  }
+}
+
+class _ThisRunRow extends StatelessWidget {
+  const _ThisRunRow({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 140,
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentDiscoveriesBlock extends StatelessWidget {
+  const _RecentDiscoveriesBlock({required this.ids});
+  final List<String> ids;
+
+  @override
+  Widget build(BuildContext context) {
+    if (ids.isEmpty) {
+      return const Text(
+        'No discoveries yet.',
+        style: TextStyle(color: Colors.white54, fontSize: 12),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: ids
+          .map(
+            (id) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  const Text('• ', style: TextStyle(color: Colors.amberAccent)),
+                  Expanded(
+                    child: Text(
+                      _displayNameForDiscovery(id),
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+String _displayNameForDiscovery(String id) {
+  final colon = id.indexOf(':');
+  if (colon < 0) {
+    // Bare skill id.
+    final skill = findSkillById(id);
+    return skill?.title ?? id;
+  }
+  final prefix = id.substring(0, colon);
+  final rest = id.substring(colon + 1);
+  switch (prefix) {
+    case 'enemy':
+      final type = EnemyType.values.firstWhereOrNull((e) => e.name == rest);
+      return type == null ? id : 'Enemy: ${_enemyDisplay(type)}';
+    case 'echo':
+      final echo = EchoType.values.firstWhereOrNull((e) => e.name == rest);
+      return echo == null ? id : GameState.echoDisplayName(echo);
+    case 'crucible':
+      final ev = CrucibleEvent.values.firstWhereOrNull((e) => e.name == rest);
+      return ev == null ? id : 'Crucible: ${crucibleDisplayName(ev)}';
+    case 'inflection':
+      final inf = inflectionCatalog.firstWhereOrNull((i) => i.id == rest);
+      return inf == null ? id : 'Inflection: ${inf.name}';
+    case 'triad':
+      final triad = triadCatalog.firstWhereOrNull((t) => t.id == rest);
+      return triad == null ? id : 'Triad: ${triad.name}';
+    default:
+      // Evolution discoveries are encoded as `${archetype.name}:${path}`. If
+      // we can resolve an archetype with that name, render as evolution.
+      final archetype =
+          SkillArchetype.values.firstWhereOrNull((a) => a.name == prefix);
+      if (archetype != null) return 'Evolution: ${archetype.name} → $rest';
+      return id;
+  }
+}
+
+String _enemyDisplay(EnemyType t) {
+  return switch (t) {
+    EnemyType.basic => 'Basic',
+    EnemyType.fast => 'Fast',
+    EnemyType.tank => 'Tank',
+    EnemyType.elite => 'Elite',
+    EnemyType.aegis => 'Aegis',
+    EnemyType.splinter => 'Splinter',
+    EnemyType.sigilBearer => 'Sigil-Bearer',
+    EnemyType.wraith => 'Wraith',
+    EnemyType.cinderDrinker => 'Cinder-Drinker',
+    EnemyType.sutraBound => 'Sutra-Bound',
+    EnemyType.watcher => 'The Watcher',
+    EnemyType.glassSovereign => 'Glass Sovereign',
+    EnemyType.hivefather => 'Hivefather',
+    EnemyType.cipherTwin => 'Cipher Twin',
+    EnemyType.architect => 'The Architect',
+    EnemyType.watcherAdd => 'Watcher Drone',
+  };
+}
+
+String crucibleDisplayName(CrucibleEvent e) {
+  return switch (e) {
+    CrucibleEvent.pressure => 'Pressure',
+    CrucibleEvent.hivebreak => 'Hivebreak',
+    CrucibleEvent.sigilStorm => 'Sigil Storm',
+    CrucibleEvent.eclipse => 'Eclipse',
+    CrucibleEvent.quiet => 'Quiet',
+    CrucibleEvent.fractalPack => 'Fractal Pack',
+    CrucibleEvent.lastCant => 'Last Cant',
+    CrucibleEvent.bossEcho => 'Boss Echo',
+  };
+}
+
+String floorModifierDisplayName(FloorModifier mod) {
+  return switch (mod) {
+    FloorModifier.bandwidthBlackout => 'Bandwidth Blackout',
+    FloorModifier.cinderDamp => 'Cinder Damp',
+    FloorModifier.stanceStutter => 'Stance Stutter',
+    FloorModifier.quickening => 'Quickening',
+    FloorModifier.solarFlare => 'Solar Flare',
+    FloorModifier.veilOfAsh => 'Veil of Ash',
+    FloorModifier.hereticTide => 'Heretic Tide',
+    FloorModifier.cipherStorm => 'Cipher Storm',
+    FloorModifier.echoTide => 'Echo Tide',
+    FloorModifier.discountKit => 'Discount Kit',
+    FloorModifier.manaBloom => 'Mana Bloom',
+    FloorModifier.glyphCache => 'Glyph Cache',
+  };
 }
