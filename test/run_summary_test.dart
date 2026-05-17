@@ -80,6 +80,33 @@ void main() {
     expect(state.worstDamageFloor, 11);
   });
 
+  test('recap fields survive save/load (e.g. closing app on death screen)',
+      () async {
+    final state = GameState(seed: 1);
+    addTearDown(state.dispose);
+
+    state.floor = 9;
+    state.update(10.0); // trickle -> press, longest phase = trickle/10s
+    state.registerKill();
+    state.registerKill();
+    state.damageNexus(17, source: EnemyType.wraith);
+
+    await state.save();
+
+    final loaded = GameState();
+    addTearDown(loaded.dispose);
+    await loaded.load();
+
+    expect(loaded.bestStreakCount, state.bestStreakCount);
+    expect(loaded.bestStreakSeconds, state.bestStreakSeconds);
+    expect(loaded.longestPhaseType, state.longestPhaseType);
+    expect(loaded.longestPhaseFloor, state.longestPhaseFloor);
+    expect(loaded.longestPhaseDuration, state.longestPhaseDuration);
+    expect(loaded.worstDamageAmount, 17);
+    expect(loaded.worstDamageSource, EnemyType.wraith);
+    expect(loaded.worstDamageFloor, 9);
+  });
+
   test('per-run recap fields reset on resetProgress', () async {
     final state = GameState(seed: 1);
     addTearDown(state.dispose);

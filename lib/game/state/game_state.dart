@@ -1558,6 +1558,14 @@ class GameState extends ChangeNotifier {
     await prefs.remove(_kOldFirewallLevel);
     await prefs.remove(_kOldMeteorMarkLevel);
     await prefs.remove(_kOldDamageLevel);
+    await prefs.remove(_kRecapBestStreakCount);
+    await prefs.remove(_kRecapBestStreakSeconds);
+    await prefs.remove(_kRecapLongestPhaseType);
+    await prefs.remove(_kRecapLongestPhaseFloor);
+    await prefs.remove(_kRecapLongestPhaseDuration);
+    await prefs.remove(_kRecapWorstDamageAmount);
+    await prefs.remove(_kRecapWorstDamageSource);
+    await prefs.remove(_kRecapWorstDamageFloor);
     await _writeLastSeen(prefs);
 
     if (meta.prePick) _rollUpgradeChoices();
@@ -1608,6 +1616,22 @@ class GameState extends ChangeNotifier {
     devEnemyStrength = prefs.getDouble(_kDevEnemyStrength) ?? 1.0;
     nexusHp = (prefs.getDouble(_kNexusHp) ?? nexusMaxHp).clamp(0, nexusMaxHp);
     _resetPerRunMeta();
+    // Restore run-summary recap fields after the per-run reset so they
+    // survive an app restart on the Nexus Breached screen.
+    bestStreakCount = prefs.getInt(_kRecapBestStreakCount) ?? 0;
+    bestStreakSeconds = prefs.getDouble(_kRecapBestStreakSeconds) ?? 0;
+    final phaseIdx = prefs.getInt(_kRecapLongestPhaseType) ?? -1;
+    longestPhaseType = (phaseIdx >= 0 && phaseIdx < FloorPhase.values.length)
+        ? FloorPhase.values[phaseIdx]
+        : null;
+    longestPhaseFloor = prefs.getInt(_kRecapLongestPhaseFloor) ?? 0;
+    longestPhaseDuration = prefs.getDouble(_kRecapLongestPhaseDuration) ?? 0;
+    worstDamageAmount = prefs.getDouble(_kRecapWorstDamageAmount) ?? 0;
+    final srcIdx = prefs.getInt(_kRecapWorstDamageSource) ?? -1;
+    worstDamageSource = (srcIdx >= 0 && srcIdx < EnemyType.values.length)
+        ? EnemyType.values[srcIdx]
+        : null;
+    worstDamageFloor = prefs.getInt(_kRecapWorstDamageFloor) ?? 0;
     _skillLevels
       ..clear()
       ..addAll(_decodeSkillLevels(prefs.getStringList(_kSkillLevels)));
@@ -1666,6 +1690,20 @@ class GameState extends ChangeNotifier {
     await prefs.setStringList(_kSkillLevels, _encodeSkillLevels());
     await prefs.setStringList(_kEvolutions, _encodeEvolutions());
     await prefs.setStringList(_kPendingUpgrades, _pendingUpgradeIds);
+    await prefs.setInt(_kRecapBestStreakCount, bestStreakCount);
+    await prefs.setDouble(_kRecapBestStreakSeconds, bestStreakSeconds);
+    await prefs.setInt(
+      _kRecapLongestPhaseType,
+      longestPhaseType?.index ?? -1,
+    );
+    await prefs.setInt(_kRecapLongestPhaseFloor, longestPhaseFloor);
+    await prefs.setDouble(_kRecapLongestPhaseDuration, longestPhaseDuration);
+    await prefs.setDouble(_kRecapWorstDamageAmount, worstDamageAmount);
+    await prefs.setInt(
+      _kRecapWorstDamageSource,
+      worstDamageSource?.index ?? -1,
+    );
+    await prefs.setInt(_kRecapWorstDamageFloor, worstDamageFloor);
     await _writeLastSeen(prefs);
   }
 
@@ -2100,4 +2138,12 @@ class GameState extends ChangeNotifier {
   static const _kOldMeteorMarkLevel = 'meteorMarkLevel';
   static const _kOldDamageLevel = 'damageLevel';
   static const _kLastSeen = 'lastSeenAt';
+  static const _kRecapBestStreakCount = 'recapBestStreakCount';
+  static const _kRecapBestStreakSeconds = 'recapBestStreakSeconds';
+  static const _kRecapLongestPhaseType = 'recapLongestPhaseType';
+  static const _kRecapLongestPhaseFloor = 'recapLongestPhaseFloor';
+  static const _kRecapLongestPhaseDuration = 'recapLongestPhaseDuration';
+  static const _kRecapWorstDamageAmount = 'recapWorstDamageAmount';
+  static const _kRecapWorstDamageSource = 'recapWorstDamageSource';
+  static const _kRecapWorstDamageFloor = 'recapWorstDamageFloor';
 }

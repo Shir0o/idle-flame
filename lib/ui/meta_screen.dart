@@ -280,7 +280,7 @@ class _RunRecapCard extends StatelessWidget {
 
   String _worstDamageValue() {
     if (game.worstDamageAmount <= 0) return '—';
-    final pct = (game.worstDamageAmount / GameState.maxNexusHp * 100)
+    final pct = (game.worstDamageAmount / game.nexusMaxHp * 100)
         .round()
         .clamp(0, 100);
     final source = game.worstDamageSource;
@@ -310,26 +310,6 @@ class _RunRecapCard extends StatelessWidget {
     };
   }
 
-  static String _enemyDisplayName(EnemyType type) {
-    return switch (type) {
-      EnemyType.basic => 'Drone',
-      EnemyType.fast => 'Fast drone',
-      EnemyType.tank => 'Tank',
-      EnemyType.elite => 'Elite',
-      EnemyType.aegis => 'Aegis',
-      EnemyType.splinter => 'Splinter',
-      EnemyType.sigilBearer => 'Sigil Bearer',
-      EnemyType.wraith => 'Wraith',
-      EnemyType.cinderDrinker => 'Cinder Drinker',
-      EnemyType.sutraBound => 'Sutra-Bound',
-      EnemyType.watcher => 'Watcher',
-      EnemyType.glassSovereign => 'Glass Sovereign',
-      EnemyType.hivefather => 'Hivefather',
-      EnemyType.cipherTwin => 'Cipher Twin',
-      EnemyType.architect => 'Architect',
-      EnemyType.watcherAdd => 'Daemon Add',
-    };
-  }
 }
 
 class _TabBar extends StatelessWidget {
