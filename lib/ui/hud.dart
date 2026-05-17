@@ -2567,7 +2567,8 @@ class _FloorRewardPicker extends StatelessWidget {
     ),
     FloorBoon.inflectionSpark => (
       title: 'Inflection Spark',
-      description: 'Next level-up offers an Inflection on a skill of your choice.',
+      description:
+          'Skill picks offer Inflection options even on level 1 until you take one.',
     ),
     FloorBoon.pathResonance => (
       title: 'Path Resonance',

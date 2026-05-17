@@ -86,6 +86,34 @@ void main() {
     expect(state.dominantPath, SkillPath.edge);
   });
 
+  test('Path Resonance defers when no dominant path exists at boon time', () {
+    final state = GameState();
+    addTearDown(state.dispose);
+
+    expect(state.dominantPath, isNull);
+
+    state.devJumpFloor(9);
+    state.registerKill(isBoss: true);
+    state.resolveFloorReward(FloorBoon.pathResonance);
+    // Deferred — no dominant path yet, so the +1 is pending.
+    expect(state.pendingPathResonance, isTrue);
+    expect(state.pathLevels(SkillPath.edge), 0);
+
+    // Establish a path by picking a skill.
+    state.devSetSkillLevel('chain', 1);
+    expect(state.dominantPath, SkillPath.edge);
+    expect(state.pendingPathResonance, isTrue,
+        reason: 'devSetSkillLevel bypasses selectUpgrade; bonus still pending');
+
+    state.devForceLevelUp();
+    final choice = state.pendingChoices.firstOrNull;
+    if (choice != null) {
+      state.selectUpgrade(choice.definition.id);
+      expect(state.pendingPathResonance, isFalse,
+          reason: 'selectUpgrade should apply the deferred bonus');
+    }
+  });
+
   test('Modifier Preview Lens pre-rolls next floor modifiers', () {
     final state = GameState();
     addTearDown(state.dispose);

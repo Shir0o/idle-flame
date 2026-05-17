@@ -184,6 +184,11 @@ class GameState extends ChangeNotifier {
   // effective level count (feeds into tier thresholds and `dominantPath`).
   final Map<SkillPath, int> _pathStackBonus = {};
 
+  // Floors v3 §2 — when Path Resonance is taken before any skill is owned,
+  // there's no dominant path to bump. Defer the +1 until the player picks a
+  // skill, then apply it to the resulting dominant path.
+  bool pendingPathResonance = false;
+
   // Floors v3 §2 — Modifier Preview Lens boon. Pre-rolled modifier set for
   // the upcoming floor; surfaced in the inter-floor reward-room UI and
   // consumed by `_advanceFloor` instead of rolling fresh.
@@ -720,11 +725,7 @@ class GameState extends ChangeNotifier {
       activeModifiers.addAll(previewedNextFloorModifiers!);
       previewedNextFloorModifiers = null;
     } else if (!isBossFloor) {
-      final count = _rng.nextInt(3); // 0 to 2 modifiers
-      if (count > 0) {
-        final pool = FloorModifier.values.toList()..shuffle(_rng);
-        activeModifiers.addAll(pool.take(count));
-      }
+      activeModifiers.addAll(_rollFloorModifiers(floor));
     }
 
     activeEchoes
@@ -1127,20 +1128,24 @@ class GameState extends ChangeNotifier {
       case FloorBoon.inflectionSpark:
         pendingInflectionSpark = true;
       case FloorBoon.pathResonance:
-        final target = dominantPath ?? SkillPath.values[_rng.nextInt(SkillPath.values.length)];
-        _pathStackBonus[target] = (_pathStackBonus[target] ?? 0) + 1;
+        final target = dominantPath;
+        if (target != null) {
+          _pathStackBonus[target] = (_pathStackBonus[target] ?? 0) + 1;
+        } else {
+          // No dominant path yet — defer until the player picks a skill that
+          // establishes one. Picking a random path here would waste the boon.
+          pendingPathResonance = true;
+        }
       case FloorBoon.modifierPreviewLens:
-        previewedNextFloorModifiers = _rollPreviewModifiersForNextFloor();
+        previewedNextFloorModifiers = _rollFloorModifiers(floor + 1);
     }
   }
 
-  // Pre-roll the modifier set for the floor that `_advanceFloor` will enter
-  // next. Mirrors the logic inside `_advanceFloor`: only non-boss floors carry
-  // modifiers, and the count is 0-2. Consumes the same RNG so the actual
-  // advance is deterministic with the pre-roll.
-  Set<FloorModifier> _rollPreviewModifiersForNextFloor() {
-    final nextFloor = floor + 1;
-    if (nextFloor % 5 == 0) return <FloorModifier>{};
+  // Roll the modifier set for `targetFloor`. Boss floors carry no modifiers;
+  // other floors get 0-2 from the catalog. Shared by `_advanceFloor` and the
+  // Modifier Preview Lens pre-roll.
+  Set<FloorModifier> _rollFloorModifiers(int targetFloor) {
+    if (targetFloor % 5 == 0) return <FloorModifier>{};
     final count = _rng.nextInt(3);
     if (count == 0) return <FloorModifier>{};
     final pool = FloorModifier.values.toList()..shuffle(_rng);
@@ -1176,6 +1181,16 @@ class GameState extends ChangeNotifier {
     final nextLevel = skillLevel(id) + 1;
     _skillLevels[id] = nextLevel;
     levelUpCount += 1;
+
+    // Floors v3 §2 — apply a deferred Path Resonance bonus now that a path
+    // has been established by this pick.
+    if (pendingPathResonance) {
+      final target = dominantPath;
+      if (target != null) {
+        _pathStackBonus[target] = (_pathStackBonus[target] ?? 0) + 1;
+        pendingPathResonance = false;
+      }
+    }
 
     final definition = _skillById(id);
     if (definition != null) {
@@ -1649,6 +1664,7 @@ class GameState extends ChangeNotifier {
     _networkCrashUsedThisFloor = false;
     pendingInflectionSpark = false;
     _pathStackBonus.clear();
+    pendingPathResonance = false;
     previewedNextFloorModifiers = null;
     pendingFloorReward = false;
     floorRewardChoices = [];
