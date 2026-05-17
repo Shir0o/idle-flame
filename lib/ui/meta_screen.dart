@@ -76,6 +76,8 @@ class _MetaScreenState extends State<MetaScreen> {
                             label: const Text('Retry Run'),
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        _DailyDescentButton(game: game, meta: meta),
                       ],
                     ),
                   ),
@@ -942,6 +944,44 @@ class _BuyButton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DailyDescentButton extends StatelessWidget {
+  const _DailyDescentButton({required this.game, required this.meta});
+
+  final GameState game;
+  final MetaState meta;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = MetaState.currentDailyKey();
+    final best = meta.dailyBests[today];
+    final alreadyPlayed = best != null;
+
+    final label = alreadyPlayed
+        ? "Today's daily best: F${best.floor} · ${best.embers} embers"
+        : 'Daily Descent ($today)';
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: alreadyPlayed
+              ? const Color(0xFF263238)
+              : const Color(0xFF7C4DFF),
+          foregroundColor: alreadyPlayed ? Colors.white54 : Colors.white,
+        ),
+        onPressed: alreadyPlayed
+            ? null
+            : () {
+                meta.clearLastEmbersEarned();
+                game.startDailyRun();
+              },
+        icon: const Icon(Icons.calendar_today),
+        label: Text(label),
       ),
     );
   }
