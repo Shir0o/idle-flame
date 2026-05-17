@@ -22,6 +22,9 @@ enum FloorBoon {
   randomSutra,
   halveCantCost,
   skipNextCant,
+  inflectionSpark,
+  pathResonance,
+  modifierPreviewLens,
 }
 
 enum CrucibleEvent {
@@ -171,6 +174,20 @@ class GameState extends ChangeNotifier {
   // Floor Reward Room state
   bool pendingFloorReward = false;
   List<FloorBoon> floorRewardChoices = [];
+
+  // Floors v3 §2 — Inflection Spark boon. Set when the boon is claimed; the
+  // next level-up surfaces inflection options on all skill choices regardless
+  // of current level. Cleared the first time an inflection is actually picked.
+  bool pendingInflectionSpark = false;
+
+  // Floors v3 §2 — Path Resonance boon. Adds +1 to the targeted path's
+  // effective level count (feeds into tier thresholds and `dominantPath`).
+  final Map<SkillPath, int> _pathStackBonus = {};
+
+  // Floors v3 §2 — Modifier Preview Lens boon. Pre-rolled modifier set for
+  // the upcoming floor; surfaced in the inter-floor reward-room UI and
+  // consumed by `_advanceFloor` instead of rolling fresh.
+  Set<FloorModifier>? previewedNextFloorModifiers;
 
   void triggerCounterTip(EnemyType type) {
     final copy = _counterTipCopy(type);
@@ -521,6 +538,7 @@ class GameState extends ChangeNotifier {
         total += _archetypeLevel(archetype);
       }
     }
+    total += _pathStackBonus[path] ?? 0;
     // Devotion: Tier-up twice as fast
     if (devotion) {
       final dominant = dominantPath;
@@ -697,7 +715,11 @@ class GameState extends ChangeNotifier {
     _cipherStormCursor = 0;
 
     activeModifiers.clear();
-    if (!isBossFloor) {
+    if (previewedNextFloorModifiers != null) {
+      // Modifier Preview Lens (Floors v3 §2) — consume the pre-rolled set.
+      activeModifiers.addAll(previewedNextFloorModifiers!);
+      previewedNextFloorModifiers = null;
+    } else if (!isBossFloor) {
       final count = _rng.nextInt(3); // 0 to 2 modifiers
       if (count > 0) {
         final pool = FloorModifier.values.toList()..shuffle(_rng);
@@ -728,6 +750,12 @@ class GameState extends ChangeNotifier {
         pathScores[archetype.path] = (pathScores[archetype.path] ?? 0) + level;
       }
     }
+    // Floors v3 §2 — Path Resonance boon contributes one-time stacks.
+    _pathStackBonus.forEach((path, bonus) {
+      if (bonus > 0) {
+        pathScores[path] = (pathScores[path] ?? 0) + bonus;
+      }
+    });
 
     if (pathScores.isEmpty) return null;
 
@@ -904,7 +932,9 @@ class GameState extends ChangeNotifier {
       isBossActive = false;
       _grantBossReward(floor);
 
-      if (floor == 10 || floor == 20) {
+      // Floors v3 §2 — reward rooms every boss floor from F10 onward
+      // (F10, F15, F20, F25, then every 5 in Endless). F5 stays clean.
+      if (floor >= 10) {
         pendingFloorReward = true;
         floorRewardChoices = _rollFloorBoonChoices();
       } else {
@@ -1094,7 +1124,27 @@ class GameState extends ChangeNotifier {
         _halveNextCantCost = true;
       case FloorBoon.skipNextCant:
         _skipNextCant = true;
+      case FloorBoon.inflectionSpark:
+        pendingInflectionSpark = true;
+      case FloorBoon.pathResonance:
+        final target = dominantPath ?? SkillPath.values[_rng.nextInt(SkillPath.values.length)];
+        _pathStackBonus[target] = (_pathStackBonus[target] ?? 0) + 1;
+      case FloorBoon.modifierPreviewLens:
+        previewedNextFloorModifiers = _rollPreviewModifiersForNextFloor();
     }
+  }
+
+  // Pre-roll the modifier set for the floor that `_advanceFloor` will enter
+  // next. Mirrors the logic inside `_advanceFloor`: only non-boss floors carry
+  // modifiers, and the count is 0-2. Consumes the same RNG so the actual
+  // advance is deterministic with the pre-roll.
+  Set<FloorModifier> _rollPreviewModifiersForNextFloor() {
+    final nextFloor = floor + 1;
+    if (nextFloor % 5 == 0) return <FloorModifier>{};
+    final count = _rng.nextInt(3);
+    if (count == 0) return <FloorModifier>{};
+    final pool = FloorModifier.values.toList()..shuffle(_rng);
+    return pool.take(count).toSet();
   }
 
   SkillArchetype _randomOwnedArchetype() {
@@ -1121,6 +1171,7 @@ class GameState extends ChangeNotifier {
     if (inflectionId != null) {
       meta.recordDiscovery('inflection:$inflectionId');
       _selectedInflections.putIfAbsent(id, () => []).add(inflectionId);
+      pendingInflectionSpark = false;
     }
     final nextLevel = skillLevel(id) + 1;
     _skillLevels[id] = nextLevel;
@@ -1596,6 +1647,11 @@ class GameState extends ChangeNotifier {
     _iaidoTimer = 0;
     _satelliteTimer = 0;
     _networkCrashUsedThisFloor = false;
+    pendingInflectionSpark = false;
+    _pathStackBonus.clear();
+    previewedNextFloorModifiers = null;
+    pendingFloorReward = false;
+    floorRewardChoices = [];
   }
 
   Future<void> load() async {
@@ -1990,7 +2046,7 @@ class GameState extends ChangeNotifier {
     final nextLevel = currentLevel + 1;
 
     List<InflectionDefinition> options = [];
-    if (currentLevel >= 1) {
+    if (currentLevel >= 1 || pendingInflectionSpark) {
       final pool = inflectionCatalog
           .where((inf) => inf.archetype == definition.archetype)
           .toList();
