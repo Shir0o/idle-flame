@@ -665,7 +665,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
     _breachTimer += dt;
     if (_breachTimer >= _breachInterval) {
       _breachTimer = 0;
-      game.state.damageNexus(game.state.enemyBreachDamage);
+      game.state.damageNexus(game.state.enemyBreachDamage, source: type);
       game.shakeCamera(intensity: 5, duration: 0.18);
       if (!HitSparkEffect.atCap && game.canSpawnMinorEffect()) {
         parent?.add(
@@ -908,7 +908,7 @@ class Enemy extends PositionComponent with HasGameReference<ZenithZeroGame> {
         (type == DamageType.basic ||
             type == DamageType.sentinel ||
             type == DamageType.mothership)) {
-      game.state.damageNexus(finalAmount * 0.5);
+      game.state.damageNexus(finalAmount * 0.5, source: this.type);
     }
 
     // Cinder-Drinker: Heals from Hex damage

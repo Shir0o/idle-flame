@@ -112,14 +112,8 @@ class _Header extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Floor ${game.floor} · ${game.runKills} kills · ${game.gold} gold',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
-            fontSize: 12,
-          ),
-        ),
+        const SizedBox(height: 10),
+        _RunRecapCard(game: game, meta: meta),
         if (game.skillLevels.isNotEmpty) ...[
           const SizedBox(height: 12),
           Wrap(
@@ -181,6 +175,160 @@ class _Header extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _RunRecapCard extends StatelessWidget {
+  const _RunRecapCard({required this.game, required this.meta});
+  final GameState game;
+  final MetaState meta;
+
+  static const _labelStyle = TextStyle(
+    color: Color(0xB3FFFFFF),
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.6,
+  );
+  static const _valueStyle = TextStyle(
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'RUN ${game.totalRuns}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                Text(
+                  'F${game.floor} · ${game.runKills} kills',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _row('PEAK FLOOR', _peakFloorValue()),
+            _row('LONGEST PHASE', _longestPhaseValue()),
+            _row('BEST KILL STREAK', _bestStreakValue()),
+            _row('WORST DAMAGE', _worstDamageValue()),
+            _row('EMBERS EARNED', '${meta.lastEmbersEarned}'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 132,
+            child: Text(label, style: _labelStyle),
+          ),
+          Expanded(
+            child: Text(value, style: _valueStyle),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _peakFloorValue() {
+    final boss = _bossNameForFloor(game.floor);
+    return boss == null ? 'F${game.floor}' : 'F${game.floor} ($boss)';
+  }
+
+  String _longestPhaseValue() {
+    final phase = game.longestPhaseType;
+    if (phase == null || game.longestPhaseDuration <= 0) return '—';
+    return 'F${game.longestPhaseFloor} ${_phaseLabel(phase)} · '
+        '${game.longestPhaseDuration.toStringAsFixed(0)}s';
+  }
+
+  String _bestStreakValue() {
+    if (game.bestStreakCount <= 1) return '—';
+    return '${game.bestStreakCount} in '
+        '${game.bestStreakSeconds.toStringAsFixed(1)}s';
+  }
+
+  String _worstDamageValue() {
+    if (game.worstDamageAmount <= 0) return '—';
+    final pct = (game.worstDamageAmount / GameState.maxNexusHp * 100)
+        .round()
+        .clamp(0, 100);
+    final source = game.worstDamageSource;
+    final name = source == null ? 'Hazard' : _enemyDisplayName(source);
+    return '$name · F${game.worstDamageFloor} · $pct% HP';
+  }
+
+  static String _phaseLabel(FloorPhase phase) {
+    return switch (phase) {
+      FloorPhase.trickle => 'Trickle',
+      FloorPhase.press => 'Press',
+      FloorPhase.crucible => 'Crucible',
+    };
+  }
+
+  // The boss that defines the 5-floor tier containing `floor`. F1-F5 Watcher,
+  // F6-F10 Sovereign, etc.; F26+ all Architect (Endless echoes).
+  static String? _bossNameForFloor(int floor) {
+    if (floor <= 0) return null;
+    final tier = ((floor - 1) ~/ 5 + 1) * 5;
+    return switch (tier) {
+      5 => 'Watcher',
+      10 => 'Glass Sovereign',
+      15 => 'Hivefather',
+      20 => 'Cipher Twin',
+      _ => 'Architect',
+    };
+  }
+
+  static String _enemyDisplayName(EnemyType type) {
+    return switch (type) {
+      EnemyType.basic => 'Drone',
+      EnemyType.fast => 'Fast drone',
+      EnemyType.tank => 'Tank',
+      EnemyType.elite => 'Elite',
+      EnemyType.aegis => 'Aegis',
+      EnemyType.splinter => 'Splinter',
+      EnemyType.sigilBearer => 'Sigil Bearer',
+      EnemyType.wraith => 'Wraith',
+      EnemyType.cinderDrinker => 'Cinder Drinker',
+      EnemyType.sutraBound => 'Sutra-Bound',
+      EnemyType.watcher => 'Watcher',
+      EnemyType.glassSovereign => 'Glass Sovereign',
+      EnemyType.hivefather => 'Hivefather',
+      EnemyType.cipherTwin => 'Cipher Twin',
+      EnemyType.architect => 'Architect',
+      EnemyType.watcherAdd => 'Daemon Add',
+    };
   }
 }
 
